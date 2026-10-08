@@ -60,3 +60,23 @@ export function fmt(sec: number): string {
 export function localDate(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
+
+function parseDate(s: string): Date | null {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s)
+  return m ? new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3])) : null
+}
+
+// 'YYYY-MM-DD' 두 날짜 사이의 날 수 (b - a). 날짜가 아니면 NaN
+export function dayDiff(a: string, b: string): number {
+  const da = parseDate(a)
+  const db = parseDate(b)
+  if (!da || !db) return NaN
+  return Math.round((db.getTime() - da.getTime()) / 86_400_000)
+}
+
+export function addDays(date: string, days: number): string {
+  const d = parseDate(date)
+  if (!d) return date
+  d.setDate(d.getDate() + days)
+  return localDate(d)
+}

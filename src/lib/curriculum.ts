@@ -1,3 +1,4 @@
+import { addDays } from './text'
 import type { Progress, SessionLog, Stage, Unit } from './types'
 
 // 교육과정: 완전 초보(A1)부터 원어민 수준(C2)까지 6단계, 단계마다 단원 10개.
@@ -236,6 +237,14 @@ export function getStage(n: number): Stage {
   return STAGES.find((s) => s.n === n) ?? STAGES[0]
 }
 
+export function unitById(id: string): Unit | null {
+  for (const s of STAGES) {
+    const u = s.units.find((x) => x.id === id)
+    if (u) return u
+  }
+  return null
+}
+
 export function getUnit(progress: Progress): Unit {
   const stage = getStage(progress.stage)
   return stage.units.find((u) => u.id === progress.unit) ?? stage.units[0]
@@ -312,6 +321,28 @@ export function promotionStatus(progress: Progress): Promotion | null {
 
 export function totalMinutes(progress: Progress): number {
   return progress.sessions.reduce((a, s) => a + s.minutes, 0)
+}
+
+// 그날 앱에서 공부한 분
+export function minutesOn(progress: Progress, date: string): number {
+  return progress.sessions.filter((s) => s.date === date).reduce((a, s) => a + s.minutes, 0)
+}
+
+// 오늘(또는 아직 오늘 안 했으면 어제)부터 거꾸로 이어서 공부한 날 수
+export function streakDays(progress: Progress, today: string): number {
+  const days = new Set(progress.sessions.map((s) => s.date))
+  let day = days.has(today) ? today : addDays(today, -1)
+  let count = 0
+  while (days.has(day)) {
+    count++
+    day = addDays(day, -1)
+  }
+  return count
+}
+
+// 오늘 이 단원을 마쳤는지 (시작 화면에서 '오늘 완료'로 보여 준다)
+export function doneToday(progress: Progress, today: string): SessionLog | null {
+  return [...progress.sessions].reverse().find((s) => s.date === today && s.turns >= MIN_TURNS_FOR_UNIT) ?? null
 }
 
 // 두 기기의 진도를 합친다: 더 높은 단계, 마친 단원은 합집합, 대화 기록은 겹치지 않게

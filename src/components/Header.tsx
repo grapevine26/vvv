@@ -1,12 +1,14 @@
 interface Props {
   friendName: string
   status: string
-  timer: string | null
+  // 대화 중에만: 단원까지 주고받은 횟수, 남은 시간
+  turnsText: string | null
+  timeText: string | null
   onSettings: () => void
   onEnd: (() => void) | null
 }
 
-export function Header({ friendName, status, timer, onSettings, onEnd }: Props) {
+export function Header({ friendName, status, turnsText, timeText, onSettings, onEnd }: Props) {
   const initial = (friendName || 'E').trim().charAt(0).toUpperCase()
   return (
     <header>
@@ -14,12 +16,21 @@ export function Header({ friendName, status, timer, onSettings, onEnd }: Props) 
         {initial}
       </div>
       <div className="who">
-        <b id="friendName">{friendName}</b>
-        <small>
-          <span id="status">{status}</span>
-          {timer && (
-            <span className="timer" id="timer">
-              {timer}
+        {/* 대화 중엔 둘째 줄에 칸 수·남은 시간이 있어서, 상태 글자는 이름 옆으로 올린다 */}
+        <div className="who-name">
+          <b id="friendName">{friendName}</b>
+          {turnsText && <span id="status">{status}</span>}
+        </div>
+        <small className="who-line">
+          {!turnsText && <span id="status">{status}</span>}
+          {turnsText && (
+            <span className="pill" id="turnCount">
+              {turnsText}
+            </span>
+          )}
+          {timeText && (
+            <span className="pill" id="timer">
+              {timeText}
             </span>
           )}
         </small>

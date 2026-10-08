@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AppError, callGemini, checkWriting, explainApiError, parseJsonLoose, parseTurn, TURN_SCHEMA } from './gemini'
+import { AppError, callGemini, checkKey, checkWriting, explainApiError, parseJsonLoose, parseTurn, REQUEST_TIMEOUT_MS, TURN_SCHEMA } from './gemini'
 
 const settings = { apiKey: 'TEST-KEY', model: 'gemini-3.5-flash-lite' }
 const contents = [{ role: 'user' as const, parts: [{ text: 'hi' }] }]
@@ -115,5 +115,63 @@ describe('checkWriting', () => {
       fixed: "I'm so tired.",
       comment: '거의 맞았어요',
     })
+  })
+})
+
+describe('시간 제한과 취소', () => {
+  // 신호가 끊길 때까지 답하지 않는 서버
+  function hangingFetch() {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(
+        (_url: string, init: RequestInit) =>
+          new Promise((_, reject) => init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')))),
+      ),
+    )
+  }
+
+  it('20초 안에 답이 없으면 다시 시도할 수 있는 오류', async () => {
+    vi.useFakeTimers()
+    hangingFetch()
+    const p = callGemini(settings, 's', contents, TURN_SCHEMA)
+    const check = expect(p).rejects.toMatchObject({ retryable: true, message: expect.stringContaining('너무 늦어요') })
+    await vi.advanceTimersByTimeAsync(REQUEST_TIMEOUT_MS + 10)
+    await check
+    vi.useRealTimers()
+  })
+
+  it('바깥에서 취소하면 그만뒀다고 알려 준다', async () => {
+    hangingFetch()
+    const controller = new AbortController()
+    const p = callGemini(settings, 's', contents, TURN_SCHEMA, controller.signal)
+    controller.abort()
+    await expect(p).rejects.toThrow('그만뒀어요')
+  })
+})
+
+describe('오류에 고칠 곳 표시', () => {
+  it('키 오류는 apiKey, 모델 오류는 model', async () => {
+    mockFetch(400, { error: { message: 'API key not valid. Please pass a valid API key.' } })
+    await expect(callGemini(settings, 's', contents, TURN_SCHEMA)).rejects.toMatchObject({ fix: 'apiKey', retryable: false })
+    mockFetch(404, { error: { message: 'not found' } })
+    await expect(callGemini(settings, 's', contents, TURN_SCHEMA)).rejects.toMatchObject({ fix: 'model' })
+    mockFetch(503, {})
+    await expect(callGemini(settings, 's', contents, TURN_SCHEMA)).rejects.toMatchObject({ fix: null, retryable: true })
+  })
+})
+
+describe('checkKey', () => {
+  it('모델 정보만 GET으로 읽는다 (사용량을 쓰지 않음)', async () => {
+    const fetchMock = mockFetch(200, { name: 'models/gemini-3.5-flash-lite' })
+    await expect(checkKey(settings)).resolves.toBeUndefined()
+    const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
+    expect(url).toBe('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite')
+    expect(init.method).toBe('GET')
+    expect((init.headers as Record<string, string>)['x-goog-api-key']).toBe('TEST-KEY')
+  })
+
+  it('틀린 키면 키 칸으로 안내', async () => {
+    mockFetch(400, { error: { message: 'API key not valid.' } })
+    await expect(checkKey(settings)).rejects.toMatchObject({ fix: 'apiKey' })
   })
 })

@@ -1,5 +1,6 @@
 import { TARGET } from './config'
 import { getStage, getUnit } from './curriculum'
+import { dayDiff, localDate } from './text'
 import type { Content, Lang, LearnedItem, Progress, Settings } from './types'
 
 export function startMessage(progress: Progress): string {
@@ -22,7 +23,9 @@ export function buildSystemPrompt(s: Settings, learned: LearnedItem[], progress:
   const unit = getUnit(progress)
   const repeatFreq = REPEAT_FREQ[s.repeatAmount] ?? REPEAT_FREQ['보통']
   const repeatLine = stage.n <= 3 ? ` 따라 말하기 횟수: ${repeatFreq}.` : ''
-  const review = learned.slice(-8).map((x) => `- ${x.en} (${x.ko})`).join('\n')
+  const review = pickReview(learned, localDate())
+    .map((x) => `- ${x.en} (${x.ko})`)
+    .join('\n')
   const reviewBlock = review
     ? `
 
@@ -90,4 +93,33 @@ export function recentHistory(history: Content[]): Content[] {
   let h = history.slice(-40)
   while (h.length && h[0].role !== 'user') h = h.slice(1)
   return h
+}
+
+// 복습할 문장 고르기: 최근 3개 + 배운 지 1·3·7·14·30일쯤 된 문장(잊을 때쯤 다시 보기) + 나머지는 날짜로 정한 순서로 채운다.
+// 같은 날에는 같은 목록이 나온다
+export function pickReview(learned: LearnedItem[], today: string, n = 8): LearnedItem[] {
+  if (learned.length <= n) return learned.slice()
+  const chosen = new Set<number>()
+  for (let i = learned.length - 3; i < learned.length; i++) chosen.add(i)
+  for (const gap of [1, 3, 7, 14, 30]) {
+    let best = -1
+    let bestDist = Infinity
+    learned.forEach((x, i) => {
+      if (chosen.has(i)) return
+      const age = dayDiff(x.date, today)
+      const dist = Number.isNaN(age) ? Infinity : Math.abs(age - gap)
+      if (dist < bestDist) {
+        best = i
+        bestDist = dist
+      }
+    })
+    if (best >= 0 && bestDist <= Math.max(1, gap / 2)) chosen.add(best)
+  }
+  let seed = [...today].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7)
+  const rest = learned.map((_, i) => i).filter((i) => !chosen.has(i))
+  while (chosen.size < n && rest.length) {
+    seed = (seed * 1103515245 + 12345) >>> 0
+    chosen.add(rest.splice(seed % rest.length, 1)[0])
+  }
+  return [...chosen].sort((a, b) => a - b).map((i) => learned[i])
 }

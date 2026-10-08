@@ -1,11 +1,17 @@
 import { DEFAULT_SETTINGS, MAX_LEARNED } from './config'
 import { sanitizeProgress } from './curriculum'
 import { same } from './text'
-import type { LearnedItem, Pair, Progress, Settings } from './types'
+import type { Draft, LearnedItem, Message, Pair, Progress, SessionStats, Settings } from './types'
 
 const KEY_SETTINGS = 'englishFriend.settings'
 const KEY_LEARNED = 'englishFriend.learned'
 const KEY_PROGRESS = 'englishFriend.progress'
+const KEY_DRAFT_PREFIX = 'englishFriend.draft.'
+const KEY_DAILY = 'englishFriend.daily'
+const KEY_TAB = 'englishFriend.tabId'
+
+// 이 앱이 쓰는 저장 키인지 (다른 탭에서 바뀐 것을 알아챌 때 쓴다)
+export const isAppKey = (key: string | null): boolean => !!key && key.startsWith('englishFriend.')
 
 // 사생활 보호 모드 등에서 저장소가 막혀도 앱은 돌아가게 한다
 function read(key: string): unknown {
@@ -68,3 +74,105 @@ export function mergeLearned(learned: LearnedItem[], repeats: Pair[], today: str
   }
   return { list: list.slice(-MAX_LEARNED), added }
 }
+
+// ── 탭 구분 ──
+// 탭마다 고유 번호. sessionStorage라서 새로고침해도 같은 탭이면 같은 번호다
+export function getTabId(): string {
+  try {
+    const saved = sessionStorage.getItem(KEY_TAB)
+    if (saved) return saved
+    const id = typeof crypto !== 'undefined' && 'randomUUID' in crypto ? crypto.randomUUID() : String(Math.random()).slice(2)
+    sessionStorage.setItem(KEY_TAB, id)
+    return id
+  } catch {
+    return 'tab-' + String(Math.random()).slice(2)
+  }
+}
+
+// ── 대화 임시 저장 (탭마다 따로) ──
+// 다른 탭이 이 시간 안에 갱신했으면 아직 그 탭에서 대화 중이라고 본다
+export const DRAFT_ACTIVE_MS = 30_000
+
+const num = (x: unknown) => (typeof x === 'number' && Number.isFinite(x) ? x : 0)
+const isObj = (x: unknown): x is Record<string, unknown> => !!x && typeof x === 'object'
+
+function sanitizeStats(v: unknown): SessionStats {
+  const o = isObj(v) ? v : {}
+  return { turns: num(o.turns), koTurns: num(o.koTurns), enOwnTurns: num(o.enOwnTurns), enOwnWords: num(o.enOwnWords), repeatTurns: num(o.repeatTurns) }
+}
+
+function sanitizeDraft(v: unknown): Draft | null {
+  if (!isObj(v) || typeof v.tabId !== 'string' || typeof v.date !== 'string' || typeof v.unit !== 'string') return null
+  if (!Array.isArray(v.messages) || !Array.isArray(v.history) || !Array.isArray(v.repeats)) return null
+  const messages = v.messages.filter(
+    (m): m is Message =>
+      isObj(m) &&
+      typeof m.id === 'number' &&
+      ((m.kind === 'ai' && isObj(m.turn) && typeof (m.turn as Record<string, unknown>).say === 'string') ||
+        (m.kind === 'me' && typeof m.text === 'string') ||
+        (m.kind === 'error' && typeof m.text === 'string')),
+  )
+  const history = v.history.filter(
+    (h): h is Draft['history'][number] =>
+      isObj(h) && (h.role === 'user' || h.role === 'model') && Array.isArray(h.parts) && isObj(h.parts[0]) && typeof h.parts[0].text === 'string',
+  )
+  const repeats = v.repeats.filter((r): r is Pair => isObj(r) && typeof r.en === 'string').map((r) => ({ en: r.en, ko: String(r.ko ?? '') }))
+  return {
+    tabId: v.tabId,
+    savedAt: num(v.savedAt),
+    date: v.date,
+    activeMs: num(v.activeMs),
+    limitSec: num(v.limitSec),
+    stage: num(v.stage) || 1,
+    unit: v.unit,
+    stats: sanitizeStats(v.stats),
+    repeats,
+    messages,
+    history,
+    pendingRepeat: typeof v.pendingRepeat === 'string' ? v.pendingRepeat : '',
+  }
+}
+
+export const saveDraft = (d: Draft): boolean => write(KEY_DRAFT_PREFIX + d.tabId, d)
+
+export function clearDraft(tab: string): void {
+  try {
+    localStorage.removeItem(KEY_DRAFT_PREFIX + tab)
+  } catch {
+    // 저장소가 막혀 있으면 지울 것도 없다
+  }
+}
+
+export function loadDrafts(): Draft[] {
+  const drafts: Draft[] = []
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (!key || !key.startsWith(KEY_DRAFT_PREFIX)) continue
+      const d = sanitizeDraft(read(key))
+      if (d) drafts.push(d)
+    }
+  } catch {
+    return []
+  }
+  return drafts.sort((a, b) => b.savedAt - a.savedAt)
+}
+
+// 되살릴 수 있는 임시 저장: 이 탭의 것(새로고침·다시 열기 전 대화)이거나, 다른 탭에서 한동안 갱신이 없는 것
+export function resumableDrafts(drafts: Draft[], myTab: string, now: number): Draft[] {
+  return drafts.filter((d) => (d.tabId === myTab || now - d.savedAt > DRAFT_ACTIVE_MS) && (d.stats.turns > 0 || d.repeats.length > 0))
+}
+
+// 다른 탭에서 지금 대화 중인 것
+export function activeElsewhere(drafts: Draft[], myTab: string, now: number): boolean {
+  return drafts.some((d) => d.tabId !== myTab && now - d.savedAt <= DRAFT_ACTIVE_MS)
+}
+
+// ── 오늘 할 일 체크 (날짜가 바뀌면 비운다) ──
+export function loadDailyChecks(today: string): number[] {
+  const v = read(KEY_DAILY)
+  if (!isObj(v) || v.date !== today || !Array.isArray(v.checks)) return []
+  return v.checks.filter((x): x is number => typeof x === 'number')
+}
+
+export const saveDailyChecks = (today: string, checks: number[]): boolean => write(KEY_DAILY, { date: today, checks })

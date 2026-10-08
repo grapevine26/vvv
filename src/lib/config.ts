@@ -23,16 +23,22 @@ export const DEFAULT_SETTINGS: Settings = {
   voiceName: '',
   showKo: true,
   soundFirst: false,
+  autoListen: false,
 }
 
 export function clamp(value: number, lo: number, hi: number, fallback: number): number {
   return Number.isFinite(value) ? Math.min(hi, Math.max(lo, value)) : fallback
 }
 
+// 키를 복사할 때 따라온 공백·따옴표를 지운다
+export function cleanApiKey(key: string): string {
+  return key.replace(/[\s"'“”‘’`]/g, '')
+}
+
 export function sanitizeSettings(s: Settings): Settings {
   return {
     ...s,
-    apiKey: s.apiKey.trim(),
+    apiKey: cleanApiKey(s.apiKey),
     model: s.model.trim().replace(/^models\//, '') || DEFAULT_SETTINGS.model,
     likes: s.likes.trim(),
     minutes: Math.round(clamp(Number(s.minutes), 3, 120, DEFAULT_SETTINGS.minutes)),

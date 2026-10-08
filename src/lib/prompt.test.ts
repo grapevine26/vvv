@@ -33,13 +33,12 @@ describe('buildSystemPrompt', () => {
     expect(startMessage(DEFAULT_PROGRESS)).toContain('「인사와 자기소개」')
   })
 
-  it('저장한 문장이 있으면 최근 8개를 복습으로 넣는다', () => {
+  it('저장한 문장이 있으면 8개를 골라 복습으로 넣는다 (최근 것 포함)', () => {
     const learned = Array.from({ length: 10 }, (_, i) => ({ en: `Sentence ${i}.`, ko: `문장 ${i}`, date: '2026-10-08' }))
     const p = buildSystemPrompt(DEFAULT_SETTINGS, learned, DEFAULT_PROGRESS)
     expect(p).toContain('[복습]')
     expect(p).toContain('Sentence 9.')
-    expect(p).toContain('Sentence 2.')
-    expect(p).not.toContain('Sentence 1.')
+    expect(p.split('\n').filter((l) => l.startsWith('- Sentence'))).toHaveLength(8)
   })
 })
 

@@ -62,14 +62,16 @@ export class Speaker {
     }
   }
 
-  async play(segments: Segment[], slow = false, rateOverride?: number): Promise<void> {
+  // 끝까지 다 읽었으면 true, 중간에 끊겼으면 false
+  async play(segments: Segment[], slow = false, rateOverride?: number): Promise<boolean> {
     this.cancel()
     const my = this.token
-    if (!this.supported) return
+    if (!this.supported) return false
     for (const seg of segments) {
-      if (my !== this.token) return
+      if (my !== this.token) return false
       await this.speakOne(seg, slow, rateOverride)
     }
+    return my === this.token
   }
 
   private speakOne(seg: Segment, slow: boolean, rateOverride?: number): Promise<void> {
@@ -80,7 +82,8 @@ export class Speaker {
       const voice = this.voiceFor(isTarget ? TARGET.tts : NATIVE.tts, seg.voiceName)
       if (voice) u.voice = voice
       const base = isTarget ? (rateOverride ?? this.options.rate) : 1
-      u.rate = slow ? Math.max(0.5, base * 0.75) : base
+      // 천천히는 영어에만. 한국어 신호까지 느려지면 답답하다
+      u.rate = slow && isTarget ? Math.max(0.5, base * 0.75) : base
       let done = false
       const finish = () => {
         if (done) return
@@ -160,9 +163,70 @@ export function listen(
   return rec
 }
 
-export function micErrorText(code: string): string {
+// ── 실행 환경 ──
+export interface Env {
+  ua: string
+  standalone: boolean
+}
+
+export function currentEnv(): Env {
+  const standalone =
+    typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(display-mode: standalone)').matches
+  return { ua: typeof navigator !== 'undefined' ? navigator.userAgent : '', standalone }
+}
+
+export const isAndroid = (ua: string) => /Android/i.test(ua)
+
+// 카카오톡 같은 앱 안의 브라우저는 음성 인식이 안 되고 저장소도 크롬과 따로라서 크롬으로 보내야 한다
+export function inAppBrowser(ua: string): 'kakao' | 'other' | null {
+  if (/KAKAOTALK/i.test(ua)) return 'kakao'
+  if (/NAVER\(inapp|Instagram|FBAN|FBAV|Line\/|; wv\)/i.test(ua)) return 'other'
+  return null
+}
+
+// 앱 안 브라우저에서 크롬으로 여는 주소. 못 만들면 null (주소를 복사해 크롬에 붙여 넣으라고 안내)
+export function openInChromeUrl(href: string, ua: string): string | null {
+  if (/KAKAOTALK/i.test(ua)) return 'kakaotalk://web/openExternal?url=' + encodeURIComponent(href)
+  if (isAndroid(ua)) {
+    const u = new URL(href)
+    return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(':', '')};package=com.android.chrome;end`
+  }
+  return null
+}
+
+export type MicState = 'granted' | 'denied' | 'prompt' | 'unknown'
+
+export async function micPermission(): Promise<{ state: MicState; status: PermissionStatus | null }> {
+  try {
+    const status = await navigator.permissions.query({ name: 'microphone' as PermissionName })
+    return { state: status.state as MicState, status }
+  } catch {
+    return { state: 'unknown', status: null }
+  }
+}
+
+// 대화 전에 마이크 권한 창을 미리 띄운다. 허용되면 true
+export async function requestMic(): Promise<boolean> {
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+    stream.getTracks().forEach((t) => t.stop())
+    return true
+  } catch {
+    return false
+  }
+}
+
+// 마이크가 막혔을 때 기기에 맞는 고치는 법
+export function micBlockedHelp(env: Env): string {
+  if (env.standalone || isAndroid(env.ua)) {
+    return '휴대폰 설정 → 애플리케이션 → Chrome → 권한 → 마이크를 "허용"으로 바꿔 주세요. 크롬 화면이면 주소창 왼쪽 아이콘 → 권한 → 마이크도 확인해 주세요.'
+  }
+  return '주소창 왼쪽 아이콘을 누르고 마이크를 "허용"으로 바꿔 주세요.'
+}
+
+export function micErrorText(code: string, env: Env = currentEnv()): string {
   const messages: Record<string, string> = {
-    'not-allowed': '마이크가 막혀 있어요. 주소창 왼쪽 아이콘을 눌러 마이크를 "허용"으로 바꿔 주세요.',
+    'not-allowed': `마이크가 막혀 있어요. ${micBlockedHelp(env)} 그동안은 아래 입력칸에 써도 돼요.`,
     'service-not-allowed': '이 브라우저에서는 음성 인식을 쓸 수 없어요. 크롬이나 엣지에서 열어 주세요.',
     'no-speech': '소리가 안 들렸어요. 버튼을 누르고 바로 말해 주세요.',
     'audio-capture': '마이크를 찾지 못했어요. 마이크(이어폰)가 연결돼 있는지 확인해 주세요.',
