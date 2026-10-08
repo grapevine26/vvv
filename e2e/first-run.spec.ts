@@ -618,6 +618,8 @@ test.describe('7) 마이크 권한 미리 확인', () => {
     await expect(status).toHaveText('🎤 마이크 준비됨')
     await expect(page.locator('#btnMicAllow')).toHaveCount(0)
     expect(await micRequests(page)).toBe(1)
+    // 처음 허용할 때는 '다시 눌러 보세요' 같은 알림을 띄우지 않는다 (누를 것이 없다)
+    expect(await page.locator('#toast.show').count()).toBe(0)
     expect(errors).toEqual([])
   })
 
@@ -688,6 +690,8 @@ test.describe('7) 마이크 권한 미리 확인', () => {
     await setMic(page, 'granted')
     await expect(page.locator('#micKo')).toHaveAttribute('aria-pressed', 'true')
     await expect(page.locator('#guide')).toContainText('🎤 듣는 중…')
+    // 듣는 중인데 '다시 눌러 보세요' 알림이 뜨면, 따라 누르다 빈 말로 멈춘다
+    expect(await page.locator('#toast.show').count()).toBe(0)
     queue.push(reply(turn({ say: 'Nice to meet you!', say_ko: '만나서 반가워!' })))
     await say(page, '안녕 나는 민수야')
     await expect(aiBubbles(page)).toHaveCount(2)

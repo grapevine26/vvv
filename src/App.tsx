@@ -432,12 +432,14 @@ export default function App() {
       takenOverRef.current()
       return
     }
-    draftSavedRef.current = true
-    saveDraft({
+    // 다른 앱에 오래 가 있는 중이면 그 시간은 빼고 적는다 (이 탭이 그대로 버려져도 부풀지 않게)
+    const hidAt = hiddenAtRef.current
+    const end = hidAt && Date.now() - hidAt > AWAY_MS ? hidAt : Date.now()
+    const saved = saveDraft({
       tabId,
       savedAt: Date.now(),
       date: session.date,
-      activeMs: Date.now() - startedAt,
+      activeMs: end - startedAt,
       limitSec,
       stage: session.stage,
       unit: session.unit,
@@ -447,6 +449,8 @@ export default function App() {
       history: historyRef.current,
       pendingRepeat,
     })
+    // 실제로 써졌을 때만 '썼다'로 친다. 저장소가 꽉 차 쓰기만 실패하는 브라우저에서 이어받음으로 잘못 보지 않게
+    if (saved) draftSavedRef.current = true
   }, [screen, messages, repeats, pendingRepeat, saveTick, tabId, session, startedAt, limitSec, takenOverRef])
 
   const aiTurn = async () => {
@@ -504,12 +508,14 @@ export default function App() {
   const classify = (text: string): { target: string; chip: string } => {
     const picked = pickedHintRef.current
     const repeat = pendingRepeatRef.current
-    if (picked && overlap(picked, text) >= 0.5) return { target: '', chip: picked }
+    const words = normWords(text).length
+    // 예시보다 길게 늘려 말했으면(한 단어 넘게) 고른 예시가 있어도 내 대답
+    const readAloud = (h: string, min: number) => overlap(h, text) >= min && words <= normWords(h).length + 1
+    if (picked && readAloud(picked, 0.5)) return { target: '', chip: picked }
     // 따라 할 문장과 거의 안 겹치면 질문에 직접 대답한 것으로 본다
     if (repeat && overlap(repeat, text) >= 0.3) return { target: repeat, chip: '' }
-    // 보이는 대답 예시를 (누르지 않고) 그대로 읽음. 예시보다 길게 늘려 말했으면 내 대답
-    const words = normWords(text).length
-    const chip = lastHintsRef.current.find((h) => overlap(h, text) >= 0.7 && words <= normWords(h).length + 1) ?? ''
+    // 보이는 대답 예시를 (누르지 않고) 그대로 읽음
+    const chip = lastHintsRef.current.find((h) => readAloud(h, 0.7)) ?? ''
     return { target: '', chip }
   }
 
@@ -519,7 +525,9 @@ export default function App() {
     stopListening()
     const { target, chip } = lang === 'en' ? classify(text) : { target: '', chip: '' }
     // 지난 말에 아직 답을 못 받았으면(오류 뒤 다시 말함) 같은 차례로 합쳐 보내므로 한 번만 센다
-    const unanswered = historyRef.current[historyRef.current.length - 1]?.role === 'user' && historyRef.current.length > 1
+    const last = historyRef.current[historyRef.current.length - 1]
+    // 시작 메시지는 한 줄이고, 답을 못 받은 내 말은 줄바꿈으로 이어 붙는다
+    const unanswered = last?.role === 'user' && (historyRef.current.length > 1 || last.parts[0].text.includes('\n'))
     const stats = statsRef.current
     if (!unanswered) {
       stats.turns++
@@ -914,6 +922,7 @@ export default function App() {
   const resumable = resumableDrafts(drafts, tabId, now)
   const draft = screen === 'start' ? (resumable[0] ?? null) : null
   const lastAi = [...messages].reverse().find((m) => m.kind === 'ai')
+  const lastMsg = messages[messages.length - 1]
   const phase: Phase = busy ? 'thinking' : listening ? 'listening' : speaking ? 'speaking' : 'yourTurn'
   const status = busy ? '생각 중…' : speaking ? '말하는 중…' : screen === 'chat' ? unitTitle : `${TARGET.label} 친구`
   const startText =
@@ -1003,7 +1012,7 @@ export default function App() {
             pendingRepeat={pendingRepeat}
             pickedHint={pickedHint}
             notice={micNotice}
-            hasError={messages[messages.length - 1]?.kind === 'error'}
+            errorFix={lastMsg?.kind === 'error' ? lastMsg.fix : undefined}
             firstTime={progress.sessions.length === 0}
             veiled={!!lastAi && lastAi.kind === 'ai' && lastAi.veiled}
             onMic={(lang) => startMic(lang, (text) => sendUser(text, lang))}

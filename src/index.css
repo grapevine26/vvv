@@ -262,15 +262,16 @@ details.more { border: 1px solid var(--border); border-radius: 12px; padding: 0 
 details.more > summary { min-height: 44px; display: flex; align-items: center; gap: 8px; font-weight: 700; cursor: pointer; list-style: none; }
 details.more > summary::-webkit-details-marker { display: none; }
 /* 펼칠 수 있다는 표시 (display:flex면 기본 화살표가 사라져서 직접 그린다) */
-details.more > summary::before { content: '▸'; color: var(--accent); }
-details.more[open] > summary::before { content: '▾'; }
+/* 화살표는 보이기만 하고 낭독기에는 읽히지 않게 (펼침 상태는 따로 알려 준다) */
+details.more > summary::before { content: '▸' / ''; color: var(--accent); }
+details.more[open] > summary::before { content: '▾' / ''; }
 details.more[open] { padding-bottom: 8px; }
 
 fieldset { border: 1px solid var(--border); border-radius: 12px; padding: 10px 12px; margin: 0 0 12px; min-width: 0; }
 #rateButtons { grid-template-columns: repeat(auto-fit, minmax(5.5em, 1fr)); }
 legend { font-weight: 700; padding: 0 4px; }
 .field { display: block; margin: 8px 0; font-size: 0.9375rem; }
-.field > span:first-child { display: block; margin-bottom: 4px; font-weight: 600; }
+.field > span:first-child, .field > label:first-child { display: block; margin-bottom: 4px; font-weight: 600; }
 .field > .inline, .inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .inline input, .inline select { flex: 1 1 160px; min-width: 0; }
 .field input:not([type="checkbox"]):not([type="range"]), .field select, textarea {
@@ -334,7 +335,8 @@ legend { font-weight: 700; padding: 0 4px; }
 .checklist li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 
 /* ── 교육과정 ── */
-.list { margin: 6px 0; padding-left: 20px; font-size: 0.9375rem; }
+/* 번호가 글자 크기를 따라 커지므로 들여쓰기도 em으로 */
+.list { margin: 6px 0; padding-left: 1.5em; font-size: 0.9375rem; }
 .list li { margin: 3px 0; }
 .criteria { list-style: none; padding-left: 0; }
 .criteria li.ok { color: var(--ok); font-weight: 600; }

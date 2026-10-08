@@ -1053,7 +1053,10 @@ test.describe('두 탭', () => {
     // A가 다시 써서 같은 대화가 두 번 기록되거나 임시 저장이 되살아나지 않는다
     const sessions = (await progressIn(page))?.sessions ?? []
     expect(sessions.map((x) => x.turns)).toEqual([1])
-    expect((await draftKeys(page)).length).toBeLessThanOrEqual(1)
+    // 한 번 더 저장 주기가 지나도 A의 임시 저장이 되살아나지 않는다 (되살아나면 다음 시작에서 또 기록된다)
+    await page.clock.fastForward('00:16')
+    expect(await draftKeys(page)).toEqual([])
+    expect(((await progressIn(page))?.sessions ?? []).map((x) => x.turns)).toEqual([1])
     expect(errors).toEqual([])
     expect(b.errors).toEqual([])
   })

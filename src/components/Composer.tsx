@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { TARGET } from '../lib/config'
 import { HANGUL } from '../lib/text'
-import type { Lang } from '../lib/types'
+import type { FixTarget, Lang } from '../lib/types'
 
 // 지금 누구 차례인지: 친구가 생각 중 / 말하는 중 / 내가 말하는 중 / 내 차례
 export type Phase = 'thinking' | 'speaking' | 'listening' | 'yourTurn'
@@ -15,8 +15,8 @@ interface Props {
   pickedHint: string
   // 마이크가 막혔을 때처럼, 사라지면 안 되는 안내
   notice: string
-  // 마지막 말풍선이 오류인지 (그때는 '다시 시도'를 먼저 안내)
-  hasError: boolean
+  // 마지막 말풍선이 오류면 그 고칠 곳 (undefined: 오류 없음, null: 다시 시도하면 되는 오류)
+  errorFix: FixTarget | undefined
   firstTime: boolean
   veiled: boolean
   onMic: (lang: Lang) => void
@@ -28,7 +28,7 @@ interface Props {
 const IDLE_LABEL: Record<Lang, string> = { ko: '눌러서 한국어로 말하기', en: `눌러서 ${TARGET.label}로 말하기` }
 
 export function Composer(props: Props) {
-  const { friendName, phase, listening, interim, pendingRepeat, pickedHint, notice, hasError, firstTime, veiled } = props
+  const { friendName, phase, listening, interim, pendingRepeat, pickedHint, notice, errorFix, firstTime, veiled } = props
   const { onMic, onCancelListen, onStopSpeaking, onSend } = props
   const [text, setText] = useState('')
   const [typing, setTyping] = useState(false)
@@ -56,8 +56,14 @@ export function Composer(props: Props) {
     guide = notice
     guideClass += ' warn'
   } else if (pickedHint) guide = `👉 EN을 누르고 "${pickedHint}" 말해 보세요`
-  else if (hasError) {
-    guide = '연결이 안 됐어요. 위의 "다시 시도"를 누르거나, 다시 말해 보세요.'
+  else if (errorFix !== undefined) {
+    // 키·모델 문제는 다시 해도 같은 실패라서, 말풍선의 고치기 버튼을 가리킨다
+    guide =
+      errorFix === 'apiKey'
+        ? '키 문제예요. 위 말풍선의 "키 다시 넣기"를 눌러 주세요.'
+        : errorFix === 'model'
+          ? '모델 이름 문제예요. 위 말풍선의 "모델 이름 고치기"를 눌러 주세요.'
+          : '연결이 안 됐어요. 위의 "다시 시도"를 누르거나, 다시 말해 보세요.'
     guideClass += ' warn'
   }
   else if (pendingRepeat) guide = `👉 이제 내 차례! EN을 누르고 "${pendingRepeat}" 따라 말해요`
@@ -144,31 +150,45 @@ export function Composer(props: Props) {
   )
 }
 
-// 화면 키보드가 열려 있는지: 화면 높이가 지금까지 본 가장 큰 높이보다 크게 줄었으면 열린 것으로 본다
+// 화면 키보드가 열려 있는지: 화면 높이가 이 방향(세로·가로)에서 본 가장 큰 높이보다 크게 줄었으면 열린 것으로 본다
 function useKeyboardOpen(): boolean {
   const [open, setOpen] = useState(false)
   useEffect(() => {
     const vv = window.visualViewport
-    let base = window.innerHeight
-    const height = () => Math.min(window.innerHeight, vv ? vv.height : window.innerHeight)
-    const check = () => {
-      base = Math.max(base, window.innerHeight)
-      setOpen(base - height() > 120)
+    const bases: Record<string, number> = {}
+    // 처음 보는 방향인데 입력 중이었으면(키보드를 연 채 돌림) 키보드가 열린 것으로 친다. 높이가 크게 늘면 풀린다
+    let guessOpen = false
+    // 기기 방향으로 가른다 (화면 비율은 키보드가 열리면 바뀌어서 쓸 수 없다)
+    const orient = () => {
+      const t = window.screen.orientation?.type
+      if (t) return t.startsWith('landscape') ? 'land' : 'port'
+      return window.screen.width > window.screen.height ? 'land' : 'port'
     }
-    // 화면을 돌리면 기준 높이를 새로 잡는다
-    const onRotate = () =>
-      setTimeout(() => {
-        base = window.innerHeight
-        check()
-      }, 300)
+    const editing = () => {
+      const a = document.activeElement
+      return !!a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA')
+    }
+    const check = () => {
+      const o = orient()
+      const h = Math.min(window.innerHeight, vv ? vv.height : window.innerHeight)
+      const base = bases[o]
+      if (base === undefined) {
+        bases[o] = window.innerHeight
+        guessOpen = editing()
+      } else if (window.innerHeight > base) {
+        if (window.innerHeight - base > 120) guessOpen = false
+        bases[o] = window.innerHeight
+      }
+      setOpen(guessOpen || bases[o] - h > 120)
+    }
     check()
     window.addEventListener('resize', check)
     vv?.addEventListener('resize', check)
-    window.addEventListener('orientationchange', onRotate)
+    window.addEventListener('orientationchange', check)
     return () => {
       window.removeEventListener('resize', check)
       vv?.removeEventListener('resize', check)
-      window.removeEventListener('orientationchange', onRotate)
+      window.removeEventListener('orientationchange', check)
     }
   }, [])
   return open

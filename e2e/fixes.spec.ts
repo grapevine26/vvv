@@ -216,6 +216,8 @@ test.describe('뒤로 가기·마무리', () => {
       }, v)
     await setVisible('hidden')
     await page.clock.fastForward('10:00')
+    // 숨겨진 동안 쓴 임시 저장에도 자리 비운 시간이 들어가지 않는다 (이 탭이 그대로 버려져도 부풀지 않게)
+    await expect.poll(async () => (await storageGet(page, K.draft + (await page.evaluate(() => sessionStorage.getItem('englishFriend.tabId'))))).activeMs).toBeLessThan(120_000)
     await setVisible('visible')
     await page.clock.fastForward('01:00')
     await page.click('#btnEnd')
@@ -292,6 +294,49 @@ test.describe('대화에서 한 말 세기', () => {
     expect(errors).toEqual([])
   })
 
+  test('첫 인사가 실패한 채 여러 번 말해도 답을 받기 전까지는 한 번만 센다', async ({ page, context }) => {
+    const { queue, requests, errors } = await open(page, context)
+    queue.push(errorReply(503, 'overloaded'))
+    await page.click('#btnStart')
+    await expect(page.locator('.msg.error')).toHaveCount(1)
+    for (const t of ['hello', 'hello?', 'are you there?']) {
+      queue.push(errorReply(503, 'overloaded'))
+      await typeSend(page, t)
+      await expect(page.locator('#typeSend')).toBeEnabled()
+    }
+    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    queue.push(reply(greetTurn()))
+    await typeSend(page, 'hi')
+    await expect(aiBubbles(page)).toHaveCount(1)
+    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    expect(lastUserText(requests[requests.length - 1]).split('\n')).toHaveLength(5)
+    expect(errors).toEqual([])
+  })
+
+  test('대답 예시를 눌러 들은 뒤 길게 늘려 말하면 "내 대답"으로 센다', async ({ page, context }) => {
+    const { queue, requests, errors } = await open(page, context)
+    await startWithGreeting(page, queue, { say: 'What food do you like?', say_ko: '무슨 음식 좋아해?', hints: [{ en: 'I like pizza.', ko: '피자 좋아.' }] })
+    await page.click('.chip.hint')
+    queue.push(reply(turn({ say: 'Sounds fun!', say_ko: '재밌겠다!' })))
+    await speak(page, 'en', 'I like pizza with my family every weekend at home')
+    await expect(aiBubbles(page)).toHaveCount(2)
+    expect(lastUserText(requests[1])).toBe('[영어] I like pizza with my family every weekend at home')
+    await expect(page.locator('.msg.me .tag').last()).toHaveText('영어')
+    expect(errors).toEqual([])
+  })
+
+  test('키·모델 오류면 안내 줄이 "다시 시도" 대신 말풍선의 고치기 버튼을 가리킨다', async ({ page, context }) => {
+    const { queue, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    queue.push(errorReply(404, 'models/x is not found'))
+    await typeSend(page, 'hello')
+    await expect(guide(page)).toHaveText('모델 이름 문제예요. 위 말풍선의 "모델 이름 고치기"를 눌러 주세요.')
+    queue.push(errorReply(403, 'API key was reported as leaked'))
+    await page.click('.btn-retry')
+    await expect(guide(page)).toHaveText('키 문제예요. 위 말풍선의 "키 다시 넣기"를 눌러 주세요.')
+    expect(errors).toEqual([])
+  })
+
   test('자동 듣기로만 대화해도 단원 조건 알림에 지금 단원 이름이 나온다', async ({ page, context }) => {
     const { queue, errors } = await open(page, context, {
       settings: { autoListen: true },
@@ -362,6 +407,46 @@ test.describe('임시 저장·여러 탭', () => {
     expect(p.doneUnits).toEqual(['s1-3'])
     expect(p.unit).toBe('s1-7')
     expect(systemText(requests[0])).toContain('[오늘 단원] 날씨와 계절')
+    expect(errors).toEqual([])
+  })
+
+  test('다른 탭이 이 대화를 저장한 걸 아직 모르는 채 "저장하고 끝내기"를 눌러도 두 번 기록하지 않는다', async ({ page, context }) => {
+    // A 탭이 storage 알림을 못 받은 상황 (얼어 있다 깨어난 탭 등)
+    await context.addInitScript(() => {
+      window.addEventListener(
+        'storage',
+        (e) => {
+          if ((window as unknown as { __mute?: boolean }).__mute) e.stopImmediatePropagation()
+        },
+        true,
+      )
+    })
+    const { queue, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    await exchange(page, queue, '안녕')
+    // A가 뒤로 가서 임시 저장이 갱신되지 않음
+    await page.evaluate(() => {
+      const w = window as unknown as { __mute: boolean }
+      w.__mute = true
+      const setItem = Storage.prototype.setItem
+      Storage.prototype.setItem = function (k: string, v: string) {
+        if (k.startsWith('englishFriend.draft.')) return
+        return setItem.call(this, k, v)
+      }
+    })
+    const b = await context.newPage()
+    await b.goto('/')
+    await b.clock.fastForward('00:31')
+    await expect(b.locator('#draftCard')).toBeVisible()
+    // B에서 '저장하고 닫기' → A의 대화(1번)가 기록되고 A의 임시 저장이 지워진다
+    await b.click('#btnDraftSave')
+    await expect(b.locator('#startMsg')).toContainText('대화 한 번에 5번')
+    // A로 돌아와 (알림을 못 받은 채) 바로 저장하고 끝내기
+    await page.bringToFront()
+    await page.click('#btnEnd')
+    await page.click('#btnFinish')
+    await expect(page.locator('#startMsg')).toContainText('다른 탭에서 이어받았거나 저장했어요')
+    expect(((await progressIn(page))?.sessions ?? []).map((x: { turns: number }) => x.turns)).toEqual([1])
     expect(errors).toEqual([])
   })
 
@@ -532,6 +617,38 @@ test.describe('화면 배치', () => {
 test.describe('터치 폰', () => {
   test.use({ hasTouch: true })
 
+  test('키보드를 연 채 가로로 돌려도 마이크 줄이 다시 나와 입력칸을 밀어내지 않고, 키보드를 내리면 돌아온다', async ({ page, context }) => {
+    // 기기 방향을 정할 수 있게 한다 (헤드리스 브라우저는 늘 세로)
+    await context.addInitScript(() => {
+      const w = window as unknown as { __orient: string }
+      w.__orient = 'portrait-primary'
+      Object.defineProperty(screen, 'orientation', { configurable: true, get: () => ({ type: w.__orient, addEventListener() {}, removeEventListener() {} }) })
+    })
+    const { queue, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    await page.locator('#typeInput').tap()
+    await page.setViewportSize({ width: 390, height: 420 })
+    await expect(page.locator('#composer')).toHaveClass(/typing/)
+    // 키보드를 연 채 가로로: 처음 보는 방향이라 기준 높이가 이미 줄어든 높이다
+    await page.evaluate(() => {
+      ;(window as unknown as { __orient: string }).__orient = 'landscape-primary'
+    })
+    await page.setViewportSize({ width: 844, height: 200 })
+    await expect(page.locator('#composer')).toHaveClass(/typing/)
+    await expect(page.locator('#typeInput')).toBeInViewport()
+    // 키보드를 내리면 마이크 줄이 돌아온다
+    await page.setViewportSize({ width: 844, height: 390 })
+    await expect(page.locator('#composer')).not.toHaveClass(/typing/)
+    // 세로로 돌아와 다시 키보드를 열면 다시 숨는다
+    await page.evaluate(() => {
+      ;(window as unknown as { __orient: string }).__orient = 'portrait-primary'
+    })
+    await page.setViewportSize({ width: 390, height: 844 })
+    await page.setViewportSize({ width: 390, height: 420 })
+    await expect(page.locator('#composer')).toHaveClass(/typing/)
+    expect(errors).toEqual([])
+  })
+
   test('입력칸에 커서를 둔 채 키보드만 내려도 마이크 버튼이 돌아온다', async ({ page, context }) => {
     const { queue, errors } = await open(page, context)
     await startWithGreeting(page, queue)
@@ -580,6 +697,15 @@ test.describe('카카오톡·저장소가 막힌 브라우저', () => {
     await page.click('#btnSettingsSave')
     await expect(aiBubbles(page)).toHaveCount(1)
     expect(systemText(requests[0])).toContain('교육과정 3단계')
+    // 몇 번 주고받아도 대화가 닫히지 않고(임시 저장 실패를 '다른 탭이 가져감'으로 보지 않음), 끝내면 이번 실행 동안 기록이 남는다
+    await exchange(page, queue, 'hello', { say: 'Say it!', say_ko: '말해 봐!', repeat: 'I like tea.', repeat_ko: '차 좋아.' })
+    await exchange(page, queue, 'I like tea')
+    await page.clock.fastForward('00:20')
+    await expect(page.locator('#composer')).toBeVisible()
+    await page.click('#btnEnd')
+    await page.click('#btnFinish')
+    await expect(page.locator('#startMsg')).toContainText('1문장을 문장장에 저장했어요')
+    await expect(page.locator('#todayLine')).toContainText('오늘 1분')
     expect(errors).toEqual([])
   })
 })

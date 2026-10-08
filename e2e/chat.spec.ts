@@ -210,8 +210,7 @@ test('한국어로 대답 → 따라 말하기 제안(EN 추천) → 거의 같�
   await expect(page.locator('#turnCount')).toHaveText('2/5번')
   await expect.poll(() => draftStats(page)).toMatchObject({ turns: 2, koTurns: 1, repeatTurns: 1, enOwnTurns: 0, enOwnWords: 0 })
 
-  // 따라 할 문장과 전혀 다르게 말하면 '잘 들렸어요'는 나오지 않는다
-  // (이때 따라 말하기로 셀지 내 영어로 셀지는 appBugs '의심' 항목 참고 — 여기서는 단언하지 않는다)
+  // 따라 할 문장과 전혀 다르게 말하면 '잘 들렸어요'는 나오지 않고, 질문에 직접 한 '내 대답'으로 센다
   await expect(page.locator('#micEn')).toHaveClass(/recommend/)
   queue.push(reply(turn({ say: 'I see.', say_ko: '그렇구나.' })))
   await page.click('#micEn')
@@ -219,7 +218,8 @@ test('한국어로 대답 → 따라 말하기 제안(EN 추천) → 거의 같�
   await expect(aiBubbles(page)).toHaveCount(4)
   await expect(lastMe(page).locator('.heard')).toHaveCount(0)
   await expect(page.locator('#turnCount')).toHaveText('3/5번')
-  await expect.poll(() => draftStats(page)).toMatchObject({ turns: 3, koTurns: 1 })
+  await expect.poll(() => draftStats(page)).toMatchObject({ turns: 3, koTurns: 1, repeatTurns: 1, enOwnTurns: 1, enOwnWords: 2 })
+  expect(lastUserText(requests[3])).toBe('[영어] banana split')
 
   // 따라 할 문장이 없는 답이 오면 추천 표시가 사라진다
   await expect(page.locator('#micEn')).not.toHaveClass(/recommend/)
@@ -337,7 +337,14 @@ test('힌트 칩: 지난 말풍선의 칩도 눌러서 들을 수 있고, 안내
   await expect(guide(page)).toHaveText('👉 EN을 누르고 "I like K-pop." 말해 보세요')
   await expect(page.locator('#micEn')).toHaveClass(/recommend/)
   expect(requests).toHaveLength(2)
-  // 이 칩 문장을 말했을 때 '내 힘으로 한 대답'으로 세는 문제는 appBugs '의심' 항목 참고 (여기서는 단언하지 않는다)
+  // 그 칩 문장을 말하면 '대답 예시'로 보내고, 스스로 한 영어 대답으로는 세지 않는다
+  queue.push(reply(turn({ say: 'Me too!', say_ko: '나도!' })))
+  await page.click('#micEn')
+  await say(page, 'I like K-pop')
+  await expect(aiBubbles(page)).toHaveCount(3)
+  expect(lastUserText(requests[2])).toBe('[영어 — 대답 예시를 보고 말함] I like K-pop')
+  await expect(lastMe(page).locator('.tag')).toHaveText('대답 예시')
+  await expect.poll(() => draftStats(page)).toMatchObject({ turns: 2, repeatTurns: 1, enOwnTurns: 0, enOwnWords: 0 })
   expect(errors).toEqual([])
 })
 
