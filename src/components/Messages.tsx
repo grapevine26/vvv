@@ -61,8 +61,16 @@ export function AiBubble({ turn, friendName, veiled, showKo, pickedHint, onUnvei
   )
 }
 
-export function UserBubble({ text, lang, isRepeat, heardWell }: { text: string; lang: Lang; isRepeat: boolean; heardWell?: boolean }) {
-  const tag = isRepeat ? '따라 말하기' : lang === 'ko' ? '한국어' : TARGET.label
+interface UserBubbleProps {
+  text: string
+  lang: Lang
+  isRepeat: boolean
+  fromHint?: boolean
+  heardWell?: boolean
+}
+
+export function UserBubble({ text, lang, isRepeat, fromHint, heardWell }: UserBubbleProps) {
+  const tag = isRepeat ? '따라 말하기' : fromHint ? '대답 예시' : lang === 'ko' ? '한국어' : TARGET.label
   return (
     <div className="msg me">
       <div className="bubble">

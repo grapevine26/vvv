@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fmt, localDate, normWords, overlap, same, splitByScript, turnSegments } from './text'
+import { fmt, localDate, normWords, overlap, ro, same, splitByScript, turnSegments } from './text'
 
 describe('splitByScript', () => {
   it('한국어와 영어가 섞인 문장을 언어별로 나눈다', () => {
@@ -64,5 +64,15 @@ describe('시간·날짜 표시', () => {
 
   it('localDate는 기기 시간 기준 YYYY-MM-DD', () => {
     expect(localDate(new Date(2026, 9, 8, 7, 30))).toBe('2026-10-08')
+  })
+})
+
+describe('조사 로/으로', () => {
+  it('받침 없음·ㄹ 받침은 로, 그 밖의 받침은 으로', () => {
+    expect(ro('인사와 자기소개')).toBe('로')
+    expect(ro('좋아하는 음식')).toBe('으로')
+    expect(ro('하루 일과')).toBe('로')
+    expect(ro('주말')).toBe('로')
+    expect(ro('Small talk')).toBe('로')
   })
 })

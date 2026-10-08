@@ -68,7 +68,8 @@ ${review}`
 
 [내 말 앞에 붙는 표시]
 - [한국어]: 한국어로 말함. [영어]: ${L}로 말함.
-- [따라 말하기 — 목표 문장: "..."]: 그 문장을 따라 말해 본 것. 인식된 글자가 조금 달라도 비슷하면 잘한 거야.${reviewBlock}`
+- [따라 말하기 — 목표 문장: "..."]: 그 문장을 따라 말해 본 것. 인식된 글자가 조금 달라도 비슷하면 잘한 거야.
+- [영어 — 대답 예시를 보고 말함]: 네가 준 대답 예시(hints)를 골라 말한 것. 내 대답으로 받고 이어서 이야기해.${reviewBlock}`
 }
 
 export const WRITE_SYSTEM = `너는 ${TARGET.label}를 배우는 한국 성인이 쓴 짧은 문장을 부드럽게 봐 주는 친구야. JSON으로만 답해.
@@ -77,9 +78,10 @@ export const WRITE_SYSTEM = `너는 ${TARGET.label}를 배우는 한국 성인�
 - comment: 한국어 한 문장. 잘한 점부터 말하고, 문법 용어(시제, 관사 같은 것)는 쓰지 말고 쉬운 말로.`
 
 // AI가 내 말이 어떤 상황에서 나온 건지 알 수 있게 앞에 표시를 붙인다
-export function userTag(lang: Lang, repeatTarget: string): string {
+export function userTag(lang: Lang, repeatTarget: string, fromHint = false): string {
   if (lang === 'ko') return '[한국어]'
-  return repeatTarget ? `[따라 말하기 — 목표 문장: "${repeatTarget}"]` : '[영어]'
+  if (repeatTarget) return `[따라 말하기 — 목표 문장: "${repeatTarget}"]`
+  return fromHint ? '[영어 — 대답 예시를 보고 말함]' : '[영어]'
 }
 
 export function pushHistory(history: Content[], role: Content['role'], text: string): void {
@@ -102,6 +104,7 @@ export function pickReview(learned: LearnedItem[], today: string, n = 8): Learne
   const chosen = new Set<number>()
   for (let i = learned.length - 3; i < learned.length; i++) chosen.add(i)
   for (const gap of [1, 3, 7, 14, 30]) {
+    if (chosen.size >= n) break
     let best = -1
     let bestDist = Infinity
     learned.forEach((x, i) => {

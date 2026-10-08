@@ -6,6 +6,8 @@ export interface SpeakOptions {
   voiceName: string
 }
 
+export type PlayResult = 'done' | 'stopped' | 'error'
+
 // 말하기: 브라우저 기본 음성(무료). 한 발화에 목소리 하나라서 언어별로 나눠 읽는다
 export class Speaker {
   readonly supported: boolean
@@ -62,19 +64,21 @@ export class Speaker {
     }
   }
 
-  // 끝까지 다 읽었으면 true, 중간에 끊겼으면 false
-  async play(segments: Segment[], slow = false, rateOverride?: number): Promise<boolean> {
+  // 'done': 끝까지 읽음, 'stopped': 중간에 끊음(멈춤·다른 소리), 'error': 소리가 안 나옴(목소리 오류 등)
+  async play(segments: Segment[], slow = false, rateOverride?: number): Promise<PlayResult> {
     this.cancel()
     const my = this.token
-    if (!this.supported) return false
+    if (!this.supported) return 'error'
+    let failed = false
     for (const seg of segments) {
-      if (my !== this.token) return false
-      await this.speakOne(seg, slow, rateOverride)
+      if (my !== this.token) return 'stopped'
+      if ((await this.speakOne(seg, slow, rateOverride)) === 'error') failed = true
     }
-    return my === this.token
+    if (my !== this.token) return 'stopped'
+    return failed ? 'error' : 'done'
   }
 
-  private speakOne(seg: Segment, slow: boolean, rateOverride?: number): Promise<void> {
+  private speakOne(seg: Segment, slow: boolean, rateOverride?: number): Promise<'ended' | 'error'> {
     return new Promise((resolve) => {
       const isTarget = seg.lang === 'en'
       const u = new SpeechSynthesisUtterance(seg.text)
@@ -85,16 +89,28 @@ export class Speaker {
       // 천천히는 영어에만. 한국어 신호까지 느려지면 답답하다
       u.rate = slow && isTarget ? Math.max(0.5, base * 0.75) : base
       let done = false
-      const finish = () => {
+      let timer: ReturnType<typeof setTimeout> | undefined
+      const finish = (result: 'ended' | 'error') => {
         if (done) return
         done = true
         clearTimeout(timer)
-        resolve()
+        resolve(result)
       }
-      // 일부 브라우저는 onend를 빼먹는다. 예상 시간이 지나면 다음으로 넘어간다
-      const timer = setTimeout(finish, 2500 + (seg.text.length * 140) / u.rate)
-      u.onend = finish
-      u.onerror = finish
+      // 일부 브라우저는 onend를 빼먹는다. 예상 시간이 지나면 다음으로 넘어가되,
+      // 아직 말하는 중이면(온라인 목소리가 늦게 시작함) 조금씩 더 기다린다 (최대 20초)
+      let extra = 0
+      const wait = (ms: number) => {
+        timer = setTimeout(() => {
+          if (window.speechSynthesis.speaking && extra < 20_000) {
+            extra += 500
+            wait(500)
+          } else finish('ended')
+        }, ms)
+      }
+      wait(2500 + (seg.text.length * 140) / u.rate)
+      u.onend = () => finish('ended')
+      // 우리가 끊은 것(interrupted·canceled)은 오류로 치지 않는다
+      u.onerror = (e) => finish(e && (e.error === 'interrupted' || e.error === 'canceled') ? 'ended' : 'error')
       this.keep.push(u)
       if (this.keep.length > 20) this.keep.shift()
       window.speechSynthesis.speak(u)
@@ -114,6 +130,7 @@ interface Recognition {
   maxAlternatives: number
   onresult: ((e: { resultIndex: number; results: ArrayLike<RecognitionResult> }) => void) | null
   onerror: ((e: { error: string }) => void) | null
+  onnomatch: (() => void) | null
   onend: (() => void) | null
   start(): void
   stop(): void
@@ -158,6 +175,10 @@ export function listen(
   rec.onerror = (e) => {
     error = e.error || 'unknown'
   }
+  // 말은 했는데 알아듣지 못함 (크롬은 오류가 아니라 이 이벤트로 알려 준다)
+  rec.onnomatch = () => {
+    if (!error) error = 'no-match'
+  }
   rec.onend = () => onDone((finalText || interimText).trim(), error)
   rec.start()
   return rec
@@ -185,13 +206,19 @@ export function inAppBrowser(ua: string): 'kakao' | 'other' | null {
 }
 
 // 앱 안 브라우저에서 크롬으로 여는 주소. 못 만들면 null (주소를 복사해 크롬에 붙여 넣으라고 안내)
+// 안드로이드는 크롬을 콕 집어 연다 (기본 브라우저가 삼성 인터넷이면 저장소가 크롬과 따로라서)
 export function openInChromeUrl(href: string, ua: string): string | null {
-  if (/KAKAOTALK/i.test(ua)) return 'kakaotalk://web/openExternal?url=' + encodeURIComponent(href)
   if (isAndroid(ua)) {
     const u = new URL(href)
-    return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(':', '')};package=com.android.chrome;end`
+    return `intent://${u.host}${u.pathname}${u.search}#Intent;scheme=${u.protocol.replace(':', '')};package=com.android.chrome;S.browser_fallback_url=${encodeURIComponent(href)};end`
   }
+  if (/KAKAOTALK/i.test(ua)) return openExternalUrl(href, ua)
   return null
+}
+
+// 카카오톡에서 '기본 브라우저로 열기' (크롬 열기가 안 될 때 쓰는 두 번째 길)
+export function openExternalUrl(href: string, ua: string): string | null {
+  return /KAKAOTALK/i.test(ua) ? 'kakaotalk://web/openExternal?url=' + encodeURIComponent(href) : null
 }
 
 export type MicState = 'granted' | 'denied' | 'prompt' | 'unknown'
@@ -205,22 +232,39 @@ export async function micPermission(): Promise<{ state: MicState; status: Permis
   }
 }
 
-// 대화 전에 마이크 권한 창을 미리 띄운다. 허용되면 true
-export async function requestMic(): Promise<boolean> {
+// 대화 전에 마이크 권한 창을 미리 띄운다.
+// 'granted' 허용, 'blocked' 거절(또는 창을 닫음), 'nodevice' 마이크 없음, 'busy' 다른 앱이 쓰는 중이거나 기기 설정에서 꺼짐
+export type MicRequest = 'granted' | 'blocked' | 'nodevice' | 'busy'
+export async function requestMic(): Promise<MicRequest> {
   try {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
     stream.getTracks().forEach((t) => t.stop())
-    return true
-  } catch {
-    return false
+    return 'granted'
+  } catch (err) {
+    const name = err instanceof DOMException ? err.name : ''
+    if (name === 'NotFoundError' || name === 'OverconstrainedError') return 'nodevice'
+    if (name === 'NotReadableError' || name === 'AbortError') return 'busy'
+    return 'blocked'
   }
+}
+
+export function micRequestText(r: MicRequest, env: Env): string {
+  if (r === 'nodevice') return '마이크를 찾지 못했어요. 이어폰이나 헤드셋 마이크를 연결하고 다시 눌러 주세요. 그동안은 입력칸에 써도 돼요.'
+  if (r === 'busy')
+    return isAndroid(env.ua)
+      ? '다른 앱이 마이크를 쓰고 있어요. 통화나 녹음 앱을 끄고 다시 눌러 주세요.'
+      : '다른 앱이 마이크를 쓰고 있거나, Windows 설정 → 개인 정보 → 마이크에서 꺼져 있어요. 확인하고 다시 눌러 주세요.'
+  return `마이크를 켜지 못했어요. ${micBlockedHelp(env)}`
 }
 
 // 마이크가 막혔을 때 기기에 맞는 고치는 법
 export function micBlockedHelp(env: Env): string {
-  if (env.standalone || isAndroid(env.ua)) {
-    return '휴대폰 설정 → 애플리케이션 → Chrome → 권한 → 마이크를 "허용"으로 바꿔 주세요. 크롬 화면이면 주소창 왼쪽 아이콘 → 권한 → 마이크도 확인해 주세요.'
+  if (isAndroid(env.ua)) {
+    return env.standalone
+      ? '휴대폰 설정 → 애플리케이션 → Chrome → 권한 → 마이크를 "허용"으로 바꿔 주세요.'
+      : '주소창 왼쪽 아이콘 → 권한 → 마이크를 "허용"으로 바꿔 주세요. 그래도 안 되면 휴대폰 설정 → 애플리케이션 → Chrome → 권한 → 마이크도 확인해 주세요.'
   }
+  if (env.standalone) return '앱 창 위쪽의 ⋯ 메뉴 → 앱 정보(사이트 설정) → 마이크를 "허용"으로 바꿔 주세요.'
   return '주소창 왼쪽 아이콘을 누르고 마이크를 "허용"으로 바꿔 주세요.'
 }
 
@@ -229,6 +273,7 @@ export function micErrorText(code: string, env: Env = currentEnv()): string {
     'not-allowed': `마이크가 막혀 있어요. ${micBlockedHelp(env)} 그동안은 아래 입력칸에 써도 돼요.`,
     'service-not-allowed': '이 브라우저에서는 음성 인식을 쓸 수 없어요. 크롬이나 엣지에서 열어 주세요.',
     'no-speech': '소리가 안 들렸어요. 버튼을 누르고 바로 말해 주세요.',
+    'no-match': '잘 못 알아들었어요. 천천히 또박또박 말해 보거나, 한국어 버튼이나 입력칸을 써도 돼요.',
     'audio-capture': '마이크를 찾지 못했어요. 마이크(이어폰)가 연결돼 있는지 확인해 주세요.',
     network: '음성 인식 서버에 연결하지 못했어요. 인터넷 연결을 확인해 주세요.',
     'language-not-supported': '이 브라우저가 이 언어 인식을 지원하지 않아요.',

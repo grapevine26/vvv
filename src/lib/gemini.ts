@@ -145,11 +145,11 @@ function apiError(status: number, data: GeminiResponse, model: string): AppError
   if (status === 400) return new AppError('AI가 요청을 받아 주지 않았어요. 설정의 모델 이름을 확인해 주세요.' + tail, 'model')
   if (status === 401 || status === 403)
     return new AppError('API 키 권한 문제예요. 키가 막혔거나 지워졌을 수 있어요. 새 키를 받아 넣어 보세요.' + tail, 'apiKey')
-  if (status === 404)
-    return new AppError(
-      `"${model}" 모델을 찾을 수 없어요. 설정 → 고급에서 모델 이름을 바꿔 주세요. (예: gemini-3.5-flash-lite, gemini-3.8-flash)` + tail,
-      'model',
-    )
+  if (status === 404) {
+    // 예시에는 방금 안 된 모델 이름을 넣지 않는다
+    const examples = ['gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-flash-latest'].filter((m) => m !== model).slice(0, 2)
+    return new AppError(`"${model}" 모델을 찾을 수 없어요. 설정 → 고급에서 모델 이름을 바꿔 주세요. (예: ${examples.join(', ')})` + tail, 'model')
+  }
   if (status === 429) return new AppError('무료 사용량을 다 썼거나 너무 빨리 보냈어요. 1분쯤 뒤에 다시 해 보세요.' + tail, null, true)
   if (status >= 500) return new AppError('AI 서버가 잠시 바빠요. 잠깐 뒤에 "다시 시도"를 눌러 주세요.' + tail, null, true)
   return new AppError(`알 수 없는 오류예요(${status}).` + tail, null, true)

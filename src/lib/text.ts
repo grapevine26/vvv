@@ -80,3 +80,12 @@ export function addDays(date: string, days: number): string {
   d.setDate(d.getDate() + days)
   return localDate(d)
 }
+
+// '로/으로' 조사: 받침이 없거나 ㄹ 받침이면 '로', 아니면 '으로' (한글이 아니면 '로')
+export function ro(word: string): '로' | '으로' {
+  const last = word.trim().slice(-1)
+  const code = last.charCodeAt(0) - 0xac00
+  if (code < 0 || code > 11171) return '로'
+  const jong = code % 28
+  return jong === 0 || jong === 8 ? '로' : '으로'
+}

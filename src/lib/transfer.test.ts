@@ -26,7 +26,7 @@ describe('encode/decodeTransfer', () => {
     const data = await decodeTransfer(code)
     expect(data.learned).toEqual(learned)
     expect(data.settings).toMatchObject({ friendName: 'Mia', rate: 0.7, repeatAmount: DEFAULT_SETTINGS.repeatAmount })
-    expect(data.progress).toEqual(progress)
+    expect(data.progress).toEqual({ ...progress, days: { '2026-10-05': 12 } })
   })
 
   it('Gemini 키와 목소리 이름은 코드에 넣지 않는다', async () => {

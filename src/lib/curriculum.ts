@@ -231,7 +231,32 @@ export const MIN_TURNS_FOR_UNIT = 5
 export const RECENT_SESSIONS = 5
 const MAX_SESSIONS = 300
 
-export const DEFAULT_PROGRESS: Progress = { stage: 1, unit: 's1-1', doneUnits: [], sessions: [] }
+// 날짜별 공부한 분은 이만큼의 날만 남긴다 (대화 기록은 잘려도 연속 일수는 이어지게)
+const MAX_DAYS = 800
+
+export const DEFAULT_PROGRESS: Progress = { stage: 1, unit: 's1-1', doneUnits: [], sessions: [], days: {} }
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+
+// 대화 기록에서 날짜별 분을 모은다
+function sessionDays(sessions: SessionLog[]): Record<string, number> {
+  const days: Record<string, number> = {}
+  for (const s of sessions) if (DATE_RE.test(s.date)) days[s.date] = (days[s.date] ?? 0) + s.minutes
+  return days
+}
+
+// 날짜별 분: 따로 쌓은 값과 남아 있는 대화 기록 중 큰 쪽 (옛 버전 데이터에는 days가 없다)
+function dayMinutes(progress: Progress): Record<string, number> {
+  const out = sessionDays(progress.sessions)
+  for (const [d, m] of Object.entries(progress.days ?? {})) out[d] = Math.max(out[d] ?? 0, m)
+  return out
+}
+
+function pruneDays(days: Record<string, number>): Record<string, number> {
+  const keys = Object.keys(days).sort()
+  if (keys.length <= MAX_DAYS) return days
+  return Object.fromEntries(keys.slice(-MAX_DAYS).map((k) => [k, days[k]]))
+}
 
 export function getStage(n: number): Stage {
   return STAGES.find((s) => s.n === n) ?? STAGES[0]
@@ -271,11 +296,15 @@ export function chooseUnit(progress: Progress, unitId: string): Progress {
 // 대화를 끝내면 기록하고, 충분히 주고받았으면 단원을 마친 것으로 하고 다음 단원으로 넘어간다
 export function recordSession(progress: Progress, log: SessionLog): { progress: Progress; unitDone: boolean } {
   const sessions = [...progress.sessions, log].slice(-MAX_SESSIONS)
+  const base = dayMinutes(progress)
+  const days = DATE_RE.test(log.date) ? pruneDays({ ...base, [log.date]: (base[log.date] ?? 0) + log.minutes }) : base
   const unitDone = log.turns >= MIN_TURNS_FOR_UNIT
-  if (!unitDone) return { progress: { ...progress, sessions }, unitDone }
+  if (!unitDone) return { progress: { ...progress, sessions, days }, unitDone }
   const doneUnits = progress.doneUnits.includes(log.unit) ? progress.doneUnits : [...progress.doneUnits, log.unit]
-  const unit = firstOpenUnit(getStage(progress.stage), doneUnits, log.unit)
-  return { progress: { ...progress, sessions, doneUnits, unit }, unitDone }
+  // 그사이 다른 단원·단계를 골라 두었으면(다른 탭, 남은 대화 저장) 그 선택을 지킨다
+  const stillHere = progress.stage === log.stage && progress.unit === log.unit
+  const unit = stillHere ? firstOpenUnit(getStage(progress.stage), doneUnits, log.unit) : progress.unit
+  return { progress: { ...progress, sessions, days, doneUnits, unit }, unitDone }
 }
 
 export interface Criterion {
@@ -320,17 +349,17 @@ export function promotionStatus(progress: Progress): Promotion | null {
 }
 
 export function totalMinutes(progress: Progress): number {
-  return progress.sessions.reduce((a, s) => a + s.minutes, 0)
+  return Object.values(dayMinutes(progress)).reduce((a, m) => a + m, 0)
 }
 
 // 그날 앱에서 공부한 분
 export function minutesOn(progress: Progress, date: string): number {
-  return progress.sessions.filter((s) => s.date === date).reduce((a, s) => a + s.minutes, 0)
+  return dayMinutes(progress)[date] ?? 0
 }
 
 // 오늘(또는 아직 오늘 안 했으면 어제)부터 거꾸로 이어서 공부한 날 수
 export function streakDays(progress: Progress, today: string): number {
-  const days = new Set(progress.sessions.map((s) => s.date))
+  const days = new Set(Object.keys(dayMinutes(progress)))
   let day = days.has(today) ? today : addDays(today, -1)
   let count = 0
   while (days.has(day)) {
@@ -356,7 +385,11 @@ export function mergeProgress(local: Progress, incoming: Progress): Progress {
   const preferred = incoming.stage > local.stage ? incoming.unit : local.unit
   const unit =
     stage.units.some((u) => u.id === preferred) && !doneUnits.includes(preferred) ? preferred : firstOpenUnit(stage, doneUnits)
-  return { stage: stage.n, unit, doneUnits, sessions }
+  // 날짜별 분은 기기마다 따로 쌓였을 수 있다: 각자 값과 합친 대화 기록의 합 중 큰 쪽
+  const days = sessionDays(sessions)
+  for (const src of [dayMinutes(local), dayMinutes(incoming)])
+    for (const [d, m] of Object.entries(src)) days[d] = Math.max(days[d] ?? 0, m)
+  return { stage: stage.n, unit, doneUnits, sessions, days: pruneDays(days) }
 }
 
 // 저장된 값이 깨졌거나 옛 버전이어도 앱이 돌아가게 다듬는다
@@ -384,7 +417,11 @@ export function sanitizeProgress(value: unknown): Progress {
         }))
     : []
   const unit = typeof v.unit === 'string' && stage.units.some((u) => u.id === v.unit) ? v.unit : firstOpenUnit(stage, doneUnits)
-  return { stage: stage.n, unit, doneUnits, sessions }
+  const savedDays: Record<string, number> = {}
+  if (v.days && typeof v.days === 'object')
+    for (const [d, m] of Object.entries(v.days as Record<string, unknown>)) if (DATE_RE.test(d) && num(m) > 0) savedDays[d] = num(m)
+  const days = pruneDays(dayMinutes({ stage: stage.n, unit, doneUnits, sessions, days: savedDays }))
+  return { stage: stage.n, unit, doneUnits, sessions, days }
 }
 
 // 대화 한 번의 고유 번호. 시간순으로 정렬되게 앞에 시각을 붙인다

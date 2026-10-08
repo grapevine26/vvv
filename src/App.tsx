@@ -22,6 +22,8 @@ import {
   micBlockedHelp,
   micErrorText,
   micPermission,
+  micRequestText,
+  openExternalUrl,
   openInChromeUrl,
   requestMic,
   Speaker,
@@ -31,6 +33,8 @@ import {
 import {
   activeElsewhere,
   clearDraft,
+  draftExists,
+  draftKey,
   getTabId,
   isAppKey,
   loadDailyChecks,
@@ -44,9 +48,10 @@ import {
   saveLearned,
   saveProgress,
   saveSettings,
+  storageWorks,
 } from './lib/storage'
 import { applyImportedSettings, mergeImported, type TransferData } from './lib/transfer'
-import { localDate, normWords, overlap, same, turnSegments } from './lib/text'
+import { localDate, normWords, overlap, ro, same, turnSegments } from './lib/text'
 import type { Content, Draft, FixTarget, Lang, Message, Pair, Progress, Segment, Settings } from './lib/types'
 
 type SheetName = 'settings' | 'wrap' | 'book' | 'course' | 'transfer' | null
@@ -66,6 +71,8 @@ const SLOW_WAIT_MS = 8000
 const AUTO_LISTEN_DELAY_MS = 400
 // 대화 중 임시 저장 간격
 const DRAFT_EVERY_SEC = 15
+// 다른 앱에 이만큼 넘게 가 있었으면 그 시간은 공부 시간에서 뺀다
+const AWAY_MS = 60_000
 
 // 현재 시각 (이벤트 처리기·효과에서만 부른다)
 const nowMs = () => Date.now()
@@ -77,7 +84,7 @@ export default function App() {
   const [progress, setProgress] = useState(loadProgress)
   const [tabId] = useState(getTabId)
   const [drafts, setDrafts] = useState(loadDrafts)
-  const [dailyChecks, setDailyChecks] = useState(() => loadDailyChecks(localDate()))
+  const [daily, setDaily] = useState(() => ({ date: localDate(), checks: loadDailyChecks(localDate()) }))
 
   // ── 화면 ──
   const [screen, setScreen] = useState<'start' | 'chat'>('start')
@@ -122,6 +129,12 @@ export default function App() {
   const busyRef = useRef(false)
   const speakingRef = useRef(false)
   const pendingRepeatRef = useRef('')
+  const pickedHintRef = useRef('')
+  // 이 대화의 임시 저장을 한 번이라도 썼는지 (다른 탭이 가져가 지웠는지 알아채는 데 쓴다)
+  const draftSavedRef = useRef(false)
+  const hiddenAtRef = useRef(0)
+  const ignorePopRef = useRef(false)
+  const settingsBackRef = useRef<(() => void) | null>(null)
   const listenerRef = useRef<Listening | null>(null)
   const listeningLangRef = useRef<Lang | null>(null)
   const lastLangRef = useRef<Lang>('ko')
@@ -138,6 +151,10 @@ export default function App() {
   }, [speaker, settings.rate, settings.voiceName])
 
   const today = localDate(new Date(now))
+  const dailyChecks = daily.date === today ? daily.checks : []
+  const leftTurns = MIN_TURNS_FOR_UNIT - turns
+  // 답이 오래 걸리면 '그만 기다리기' (시계가 1초마다 돌아서 따로 타이머가 필요 없다)
+  const slowWait = busy && now - busySince >= SLOW_WAIT_MS
   const elapsed = Math.max(0, Math.floor((now - startedAt) / 1000))
   const showTimeBanner = screen === 'chat' && sheet !== 'wrap' && elapsed >= limitSec && !timeUpAck
   const unitTitle = unitById(session.unit)?.title ?? ''
@@ -180,12 +197,14 @@ export default function App() {
     const id = ++playIdRef.current
     speakingRef.current = true
     setSpeaking(true)
-    const done = await speaker.play(segments, slow, rate)
+    const result = await speaker.play(segments, slow, rate)
     if (playIdRef.current === id) {
       speakingRef.current = false
       setSpeaking(false)
     }
-    return done
+    if (result === 'error' && activeRef.current && !sheetRef.current)
+      setMicNotice('소리가 안 나왔어요. 말풍선의 🔊 다시를 누르거나, 설정 → 고급에서 목소리를 바꿔 보세요.')
+    return result === 'done'
   }
 
   // ── 바깥 사정 살피기 ──
@@ -207,18 +226,21 @@ export default function App() {
   useEffect(() => {
     let status: PermissionStatus | null = null
     let cancelled = false
+    let prev: MicState = 'unknown'
     void micPermission().then((r) => {
       if (cancelled) return
       setMicState(r.state)
+      prev = r.state
       status = r.status
       if (!status) return
       status.onchange = () => {
         const st = (status?.state ?? 'unknown') as MicState
         setMicState(st)
-        if (st === 'granted') {
-          setMicNotice('')
-          showToastRef.current('이제 마이크가 돼요. 새로고침 없이 다시 눌러 보세요.')
-        }
+        if (st === 'granted') setMicNotice('')
+        // 막혀 있다가 풀렸을 때만 알린다. 처음 허용(권한 창)은 이미 듣는 중이거나 화면에 '준비됨'이 보인다
+        if (st === 'granted' && prev === 'denied' && !listenerRef.current)
+          showToastRef.current('이제 마이크가 돼요. 마이크 버튼을 눌러 말해 보세요.')
+        prev = st
       }
     })
     return () => {
@@ -226,19 +248,6 @@ export default function App() {
       if (status) status.onchange = null
     }
   }, [showToastRef])
-
-  // 다른 탭에서 저장하면 이 탭 화면도 맞춘다 (오래된 탭이 새 기록을 덮어쓰지 않게)
-  useEffect(() => {
-    const onStorage = (e: StorageEvent) => {
-      if (e.key !== null && !isAppKey(e.key)) return
-      setSettings(loadSettings())
-      setLearned(loadLearned())
-      setProgress(loadProgress())
-      setDrafts(loadDrafts())
-    }
-    window.addEventListener('storage', onStorage)
-    return () => window.removeEventListener('storage', onStorage)
-  }, [])
 
   // 시계: 대화 중에는 1초, 시작 화면에서는 10초마다
   useEffect(() => {
@@ -273,6 +282,22 @@ export default function App() {
     }
   }, [screen])
 
+  // 다른 앱에 오래 가 있던 시간은 공부 시간에서 뺀다 (전화 받기, 다른 일)
+  useEffect(() => {
+    if (screen !== 'chat') return
+    const onVis = () => {
+      if (document.visibilityState === 'hidden') {
+        hiddenAtRef.current = Date.now()
+        return
+      }
+      const away = hiddenAtRef.current ? Date.now() - hiddenAtRef.current : 0
+      hiddenAtRef.current = 0
+      if (away > AWAY_MS && activeRef.current) setStartedAt((t) => t + away)
+    }
+    document.addEventListener('visibilitychange', onVis)
+    return () => document.removeEventListener('visibilitychange', onVis)
+  }, [screen])
+
   // 대화 중 탭을 닫으려 하면 한 번 묻는다 (임시 저장은 되어 있음)
   useEffect(() => {
     if (screen !== 'chat') return
@@ -282,28 +307,6 @@ export default function App() {
     window.addEventListener('beforeunload', onBeforeUnload)
     return () => window.removeEventListener('beforeunload', onBeforeUnload)
   }, [screen])
-
-  // 임시 저장: 말풍선이 바뀔 때와 15초마다
-  const saveTick = Math.floor(elapsed / DRAFT_EVERY_SEC)
-  useEffect(() => {
-    if (screen !== 'chat' || !activeRef.current) return
-    const stats = statsRef.current
-    if (stats.turns === 0 && repeats.length === 0) return
-    saveDraft({
-      tabId,
-      savedAt: Date.now(),
-      date: session.date,
-      activeMs: Date.now() - startedAt,
-      limitSec,
-      stage: session.stage,
-      unit: session.unit,
-      stats: { ...stats },
-      repeats,
-      messages,
-      history: historyRef.current,
-      pendingRepeat,
-    })
-  }, [screen, messages, repeats, pendingRepeat, saveTick, tabId, session, startedAt, limitSec])
 
   // 새 말풍선: 길면 첫 줄이 보이게 머리에 맞추고, 짧으면 맨 아래로
   useEffect(() => {
@@ -315,7 +318,7 @@ export default function App() {
     } else {
       el.scrollTop = el.scrollHeight
     }
-  }, [messages, busy])
+  }, [messages, busy, slowWait])
 
   // 화면 키보드가 열려 대화 칸이 줄어도, 맨 아래를 보고 있었으면 맨 아래를 유지
   useEffect(() => {
@@ -342,9 +345,13 @@ export default function App() {
     saveProgress(next)
   }
 
-  // 대화 한 번을 저장. 저장 직전에 저장소를 다시 읽어 다른 탭의 기록과 합친다
+  // 저장 직전에 저장소를 다시 읽어 다른 탭의 기록과 합친다. 저장소가 막혔으면 이 탭의 값으로 이어 간다
+  const freshLearned = () => (storageWorks() ? loadLearned() : learnedRef.current)
+  const freshProgress = () => (storageWorks() ? loadProgress() : progressRef.current)
+
+  // 대화 한 번을 저장
   const commit = (data: SessionData) => {
-    const r = commitSession(data, loadLearned(), loadProgress())
+    const r = commitSession(data, freshLearned(), freshProgress())
     setLearned(r.learned)
     saveLearned(r.learned)
     if (r.recorded) updateProgress(r.progress)
@@ -354,11 +361,20 @@ export default function App() {
   const refreshDrafts = () => setDrafts(loadDrafts())
 
   // ── 대화 흐름 ──
+  const openSettings = (opts: Partial<SettingsOpen> = {}) => {
+    stopListening()
+    hideToast()
+    setSettingsOpen({ ...NO_SETTINGS, ...opts })
+    setSheet('settings')
+  }
+
+  // 친구 말이 끝나면 자동으로 듣기. 타이머 뒤에도 지금 그림의 startMic·sendUser를 쓰게 ref로 부른다
+  const autoListenRef = useRef<(lang: Lang) => void>(() => {})
   const maybeAutoListen = (lang: Lang) => {
     if (!settingsRef.current.autoListen) return
     setTimeout(() => {
       if (!activeRef.current || sheetRef.current || listenerRef.current || busyRef.current || speakingRef.current) return
-      startMic(lang, (t) => sendUser(t, lang), undefined, true)
+      autoListenRef.current(lang)
     }, AUTO_LISTEN_DELAY_MS)
   }
 
@@ -368,9 +384,70 @@ export default function App() {
     stopListening()
     stopSpeaking()
     clearDraft(tabId)
+    draftSavedRef.current = false
     setBusyBoth(false)
     setScreen('start')
   }
+
+  // 다른 탭(또는 다시 연 창)이 이 대화를 이어받거나 저장했다: 여기서는 기록하지 않고 닫는다
+  const takeOver = () => {
+    if (!activeRef.current) return
+    activeRef.current = false
+    draftSavedRef.current = false
+    abortRef.current?.abort()
+    stopListening()
+    stopSpeaking()
+    setBusyBoth(false)
+    setSheet(null)
+    setScreen('start')
+    setDrafts(loadDrafts())
+    setStartMsg('이 대화는 다른 탭에서 이어받았거나 저장했어요. 같은 대화가 두 번 기록되지 않게 여기서는 닫았어요.')
+  }
+
+  // 다른 탭에서 저장하면 이 탭 화면도 맞춘다 (오래된 탭이 새 기록을 덮어쓰지 않게)
+  const takenOverRef = useLatestRef(() => takeOver())
+  useEffect(() => {
+    const onStorage = (e: StorageEvent) => {
+      if (e.key !== null && !isAppKey(e.key)) return
+      // 다른 탭이 이 탭의 대화를 저장하거나 이어받아 지웠다
+      if (e.key === draftKey(tabId) && e.newValue === null && activeRef.current && draftSavedRef.current) takenOverRef.current()
+      setSettings(loadSettings())
+      setLearned(loadLearned())
+      setProgress(loadProgress())
+      setDrafts(loadDrafts())
+      setDaily({ date: localDate(), checks: loadDailyChecks(localDate()) })
+    }
+    window.addEventListener('storage', onStorage)
+    return () => window.removeEventListener('storage', onStorage)
+  }, [tabId, takenOverRef])
+
+  // 임시 저장: 말풍선이 바뀔 때와 15초마다
+  const saveTick = Math.floor(elapsed / DRAFT_EVERY_SEC)
+  useEffect(() => {
+    if (screen !== 'chat' || !activeRef.current) return
+    const stats = statsRef.current
+    if (stats.turns === 0 && repeats.length === 0) return
+    // 저장해 둔 것이 사라졌으면 다른 탭이 이 대화를 가져간 것: 다시 쓰면 같은 대화가 두 번 기록된다
+    if (draftSavedRef.current && draftExists(tabId) === false) {
+      takenOverRef.current()
+      return
+    }
+    draftSavedRef.current = true
+    saveDraft({
+      tabId,
+      savedAt: Date.now(),
+      date: session.date,
+      activeMs: Date.now() - startedAt,
+      limitSec,
+      stage: session.stage,
+      unit: session.unit,
+      stats: { ...stats },
+      repeats,
+      messages,
+      history: historyRef.current,
+      pendingRepeat,
+    })
+  }, [screen, messages, repeats, pendingRepeat, saveTick, tabId, session, startedAt, limitSec, takenOverRef])
 
   const aiTurn = async () => {
     setBusyBoth(true)
@@ -409,7 +486,10 @@ export default function App() {
     if (repeat.en) setRepeats((prev) => (prev.some((r) => same(r.en, repeat.en)) ? prev : [...prev, repeat]))
     const id = nextId()
     const veiled = settingsRef.current.soundFirst
-    addMessage({ kind: 'ai', id, turn, veiled })
+    // 답이 왔으니 지난 오류 말풍선과 지난 차례에 고른 대답 예시는 치운다
+    setMessages((prev) => [...prev.filter((m) => m.kind !== 'error'), { kind: 'ai', id, turn, veiled }])
+    pickedHintRef.current = ''
+    setPickedHint('')
     // 마무리 창이 열려 있으면 늦게 온 답은 소리 내지 않는다
     if (sheetRef.current) {
       if (veiled) unveil(id)
@@ -420,29 +500,50 @@ export default function App() {
     if (done) maybeAutoListen(turn.repeat ? 'en' : lastLangRef.current)
   }
 
+  // 영어로 한 말이 무엇인지 가른다: 고른 대답 예시를 읽음(chip) / 따라 말하기(target) / 내 대답(둘 다 아님)
+  const classify = (text: string): { target: string; chip: string } => {
+    const picked = pickedHintRef.current
+    const repeat = pendingRepeatRef.current
+    if (picked && overlap(picked, text) >= 0.5) return { target: '', chip: picked }
+    // 따라 할 문장과 거의 안 겹치면 질문에 직접 대답한 것으로 본다
+    if (repeat && overlap(repeat, text) >= 0.3) return { target: repeat, chip: '' }
+    // 보이는 대답 예시를 (누르지 않고) 그대로 읽음. 예시보다 길게 늘려 말했으면 내 대답
+    const words = normWords(text).length
+    const chip = lastHintsRef.current.find((h) => overlap(h, text) >= 0.7 && words <= normWords(h).length + 1) ?? ''
+    return { target: '', chip }
+  }
+
   const sendUser = (text: string, lang: Lang) => {
     if (!activeRef.current || busyRef.current) return
-    const target = lang === 'en' ? pendingRepeatRef.current : ''
-    // 대답 예시 칩을 그대로 읽은 것은 '스스로 한 대답'으로 세지 않는다 (승급 기준이 부풀지 않게)
-    const fromHint = lang === 'en' && !target && lastHintsRef.current.some((h) => overlap(h, text) >= 0.7)
+    // 입력칸으로 보냈는데 마이크가 듣고 있었으면 보내지 않고 끈다
+    stopListening()
+    const { target, chip } = lang === 'en' ? classify(text) : { target: '', chip: '' }
+    // 지난 말에 아직 답을 못 받았으면(오류 뒤 다시 말함) 같은 차례로 합쳐 보내므로 한 번만 센다
+    const unanswered = historyRef.current[historyRef.current.length - 1]?.role === 'user' && historyRef.current.length > 1
     const stats = statsRef.current
-    stats.turns++
-    if (lang === 'ko') stats.koTurns++
-    else if (target || fromHint) stats.repeatTurns++
-    else {
-      stats.enOwnTurns++
-      stats.enOwnWords += normWords(text).length
+    if (!unanswered) {
+      stats.turns++
+      // 대답 예시·따라 할 문장을 읽은 것은 '스스로 한 대답'으로 세지 않는다 (승급 기준이 부풀지 않게)
+      if (lang === 'ko') stats.koTurns++
+      else if (target || chip) stats.repeatTurns++
+      else {
+        stats.enOwnTurns++
+        stats.enOwnWords += normWords(text).length
+      }
+      setTurns(stats.turns)
+      if (stats.turns === MIN_TURNS_FOR_UNIT)
+        showToast(`「${unitById(sessionRef.current.unit)?.title ?? ''}」 단원 조건을 채웠어요! 더 이야기해도 좋아요.`)
     }
-    setTurns(stats.turns)
-    if (stats.turns === MIN_TURNS_FOR_UNIT) showToast(`「${unitTitle}」 단원 조건을 채웠어요! 더 이야기해도 좋아요.`)
-    const heardWell = !!target && overlap(target, text) >= 0.7
-    const mine: Message = { kind: 'me', id: nextId(), text, lang, isRepeat: !!target, heardWell }
+    const goal = target || chip
+    const heardWell = !!goal && overlap(goal, text) >= 0.7
+    const mine: Message = { kind: 'me', id: nextId(), text, lang, isRepeat: !!target, fromHint: !!chip, heardWell }
     // 지난 오류 말풍선은 새 말을 하면 치운다
     setMessages((prev) => [...prev.filter((m) => m.kind !== 'error'), mine])
+    pickedHintRef.current = ''
     setPickedHint('')
     setMicNotice('')
     lastLangRef.current = lang
-    pushHistory(historyRef.current, 'user', `${userTag(lang, target)} ${text}`)
+    pushHistory(historyRef.current, 'user', `${userTag(lang, target, !!chip)} ${text}`)
     setAwaitingReply(true)
     void aiTurn()
   }
@@ -491,7 +592,8 @@ export default function App() {
             onText(text)
             return
           }
-          if (error === 'not-allowed' || error === 'service-not-allowed') setMicState('denied')
+          // 막혔다는 오류가 와도 실제 권한은 다시 물어봐서 맞춘다 (권한 창을 닫기만 한 경우 등)
+          if (error === 'not-allowed') void micPermission().then((r) => setMicState(r.state === 'unknown' ? 'denied' : r.state))
           if (error && error !== 'no-speech') notify(micErrorText(error, env))
           else notify(auto ? '버튼을 눌러 말해요.' : '소리가 안 들렸어요. 버튼을 누르고 바로 말해 주세요.')
         },
@@ -507,28 +609,28 @@ export default function App() {
     }
   }
 
-  const openSettings = (opts: Partial<SettingsOpen> = {}) => {
-    stopListening()
-    hideToast()
-    setSettingsOpen({ ...NO_SETTINGS, ...opts })
-    setSheet('settings')
-  }
-
   const openSheet = (name: Exclude<SheetName, 'settings' | null>) => {
     stopListening()
     hideToast()
     setSheet(name)
   }
 
+  useLayoutEffect(() => {
+    autoListenRef.current = (lang) => startMic(lang, (t) => sendUser(t, lang), undefined, true)
+  })
+
   const closeSheet = () => {
+    // 마무리·문장장 카드에서 켠 마이크가 시트를 닫은 뒤에도 듣고 있지 않게
+    stopListening()
     setSheet(null)
     setSettingsOpen(NO_SETTINGS)
     setBookReview(false)
   }
 
-  // 시작하기 전에, 닫힌 탭에 남은 저장 안 된 대화를 먼저 저장한다
-  const commitStaleDrafts = () => {
+  // 시작하기 전에, 닫힌 탭에 남은 저장 안 된 대화를 먼저 저장한다 (이어서 할 것 하나는 빼고)
+  const commitStaleDrafts = (exceptTab?: string) => {
     for (const d of resumableDrafts(loadDrafts(), tabId, nowMs())) {
+      if (d.tabId === exceptTab) continue
       commit(draftData(d))
       clearDraft(d.tabId)
     }
@@ -543,7 +645,7 @@ export default function App() {
     // 첫 인사가 자동 재생 차단에 걸리지 않게, 이 누르기 안에서 소리를 열어 둔다
     speaker.unlock()
     commitStaleDrafts()
-    const p = loadProgress()
+    const p = freshProgress()
     const t = nowMs()
     const day = localDate()
     setProgress(p)
@@ -551,8 +653,10 @@ export default function App() {
     sessionRef.current = { stage: p.stage, unit: p.unit, date: day }
     historyRef.current = []
     pendingRepeatRef.current = ''
+    pickedHintRef.current = ''
     lastHintsRef.current = []
     statsRef.current = { ...EMPTY_STATS }
+    draftSavedRef.current = false
     activeRef.current = true
     setMessages([])
     setRepeats([])
@@ -585,17 +689,25 @@ export default function App() {
 
   const resumeDraft = (d: Draft) => {
     speaker.unlock()
-    if (d.tabId !== tabId) clearDraft(d.tabId)
+    if (d.tabId !== tabId) {
+      // 다른 탭의 대화를 이 탭으로 가져온다. 이 탭에 남아 있던 대화(등 다른 남은 대화)는 덮어쓰기 전에 먼저 저장한다
+      commitStaleDrafts(d.tabId)
+      clearDraft(d.tabId)
+      draftSavedRef.current = false
+    } else draftSavedRef.current = true
     const t = nowMs()
     historyRef.current = d.history
     statsRef.current = { ...d.stats }
     pendingRepeatRef.current = d.pendingRepeat
-    lastHintsRef.current = []
+    pickedHintRef.current = ''
+    const lastTurn = [...d.messages].reverse().find((m) => m.kind === 'ai')
+    lastHintsRef.current = lastTurn && lastTurn.kind === 'ai' ? lastTurn.turn.hints.map((h) => h.en) : []
     idRef.current = d.messages.reduce((a, m) => Math.max(a, m.id), 0)
     setSession({ stage: d.stage, unit: d.unit, date: d.date })
     sessionRef.current = { stage: d.stage, unit: d.unit, date: d.date }
     activeRef.current = true
-    setMessages(d.messages.map((m) => (m.kind === 'ai' ? { ...m, veiled: false } : m)))
+    // 끊기기 전 오류 말풍선은 되살리지 않는다 (필요하면 다시 받아 온다)
+    setMessages(d.messages.filter((m) => m.kind !== 'error').map((m) => (m.kind === 'ai' ? { ...m, veiled: false } : m)))
     setRepeats(d.repeats)
     setTurns(d.stats.turns)
     setPendingRepeat(d.pendingRepeat)
@@ -643,12 +755,17 @@ export default function App() {
     stopListening()
     stopSpeaking()
     hideToast()
-    setTimeUpAck(true)
+    // 시간이 된 뒤에 연 것만 '배너를 봤다'로 친다 (일찍 열었다 돌아가면 나중에 배너가 다시 뜨게)
+    if (elapsed >= limitSec) setTimeUpAck(true)
     setWrapCards(repeats.slice(-3))
     setSheet('wrap')
   }
 
   const finishSession = () => {
+    if (draftSavedRef.current && draftExists(tabId) === false) {
+      takeOver()
+      return
+    }
     const r = commit({
       repeats,
       stats: statsRef.current,
@@ -658,6 +775,7 @@ export default function App() {
       unit: session.unit,
     })
     clearDraft(tabId)
+    draftSavedRef.current = false
     refreshDrafts()
     endSession(r.message)
   }
@@ -669,6 +787,7 @@ export default function App() {
   }
 
   const pickHint = (h: Pair) => {
+    pickedHintRef.current = h.en
     setPickedHint(h.en)
     void play([{ text: h.en, lang: 'en' }]).then((done) => {
       if (done) maybeAutoListen('en')
@@ -678,19 +797,35 @@ export default function App() {
   // ── 안드로이드 뒤로 가기: 앱을 나가지 않고 창을 닫거나 마무리로 ──
   const handleBack = () => {
     const open = sheetRef.current
-    if (open === 'wrap') finishSession()
+    if (open === 'wrap') {
+      // 단원까지 남았으면 실수로 끝내지 않게 한 번 묻는다
+      if (leftTurns <= 0 || window.confirm(`지금 저장하고 끝낼까요? 단원은 대화 한 번에 ${MIN_TURNS_FOR_UNIT}번 주고받아야 마쳐요.`)) finishSession()
+    } else if (open === 'settings' && settingsBackRef.current) settingsBackRef.current()
     else if (open) closeSheet()
     else if (screen === 'chat') openWrap()
   }
   const backRef = useLatestRef(handleBack)
   const needGuard = screen === 'chat' || sheet !== null
+  // 뒤로 가기를 처리한 뒤 다시 막아 둘지 살피게 하는 신호
+  const [popTick, setPopTick] = useState(0)
   useEffect(() => {
-    if (needGuard && !(window.history.state as { efGuard?: boolean } | null)?.efGuard) {
-      window.history.pushState({ efGuard: true }, '')
+    const guarded = !!(window.history.state as { efGuard?: boolean } | null)?.efGuard
+    if (needGuard && !guarded) window.history.pushState({ efGuard: true }, '')
+    // 버튼으로 닫아 막을 필요가 없어졌으면, 넣어 둔 칸을 거둬서 다음 뒤로 가기가 바로 앱을 나가게 한다
+    if (!needGuard && guarded && !ignorePopRef.current) {
+      ignorePopRef.current = true
+      window.history.back()
     }
-  }, [needGuard, sheet, screen])
+  }, [needGuard, popTick])
   useEffect(() => {
-    const onPop = () => backRef.current()
+    const onPop = () => {
+      if (ignorePopRef.current) {
+        ignorePopRef.current = false
+        return
+      }
+      backRef.current()
+      setPopTick((t) => t + 1)
+    }
     window.addEventListener('popstate', onPop)
     return () => window.removeEventListener('popstate', onPop)
   }, [backRef])
@@ -698,7 +833,7 @@ export default function App() {
   // ── 교육과정 ──
   // 단계를 바꾸면 말 속도·뜻 보이기·따라 말하기 양도 그 단계에 맞춘다
   const moveToStage = (n: number) => {
-    updateProgress(changeStage(loadProgress(), n))
+    updateProgress(changeStage(freshProgress(), n))
     const stage = getStage(n)
     const next = sanitizeSettings({ ...settings, ...stage.defaults })
     setSettings(next)
@@ -712,13 +847,16 @@ export default function App() {
   }
 
   const pickUnit = (unitId: string) => {
-    updateProgress(chooseUnit(loadProgress(), unitId))
+    updateProgress(chooseUnit(freshProgress(), unitId))
     closeSheet()
-    showToast(`「${unitById(unitId)?.title ?? ''}」로 정했어요. 시작하기를 누르세요.`)
+    const title = unitById(unitId)?.title ?? ''
+    showToast(`「${title}」${ro(title)} 정했어요. 시작하기를 누르세요.`)
   }
 
   // ── 설정·옮기기·문장장 ──
   const saveNewSettings = (next: Settings) => {
+    // 키 확인을 기다리는 사이 창을 닫았으면 저장하지 않는다 ('저장 안 함'을 고른 것)
+    if (sheetRef.current !== 'settings') return
     const startAfter = settingsOpen.startAfter && !activeRef.current && !!next.apiKey
     setSettings(next)
     settingsRef.current = next
@@ -730,13 +868,13 @@ export default function App() {
 
   // 다른 기기에서 가져온 문장장·진도는 합치고, 설정은 키·목소리만 빼고 맞춘다
   const importData = (data: TransferData) => {
-    const { list, added } = mergeImported(loadLearned(), data.learned)
+    const { list, added } = mergeImported(freshLearned(), data.learned)
     setLearned(list)
     saveLearned(list)
     const next = applyImportedSettings(settings, data.settings)
     setSettings(next)
     saveSettings(next)
-    if (data.progress) updateProgress(mergeProgress(loadProgress(), data.progress))
+    if (data.progress) updateProgress(mergeProgress(freshProgress(), data.progress))
     return { added, total: list.length }
   }
 
@@ -746,16 +884,29 @@ export default function App() {
     saveLearned([])
   }
 
+  // 쓰기 전에 다시 읽는다 (다른 탭에서 체크한 것을 지우지 않게, 자정이 지났으면 새 날로)
   const toggleCheck = (i: number) => {
-    const next = dailyChecks.includes(i) ? dailyChecks.filter((x) => x !== i) : [...dailyChecks, i]
-    setDailyChecks(next)
-    saveDailyChecks(localDate(), next)
+    const day = localDate()
+    const cur = storageWorks() ? loadDailyChecks(day) : dailyChecks
+    const next = cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i]
+    setDaily({ date: day, checks: next })
+    saveDailyChecks(day, next)
   }
 
   const allowMic = () => {
-    void requestMic().then((ok) => {
-      setMicState(ok ? 'granted' : 'denied')
-      if (!ok) showToast(`마이크를 켜지 못했어요. ${micBlockedHelp(env)}`)
+    void requestMic().then(async (r) => {
+      if (r === 'granted') {
+        setMicState('granted')
+        return
+      }
+      if (r === 'blocked') {
+        // 권한 창을 닫기만 했으면 아직 '묻기'라서 다시 누를 수 있게 둔다
+        const now = (await micPermission()).state
+        setMicState(now === 'unknown' ? 'denied' : now)
+        showToast(now === 'prompt' ? '권한 창이 닫혔어요. 다시 누르고 "허용"을 골라 주세요.' : micRequestText(r, env))
+        return
+      }
+      showToast(micRequestText(r, env))
     })
   }
 
@@ -772,9 +923,6 @@ export default function App() {
         ? '진도는 옮겨졌어요. 이 기기에 Gemini 키만 넣으면 이어서 해요.'
         : '처음이면 "키 넣고 시작하기"를 눌러 Gemini 키부터 넣어요. 2분이면 돼요.'
       : '')
-  const leftTurns = MIN_TURNS_FOR_UNIT - turns
-  // 답이 오래 걸리면 '그만 기다리기' (시계가 1초마다 돌아서 따로 타이머가 필요 없다)
-  const slowWait = busy && now - busySince >= SLOW_WAIT_MS
 
   return (
     <>
@@ -796,7 +944,7 @@ export default function App() {
               className={leftTurns > 0 ? 'primary' : 'secondary'}
               id="btnMore"
               type="button"
-              onClick={() => setLimitSec((l) => l + 300)}
+              onClick={() => setLimitSec((l) => Math.max(l, elapsed) + 300)}
             >
               5분 더
             </button>
@@ -817,12 +965,19 @@ export default function App() {
                   showKo={settings.showKo}
                   pickedHint={m.id === lastAi?.id ? pickedHint : ''}
                   onUnveil={() => unveil(m.id)}
-                  onPlay={(segs, slow) => void play(segs, slow)}
+                  onPlay={(segs, slow) =>
+                    void play(segs, slow).then((done) => {
+                      // 마지막 말을 다시 들었으면, 자동 듣기를 켜 둔 사람은 다시 듣기 시작
+                      if (done && m.id === lastAi?.id) maybeAutoListen(m.turn.repeat ? 'en' : lastLangRef.current)
+                    })
+                  }
                   onPickHint={pickHint}
                 />
               )
             if (m.kind === 'me')
-              return <UserBubble key={m.id} text={m.text} lang={m.lang} isRepeat={m.isRepeat} heardWell={m.heardWell} />
+              return (
+                <UserBubble key={m.id} text={m.text} lang={m.lang} isRepeat={m.isRepeat} fromHint={m.fromHint} heardWell={m.heardWell} />
+              )
             return (
               <ErrorBubble
                 key={m.id}
@@ -848,6 +1003,7 @@ export default function App() {
             pendingRepeat={pendingRepeat}
             pickedHint={pickedHint}
             notice={micNotice}
+            hasError={messages[messages.length - 1]?.kind === 'error'}
             firstTime={progress.sessions.length === 0}
             veiled={!!lastAi && lastAi.kind === 'ai' && lastAi.veiled}
             onMic={(lang) => startMic(lang, (text) => sendUser(text, lang))}
@@ -875,8 +1031,10 @@ export default function App() {
             supported: recognitionSupported,
             inApp,
             chromeUrl: inApp || !recognitionSupported ? openInChromeUrl(window.location.href, env.ua) : null,
+            externalUrl: inApp ? openExternalUrl(window.location.href, env.ua) : null,
             help: micBlockedHelp(env),
           }}
+          hasData={learned.length > 0 || progress.sessions.length > 0}
           dailyChecks={dailyChecks}
           onToggleCheck={toggleCheck}
           onStart={() => startSession()}
@@ -904,9 +1062,10 @@ export default function App() {
           focus={settingsOpen.focus}
           startAfterSave={settingsOpen.startAfter}
           voices={speaker.voicesFor(TARGET.tts)}
-          onCheckKey={(s) => checkKey(s)}
+          onCheckKey={(s, signal) => checkKey(s, signal)}
           onSave={saveNewSettings}
           onClose={closeSheet}
+          backRef={settingsBackRef}
           onTestVoice={(voiceName, rate) => void play([{ text: 'Hi! Nice to meet you.', lang: 'en', voiceName }], false, rate)}
           onUnlockSound={() => speaker.unlock()}
         />
@@ -957,11 +1116,10 @@ export default function App() {
           onClose={closeSheet}
         />
       )}
-      {toast && (
-        <div className={`toast${showTimeBanner ? ' low' : ''}`} id="toast" role="status">
-          {toast}
-        </div>
-      )}
+      {/* 낭독기가 알림을 놓치지 않게 상자는 늘 두고 글자만 바꾼다 */}
+      <div className={`toast${toast ? ' show' : ''}`} id="toast" role="status">
+        {toast}
+      </div>
     </>
   )
 }

@@ -9,6 +9,8 @@ export interface MicInfo {
   supported: boolean
   inApp: 'kakao' | 'other' | null
   chromeUrl: string | null
+  // 카카오톡의 '기본 브라우저로 열기' (크롬 열기가 안 될 때)
+  externalUrl: string | null
   help: string
 }
 
@@ -26,6 +28,8 @@ interface Props {
   draft: Draft | null
   busyElsewhere: boolean
   mic: MicInfo
+  // 이 브라우저에 쌓인 문장장·기록이 있는지 (앱 안 브라우저에서 떠나기 전에 옮기라고 알린다)
+  hasData: boolean
   dailyChecks: number[]
   onToggleCheck: (i: number) => void
   onStart: () => void
@@ -41,10 +45,10 @@ interface Props {
   onPromote: () => void
 }
 
-// 승급 조건 중 가장 모자란 것에 맞춘 한 줄 도움말
-function promoTip(labels: { label: string; ok: boolean }[]): string {
-  const missing = labels.find((c) => !c.ok)
-  if (!missing) return ''
+// 승급 조건 중 가장 모자란 것에 맞춘 한 줄 도움말. 오늘 단원을 이미 마쳤으면 단원 말고 다른 조건을 말한다
+function promoTip(labels: { label: string; ok: boolean }[], finishedToday: boolean): string {
+  const missing = labels.find((c) => !c.ok && !(finishedToday && c.label.startsWith('단원')))
+  if (!missing) return finishedToday && labels.some((c) => !c.ok) ? '오늘 단원은 마쳤어요. 내일 다음 단원을 이어 가요.' : ''
   if (missing.label.startsWith('단원')) return '오늘 단원을 끝까지 해 봐요.'
   if (missing.label.includes('비율')) return '한국어 대신 EN 버튼으로 스스로 대답해 보세요. 짧아도 괜찮아요.'
   return '대답을 한두 단어만 더 길게 해 보세요.'
@@ -71,9 +75,23 @@ export function StartScreen(props: Props) {
             {mic.inApp
               ? '카카오톡·네이버 같은 앱 안에서는 마이크와 저장이 제대로 안 돼요. 크롬에서 열어 주세요.'
               : '이 브라우저는 음성 인식이 안 돼요. 크롬이나 엣지에서 열어 주세요. (입력칸에 써서 연습할 수는 있어요)'}
+            {mic.inApp && props.hasData && (
+              <div className="note" id="inAppData">
+                여기서 쓰던 문장장·진도는 크롬에 없어요. 크롬으로 열기 전에 <b>📲 폰↔PC 옮기기 → 내보내기</b>로 코드를 복사해
+                두고, 크롬에서 가져오기 하세요.{' '}
+                <button className="secondary small" id="btnInAppExport" type="button" onClick={props.onTransfer}>
+                  코드 복사하러 가기
+                </button>
+              </div>
+            )}
             {mic.chromeUrl && (
               <a className="primary link-btn" id="btnOpenChrome" href={mic.chromeUrl}>
                 크롬으로 열기
+              </a>
+            )}
+            {mic.externalUrl && mic.externalUrl !== mic.chromeUrl && (
+              <a className="secondary link-btn" id="btnOpenExternal" href={mic.externalUrl}>
+                크롬이 안 열리면: 다른 브라우저로 열기
               </a>
             )}
           </div>
@@ -160,7 +178,7 @@ export function StartScreen(props: Props) {
                       </span>
                     ))}
                   </div>
-                  <div className="tip-line">{promoTip(promo.criteria)}</div>
+                  <div className="tip-line">{promoTip(promo.criteria, !!finishedToday)}</div>
                 </>
               )}
             </div>
@@ -234,7 +252,8 @@ export function StartScreen(props: Props) {
                   <li key={r}>
                     <label className="check">
                       <input type="checkbox" checked={checked} disabled={auto} onChange={() => props.onToggleCheck(i)} />
-                      <span className={checked ? 'done-text' : ''}>{r}</span>
+                      {/* 앱 대화 시간은 내가 정한 하루 목표로 보여 준다 (자동 체크 기준과 같게) */}
+                      <span className={checked ? 'done-text' : ''}>{i === 0 ? r.replace(/앱 대화 \d+분/, `앱 대화 ${minutesGoal}분`) : r}</span>
                     </label>
                     {r.includes('문장장') && progress.sessions.length > 0 && (
                       <button className="secondary small" type="button" onClick={props.onReview}>

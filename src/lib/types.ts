@@ -53,7 +53,7 @@ export type FixTarget = 'apiKey' | 'model' | null
 
 export type Message =
   | { kind: 'ai'; id: number; turn: Turn; veiled: boolean }
-  | { kind: 'me'; id: number; text: string; lang: Lang; isRepeat: boolean; heardWell?: boolean }
+  | { kind: 'me'; id: number; text: string; lang: Lang; isRepeat: boolean; fromHint?: boolean; heardWell?: boolean }
   | { kind: 'error'; id: number; text: string; fix: FixTarget }
 
 export interface Unit {
@@ -125,6 +125,8 @@ export interface Progress {
   unit: string
   doneUnits: string[]
   sessions: SessionLog[]
+  // 날짜별 공부한 분 (대화 기록은 최근 것만 남기지만 연속 일수·오늘 분은 이것으로 센다). 옛 데이터에는 없을 수 있다
+  days?: Record<string, number>
 }
 
 export interface WriteCheck {

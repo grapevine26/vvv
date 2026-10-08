@@ -20,6 +20,8 @@ export const SPEECH_MOCK = `(() => {
     getVoices() { return voices; },
     speak(u) {
       window.__spoken.push({ text: u.text, lang: u.lang, voice: u.voice && u.voice.name, rate: u.rate, volume: u.volume });
+      // __speakError를 정해 두면 소리가 안 나는 목소리 오류를 흉내 낸다
+      if (window.__speakError && u.volume !== 0) { const err = window.__speakError; setTimeout(() => { u.onerror && u.onerror({ error: err }); }, 5); return; }
       setTimeout(() => { u.onend && u.onend({}); }, window.__speakDelay);
     },
     cancel() { window.__spoken.push({ cancel: true }); },
@@ -39,7 +41,10 @@ export const SPEECH_MOCK = `(() => {
     if (final) { r.stopped = true; r.onend(); }
   };
   window.__silence = (err) => { const r = window.__recs[window.__recs.length - 1]; r.stopped = true; if (err) r.onerror({ error: err }); r.onend(); };
+  // 말은 했는데 알아듣지 못함 (크롬의 nomatch 이벤트)
+  window.__nomatch = () => { const r = window.__recs[window.__recs.length - 1]; r.stopped = true; r.onnomatch && r.onnomatch(); r.onend(); };
 
+  // allow: true(허용) / false(거절) / 'NotFoundError' 같은 오류 이름(그 오류로 실패, 권한은 그대로)
   window.__mic = Object.assign({ state: 'granted', allow: true }, window.__micPreset || {});
   const status = new EventTarget();
   Object.defineProperty(status, 'state', { get() { return window.__mic.state; } });
@@ -57,7 +62,8 @@ export const SPEECH_MOCK = `(() => {
   if (navigator.mediaDevices) {
     navigator.mediaDevices.getUserMedia = () => {
       window.__micRequests = (window.__micRequests || 0) + 1;
-      if (window.__mic.allow) { window.__setMic('granted'); return Promise.resolve({ getTracks: () => [] }); }
+      if (window.__mic.allow === true) { window.__setMic('granted'); return Promise.resolve({ getTracks: () => [] }); }
+      if (typeof window.__mic.allow === 'string') return Promise.reject(new DOMException('mic error', window.__mic.allow));
       window.__setMic('denied');
       return Promise.reject(new DOMException('Permission denied', 'NotAllowedError'));
     };
@@ -78,7 +84,9 @@ export interface MockWindow {
   __speakDelay: number
   __say: (text: string, final?: boolean) => void
   __silence: (err?: string) => void
-  __mic: { state: string; allow: boolean }
+  __mic: { state: string; allow: boolean | string }
+  __speakError?: string
+  __nomatch: () => void
   __setMic: (s: string) => void
   __micRequests?: number
 }
@@ -106,7 +114,7 @@ const CORS = {
 
 export interface MockOptions {
   // 처음 열 때 마이크 권한 상태 (기본 granted)
-  mic?: { state?: 'granted' | 'denied' | 'prompt'; allow?: boolean }
+  mic?: { state?: 'granted' | 'denied' | 'prompt'; allow?: boolean | string }
   // 처음 한 번만 넣어 둘 저장값 (새로고침해도 앱이 바꾼 값은 유지)
   storage?: Record<string, unknown>
 }
@@ -122,9 +130,14 @@ export async function installMocks(context: BrowserContext, opts: MockOptions = 
   await context.addInitScript(SPEECH_MOCK)
   if (opts.storage) {
     await context.addInitScript((s) => {
-      if (sessionStorage.getItem('__seeded')) return
-      for (const [k, v] of Object.entries(s)) localStorage.setItem(k, JSON.stringify(v))
-      sessionStorage.setItem('__seeded', '1')
+      // 저장소가 막힌 브라우저를 흉내 내는 테스트에서는 넣지 못해도 그냥 넘어간다
+      try {
+        if (sessionStorage.getItem('__seeded')) return
+        for (const [k, v] of Object.entries(s)) localStorage.setItem(k, JSON.stringify(v))
+        sessionStorage.setItem('__seeded', '1')
+      } catch {
+        // 무시
+      }
     }, opts.storage)
   }
   const requests: GeminiRequest[] = []

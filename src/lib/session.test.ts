@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_PROGRESS, doneToday, minutesOn, streakDays } from './curriculum'
+import { DEFAULT_PROGRESS, doneToday, mergeProgress, minutesOn, recordSession, sanitizeProgress, streakDays } from './curriculum'
 import { pickReview } from './prompt'
 import { commitSession, EMPTY_STATS } from './session'
 import { addDays, dayDiff } from './text'
@@ -47,6 +47,23 @@ describe('연속 학습일·오늘 공부 시간', () => {
     expect(doneToday(prog, '2026-10-08')?.minutes).toBe(5)
     expect(doneToday({ ...prog, sessions: [log('2026-10-08', 7, 3)] }, '2026-10-08')).toBeNull()
   })
+  it('대화 기록이 300개로 잘려도 연속 일수와 그날 분은 이어진다', () => {
+    let prog: Progress = { ...DEFAULT_PROGRESS }
+    for (let i = 399; i >= 0; i--) prog = recordSession(prog, { ...log(addDays('2026-10-08', -i), 10, 2), id: `x${1000 - i}` }).progress
+    expect(prog.sessions).toHaveLength(300)
+    expect(streakDays(prog, '2026-10-08')).toBe(400)
+    expect(minutesOn(prog, addDays('2026-10-08', -399))).toBe(10)
+    // 저장했다가 다시 읽어도(옛 버전처럼 days가 없어도) 같은 값
+    expect(streakDays(sanitizeProgress(JSON.parse(JSON.stringify(prog))), '2026-10-08')).toBe(400)
+    expect(minutesOn(sanitizeProgress({ ...prog, days: undefined }), '2026-10-08')).toBe(10)
+  })
+  it('두 기기 진도를 합치면 날짜별 분은 겹치지 않게 합친다', () => {
+    const a: Progress = { ...DEFAULT_PROGRESS, sessions: [log('2026-10-08', 7)], days: { '2026-10-08': 7, '2026-10-01': 30 } }
+    const b: Progress = { ...DEFAULT_PROGRESS, sessions: [log('2026-10-08', 7), { ...log('2026-10-08', 5), id: 'other' }] }
+    const m = mergeProgress(a, b)
+    expect(minutesOn(m, '2026-10-08')).toBe(12)
+    expect(minutesOn(m, '2026-10-01')).toBe(30)
+  })
 })
 
 describe('pickReview (복습 문장 고르기)', () => {
@@ -60,6 +77,14 @@ describe('pickReview (복습 문장 고르기)', () => {
     expect(pickReview(learned, '2026-10-08')).toEqual(a)
   })
 
+  it('n을 넘기지 않는다 (간격 복습 대상이 많아도)', () => {
+    const today = '2026-10-08'
+    const ago = [60, 45, 30, 20, 14, 10, 7, 5, 3, 2, 1, 0, 0, 0]
+    const many = ago.map((d, i) => ({ en: `S${i}.`, ko: '', date: addDays(today, -d) }))
+    expect(pickReview(many, today, 5)).toHaveLength(5)
+    expect(pickReview(many, today)).toHaveLength(8)
+  })
+
   it('문장이 적으면 전부', () => {
     expect(pickReview(learned.slice(0, 5), '2026-10-08')).toHaveLength(5)
   })
@@ -70,7 +95,7 @@ describe('commitSession', () => {
 
   it('최신 문장장에 합치고, 단원을 마치고, 결과 문구를 만든다', () => {
     const latest = [{ en: 'Hello.', ko: '안녕', date: '2026-10-07' }]
-    const r = commitSession(data, latest, DEFAULT_PROGRESS)
+    const r = commitSession(data, latest, DEFAULT_PROGRESS, '2026-10-08')
     expect(r.learned.map((x) => x.en)).toEqual(['Hello.', "I'm tired."])
     expect(r.unitDone).toBe(true)
     expect(r.progress.unit).toBe('s1-2')
@@ -78,17 +103,34 @@ describe('commitSession', () => {
     expect(r.message).toContain('1문장을 문장장에 저장했어요')
     expect(r.message).toContain('「인사와 자기소개」 단원을 마쳤어요')
     expect(r.message).toContain('오늘 10분')
+    expect(r.progress.days).toEqual({ '2026-10-08': 10 })
   })
 
-  it('덜 주고받았으면 남은 횟수를 알려 준다', () => {
-    const r = commitSession({ ...data, stats: { ...data.stats, turns: 3 } }, [], DEFAULT_PROGRESS)
+  it('덜 주고받았으면 대화 한 번 기준이라고 알려 준다 (다음 대화에서 다시 5번)', () => {
+    const r = commitSession({ ...data, stats: { ...data.stats, turns: 3 } }, [], DEFAULT_PROGRESS, '2026-10-08')
     expect(r.unitDone).toBe(false)
-    expect(r.message).toContain('2번 더 주고받으면')
+    expect(r.message).toContain('대화 한 번에 5번 주고받으면 마쳐요 (이번엔 3번)')
   })
 
-  it('한 번도 주고받지 않았으면 기록하지 않는다', () => {
+  it('어제 남은 대화를 오늘 저장하면 "오늘 N분"이라고 하지 않는다', () => {
+    const r = commitSession({ ...data, date: '2026-10-07' }, [], DEFAULT_PROGRESS, '2026-10-08')
+    expect(r.message).not.toContain('오늘')
+    expect(r.message).toContain('10월 7일 기록으로 남겼어요')
+    expect(r.progress.sessions[0].date).toBe('2026-10-07')
+  })
+
+  it('그사이 다른 단원을 골라 두었으면 단원을 마쳐도 그 선택을 지킨다', () => {
+    const picked = { ...DEFAULT_PROGRESS, unit: 's1-7' }
+    const r = commitSession(data, [], picked, '2026-10-08')
+    expect(r.unitDone).toBe(true)
+    expect(r.progress.doneUnits).toEqual(['s1-1'])
+    expect(r.progress.unit).toBe('s1-7')
+  })
+
+  it('한 번도 주고받지 않았으면 기록하지 않고, 그렇다고 알려 준다', () => {
     const r = commitSession({ ...data, repeats: [], stats: { ...EMPTY_STATS } }, [], DEFAULT_PROGRESS)
     expect(r.recorded).toBe(false)
     expect(r.progress.sessions).toHaveLength(0)
+    expect(r.message).toContain('기록할 게 없어요')
   })
 })

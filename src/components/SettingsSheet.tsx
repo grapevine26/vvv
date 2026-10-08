@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState, type RefObject } from 'react'
 import { clamp, GEMINI_KEY_URL, REPEAT_AMOUNTS, sanitizeSettings } from '../lib/config'
 import { AppError, errorText } from '../lib/gemini'
 import type { FixTarget, Settings } from '../lib/types'
@@ -15,9 +15,11 @@ interface Props {
   focus: FixTarget
   startAfterSave: boolean
   voices: SpeechSynthesisVoice[]
-  onCheckKey: (s: Settings) => Promise<void>
+  onCheckKey: (s: Settings, signal: AbortSignal) => Promise<void>
   onSave: (next: Settings) => void
   onClose: () => void
+  // 휴대폰 뒤로 가기도 ✕와 같이 '저장 안 하고 닫을까요?'를 거치게 닫기 함수를 넘겨 둔다
+  backRef: RefObject<(() => void) | null>
   onTestVoice: (voiceName: string, rate: number) => void
   onUnlockSound: () => void
 }
@@ -34,6 +36,9 @@ export function SettingsSheet(props: Props) {
   const [showKey, setShowKey] = useState(false)
   const [editKey, setEditKey] = useState(firstRun || !settings.apiKey || focus === 'apiKey')
   const [advancedOpen, setAdvancedOpen] = useState(focus === 'model')
+  // 첫 실행에서 키 확인이 모델 문제로 실패하면 모델 칸을 키 칸 아래에 꺼내 보여 준다
+  const [needModel, setNeedModel] = useState(false)
+  const checkAbort = useRef<AbortController | null>(null)
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setForm((f) => ({ ...f, [key]: value }))
   const voiceValue = voices.some((v) => v.name === form.voiceName) ? form.voiceName : ''
   const keyLooksOdd = form.apiKey.trim() !== '' && !/^AIza/.test(form.apiKey.replace(/[\s"'“”‘’`]/g, ''))
@@ -41,8 +46,21 @@ export function SettingsSheet(props: Props) {
   const close = () => {
     const changed = JSON.stringify(sanitizeSettings(form)) !== JSON.stringify(sanitizeSettings(settings))
     if (changed && !window.confirm('바꾼 내용을 저장하지 않고 닫을까요?')) return
+    checkAbort.current?.abort()
     onClose()
   }
+  const { backRef } = props
+  useEffect(() => {
+    backRef.current = close
+  })
+  // 닫히면 기다리던 키 확인을 그만둔다 (닫은 뒤에 저장되거나 대화가 시작되지 않게)
+  useEffect(
+    () => () => {
+      checkAbort.current?.abort()
+      backRef.current = null
+    },
+    [backRef],
+  )
 
   const submit = async (skipCheck = false) => {
     // 이 누르기 안에서 소리를 열어 둬야 '저장하고 시작하기' 뒤 첫 인사가 막히지 않는다
@@ -55,14 +73,21 @@ export function SettingsSheet(props: Props) {
     const connectionChanged = next.apiKey !== settings.apiKey || next.model !== settings.model
     if (next.apiKey && (connectionChanged || firstRun) && !skipCheck) {
       setCheck({ state: 'checking' })
+      const controller = new AbortController()
+      checkAbort.current = controller
       try {
-        await onCheckKey(next)
+        await onCheckKey(next, controller.signal)
       } catch (err) {
+        if (controller.signal.aborted) return
         const fix = err instanceof AppError ? err.fix : null
-        if (fix === 'model') setAdvancedOpen(true)
+        if (fix === 'model') {
+          setAdvancedOpen(true)
+          setNeedModel(true)
+        }
         setCheck({ state: 'error', text: errorText(err), canSkip: err instanceof AppError && err.retryable })
         return
       }
+      if (controller.signal.aborted) return
     }
     setCheck({ state: 'idle' })
     onSave(next)
@@ -79,16 +104,18 @@ export function SettingsSheet(props: Props) {
 
   const keyField = (
     <div className="field" id="keyField">
-      <span>Gemini API 키</span>
+      <label htmlFor="apiKeyInput">Gemini API 키</label>
       <span className="inline">
         <input
+          id="apiKeyInput"
           type={showKey ? 'text' : 'password'}
           name="apiKey"
           autoComplete="off"
           spellCheck={false}
           placeholder="AIza…로 시작하는 긴 글자"
           value={form.apiKey}
-          autoFocus={firstRun || focus === 'apiKey'}
+          // 처음엔 키보드가 '키 받는 법'을 가리지 않게 자동으로 띄우지 않는다. 오류에서 '키 다시 넣기'로 왔을 때만
+          autoFocus={focus === 'apiKey'}
           onChange={(e) => set('apiKey', e.target.value)}
         />
         <button className="secondary small" type="button" onClick={pasteKey}>
@@ -166,6 +193,12 @@ export function SettingsSheet(props: Props) {
               </ol>
             </div>
             {keyField}
+            {needModel && (
+              <label className="field">
+                <span>모델 이름</span>
+                <input name="model" autoComplete="off" spellCheck={false} value={form.model} onChange={(e) => set('model', e.target.value)} />
+              </label>
+            )}
             {checkLine}
             <p className="note">
               키는 이 브라우저에만 저장돼요. 폰에서도 쓰려면 PC에서 키를 복사해 카톡 "나와의 채팅"으로 보내 붙여 넣어도 돼요(남에게는

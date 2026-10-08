@@ -23,6 +23,17 @@ function read(key: string): unknown {
   }
 }
 
+// 저장소를 실제로 쓸 수 있는지 (막혀 있으면 화면은 메모리 값으로 이어 간다)
+export function storageWorks(): boolean {
+  try {
+    localStorage.setItem('__ef_test', '1')
+    localStorage.removeItem('__ef_test')
+    return true
+  } catch {
+    return false
+  }
+}
+
 function write(key: string, value: unknown): boolean {
   try {
     localStorage.setItem(key, JSON.stringify(value))
@@ -142,6 +153,17 @@ export function clearDraft(tab: string): void {
     // 저장소가 막혀 있으면 지울 것도 없다
   }
 }
+
+// 이 탭의 임시 저장이 아직 있는지. 저장소를 못 읽으면 null (모름)
+export function draftExists(tab: string): boolean | null {
+  try {
+    return localStorage.getItem(KEY_DRAFT_PREFIX + tab) !== null
+  } catch {
+    return null
+  }
+}
+
+export const draftKey = (tab: string) => KEY_DRAFT_PREFIX + tab
 
 export function loadDrafts(): Draft[] {
   const drafts: Draft[] = []

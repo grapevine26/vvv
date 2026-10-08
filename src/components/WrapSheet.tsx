@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { TARGET } from '../lib/config'
 import { errorText } from '../lib/gemini'
 import { overlap, same, splitByScript } from '../lib/text'
@@ -49,7 +49,11 @@ export function WrapSheet({ cards, unitTitle, turns, minTurns, onPlay, onMic, on
       </div>
       <div id="wrapBody">
         {cards.length === 0 ? (
-          <p className="muted">오늘은 아직 따라 말한 문장이 없어요. 그래도 저장하면 대화 기록은 남아요.</p>
+          <p className="muted">
+            {turns > 0
+              ? '오늘은 아직 따라 말한 문장이 없어요. 그래도 저장하면 대화 기록은 남아요.'
+              : '아직 한 번도 대답하지 않았어요. 지금 끝내면 기록할 게 없어요. 대화로 돌아가서 한 마디만 해 볼까요?'}
+          </p>
         ) : (
           <>
             <h3>① 듣고 소리 내어 읽기</h3>
@@ -148,6 +152,12 @@ export function WriteBox({
     }
   }
 
+  // 확인 결과가 아래 고정 버튼줄이나 키보드에 가리지 않게 보이는 곳으로
+  const resultRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (result) resultRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [result])
+
   const next = () => {
     setIdx((i) => (i + 1) % cards.length)
     setValue('')
@@ -187,7 +197,7 @@ export function WriteBox({
         />
       </div>
       {result && (
-        <div className={`result${result.good ? ' good' : ''}`}>
+        <div className={`result${result.good ? ' good' : ''}`} ref={resultRef} role="status">
           {result.message && <div>{result.message}</div>}
           {result.answer && (
             <div>
