@@ -372,3 +372,67 @@ test('정한 시간이 지나면 마무리 배너', async ({ page, context }) =>
   await page.click('#btnBackToChat')
   await expect(page.locator('#timeBanner')).toHaveCount(0)
 })
+
+test('내보내기 → 다른 기기에서 가져오기', async ({ browser }) => {
+  // 기기 A: 문장 2개, 친구 이름 Mia
+  const deviceA = await browser.newContext({ permissions: ['clipboard-read', 'clipboard-write'] })
+  await deviceA.addInitScript(() => {
+    if (localStorage.getItem('englishFriend.learned')) return
+    localStorage.setItem(
+      'englishFriend.learned',
+      JSON.stringify([
+        { en: "I'm so tired.", ko: '나 너무 피곤해.', date: '2026-10-05' },
+        { en: 'I like coffee.', ko: '커피 좋아해.', date: '2026-10-06' },
+      ]),
+    )
+    localStorage.setItem(
+      'englishFriend.settings',
+      JSON.stringify({ apiKey: 'KEY-A', friendName: 'Mia', voiceName: 'PC Voice', rate: 0.7 }),
+    )
+  })
+  const pa = await deviceA.newPage()
+  await pa.goto('/')
+  await pa.click('#btnStartBook')
+  await pa.click('#btnExport')
+  await expect(pa.locator('#transferResult')).toContainText('복사했어요 (문장 2개)')
+  const code = await pa.locator('#exportCode').inputValue()
+  expect(code).toMatch(/^EF1\./)
+  expect(await pa.evaluate(() => navigator.clipboard.readText())).toBe(code)
+
+  // 기기 B: 자기 키·목소리가 있고, 문장 1개가 겹친다
+  const deviceB = await browser.newContext()
+  await deviceB.addInitScript(() => {
+    if (localStorage.getItem('englishFriend.settings')) return
+    localStorage.setItem('englishFriend.settings', JSON.stringify({ apiKey: 'KEY-B', voiceName: 'Phone Voice' }))
+    localStorage.setItem('englishFriend.learned', JSON.stringify([{ en: 'I am so tired', ko: '피곤해', date: '2026-10-07' }]))
+  })
+  const pb = await deviceB.newPage()
+  await pb.goto('/')
+  await pb.click('#btnStartBook')
+  await pb.click('#btnImportOpen')
+
+  // 잘못 붙여 넣은 경우
+  await pb.fill('#importCode', '안녕하세요')
+  await pb.click('#btnImportRun')
+  await expect(pb.locator('#transferResult')).toContainText('영어 친구 코드가 아니에요')
+  await pb.fill('#importCode', code.slice(0, code.length - 12))
+  await pb.click('#btnImportRun')
+  await expect(pb.locator('#transferResult')).toContainText('잘렸거나')
+
+  // 카톡에서 복사하며 줄바꿈이 섞여도 된다
+  await pb.fill('#importCode', `${code.slice(0, 20)}\n${code.slice(20)}\n`)
+  await pb.click('#btnImportRun')
+  await expect(pb.locator('#transferResult')).toContainText('1문장을 새로 가져왔어요 (모두 2문장)')
+  await expect(pb.locator('#bookBody .repeat-text')).toHaveText(['I like coffee.', 'I am so tired'])
+  const saved = await pb.evaluate(() => JSON.parse(localStorage.getItem('englishFriend.settings') || '{}'))
+  expect(saved).toMatchObject({ apiKey: 'KEY-B', voiceName: 'Phone Voice', friendName: 'Mia', rate: 0.7 })
+  const learnedB = await pb.evaluate(() => JSON.parse(localStorage.getItem('englishFriend.learned') || '[]'))
+  expect(learnedB).toHaveLength(2)
+  expect(learnedB[0]).toMatchObject({ en: 'I am so tired', date: '2026-10-05' })
+  await pb.screenshot({ path: 'test-results/shots/transfer.png', fullPage: true })
+
+  await pb.click('#btnBookClose')
+  await expect(pb.locator('#startTitle')).toContainText('Mia')
+  await deviceA.close()
+  await deviceB.close()
+})

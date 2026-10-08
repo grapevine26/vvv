@@ -11,6 +11,7 @@ import { callGemini, checkWriting, errorText, parseTurn, TURN_SCHEMA } from './l
 import { buildSystemPrompt, pushHistory, recentHistory, START_MESSAGE, userTag } from './lib/prompt'
 import { getRecognitionCtor, listen, micErrorText, Speaker, type Listening } from './lib/speech'
 import { loadLearned, loadSettings, mergeLearned, saveLearned, saveSettings } from './lib/storage'
+import { applyImportedSettings, mergeImported, type TransferData } from './lib/transfer'
 import { fmt, localDate, same, turnSegments } from './lib/text'
 import type { Content, Lang, Message, Pair, Segment, Settings } from './lib/types'
 
@@ -241,6 +242,17 @@ export default function App() {
     setSheet(null)
   }
 
+  // 다른 기기에서 가져온 문장장은 합치고, 설정은 키·목소리만 빼고 맞춘다
+  const importData = (data: TransferData) => {
+    const { list, added } = mergeImported(learned, data.learned)
+    setLearned(list)
+    saveLearned(list)
+    const next = applyImportedSettings(settings, data.settings)
+    setSettings(next)
+    saveSettings(next)
+    return { added, total: list.length }
+  }
+
   const clearBook = () => {
     if (!window.confirm('문장장을 모두 지울까요? 되돌릴 수 없어요.')) return
     setLearned([])
@@ -355,7 +367,14 @@ export default function App() {
         />
       )}
       {sheet === 'book' && (
-        <BookSheet learned={learned} onPlay={play} onClear={clearBook} onClose={() => setSheet(null)} />
+        <BookSheet
+          learned={learned}
+          settings={settings}
+          onPlay={play}
+          onImport={importData}
+          onClear={clearBook}
+          onClose={() => setSheet(null)}
+        />
       )}
       {toast && (
         <div className="toast" id="toast" role="status">

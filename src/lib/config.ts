@@ -9,6 +9,9 @@ export const REPEAT_AMOUNTS = ['적게', '보통', '많이']
 
 export const GEMINI_KEY_URL = 'https://aistudio.google.com/apikey'
 
+// 문장장에 남기는 최대 문장 수 (오래된 것부터 지운다)
+export const MAX_LEARNED = 300
+
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: '',
   model: 'gemini-3.5-flash-lite',

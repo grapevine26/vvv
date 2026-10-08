@@ -190,6 +190,8 @@ legend { font-weight: 700; padding: 0 4px; }
 .result.good { color: var(--ok); font-weight: 600; }
 .write-prompt { font-weight: 600; margin-bottom: 6px; }
 .book-date { font-size: 12px; color: var(--muted); }
+.transfer { margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--border); }
+.transfer textarea { margin-top: 8px; font-size: 13px; word-break: break-all; }
 
 .toast {
   position: fixed; left: 50%; bottom: 150px; transform: translateX(-50%); z-index: 20;

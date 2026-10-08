@@ -1,15 +1,19 @@
 import { splitByScript } from '../lib/text'
-import type { LearnedItem, Segment } from '../lib/types'
+import type { TransferData } from '../lib/transfer'
+import type { LearnedItem, Segment, Settings } from '../lib/types'
 import { MiniButton } from './common'
+import { TransferBox } from './TransferBox'
 
 interface Props {
   learned: LearnedItem[]
+  settings: Settings
   onPlay: (segments: Segment[]) => void
+  onImport: (data: TransferData) => { added: number; total: number }
   onClear: () => void
   onClose: () => void
 }
 
-export function BookSheet({ learned, onPlay, onClear, onClose }: Props) {
+export function BookSheet({ learned, settings, onPlay, onImport, onClear, onClose }: Props) {
   return (
     <section className="sheet" id="bookSheet">
       <div className="sheet-card">
@@ -36,6 +40,7 @@ export function BookSheet({ learned, onPlay, onClear, onClose }: Props) {
             </>
           )}
         </div>
+        <TransferBox learned={learned} settings={settings} onImport={onImport} />
         <div className="actions">
           {learned.length > 0 && (
             <button className="secondary" id="btnBookClear" type="button" onClick={onClear}>

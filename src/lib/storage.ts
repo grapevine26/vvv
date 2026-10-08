@@ -1,10 +1,9 @@
-import { DEFAULT_SETTINGS } from './config'
+import { DEFAULT_SETTINGS, MAX_LEARNED } from './config'
 import { same } from './text'
 import type { LearnedItem, Pair, Settings } from './types'
 
 const KEY_SETTINGS = 'englishFriend.settings'
 const KEY_LEARNED = 'englishFriend.learned'
-const MAX_LEARNED = 300
 
 // 사생활 보호 모드 등에서 저장소가 막혀도 앱은 돌아가게 한다
 function read(key: string): unknown {
