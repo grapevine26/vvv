@@ -109,6 +109,7 @@ header {
   padding: 4px 10px; font-size: 14px; text-align: left;
 }
 .chip .c-ko { color: var(--muted); margin-left: 6px; font-size: 13px; }
+.tip { margin-top: 10px; padding: 8px 10px; border-radius: 10px; background: var(--accent-soft); font-size: 14px; }
 .tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
 .mini {
   border: 1px solid var(--border); background: transparent; border-radius: 8px;
@@ -190,6 +191,33 @@ legend { font-weight: 700; padding: 0 4px; }
 .result.good { color: var(--ok); font-weight: 600; }
 .write-prompt { font-weight: 600; margin-bottom: 6px; }
 .book-date { font-size: 12px; color: var(--muted); }
+.course-card {
+  margin: 14px auto 4px; max-width: 420px; text-align: left;
+  border: 1px solid var(--border); border-radius: 14px; padding: 12px 14px; background: var(--surface);
+}
+.course-stage { font-size: 13px; font-weight: 700; color: var(--accent); }
+.course-unit { font-weight: 700; margin-top: 2px; }
+.course-focus { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.course-ready { margin-top: 8px; padding: 8px 10px; border-radius: 10px; background: var(--repeat-bg); font-size: 14px; font-weight: 600; }
+.list { margin: 6px 0; padding-left: 20px; font-size: 14px; }
+.list li { margin: 3px 0; }
+.criteria { list-style: none; padding-left: 0; }
+.criteria li.ok { color: var(--ok); font-weight: 600; }
+.units { display: grid; gap: 6px; }
+.unit {
+  display: flex; gap: 10px; align-items: flex-start; text-align: left; width: 100%;
+  border: 1px solid var(--border); border-radius: 12px; padding: 8px 10px; background: var(--surface);
+}
+.unit.current { border-color: var(--accent); background: var(--accent-soft); }
+.unit.done .unit-no { background: var(--ok); color: var(--surface); }
+.unit-no {
+  flex: none; display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--surface-2); font-size: 13px; font-weight: 700;
+}
+.unit-body { display: flex; flex-direction: column; min-width: 0; }
+.unit-body small { color: var(--muted); font-size: 12px; }
+.stage.current { border-color: var(--accent); background: var(--accent-soft); }
+.stage small { display: block; margin-top: 4px; }
 .transfer { margin-top: 18px; padding-top: 6px; border-top: 1px solid var(--border); }
 .transfer textarea { margin-top: 8px; font-size: 13px; word-break: break-all; }
 

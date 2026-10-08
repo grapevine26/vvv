@@ -1,17 +1,18 @@
 import { useState } from 'react'
 import { decodeTransfer, encodeTransfer, TransferError, type TransferData } from '../lib/transfer'
-import type { LearnedItem, Settings } from '../lib/types'
+import type { LearnedItem, Progress, Settings } from '../lib/types'
 
 interface Props {
   learned: LearnedItem[]
   settings: Settings
+  progress: Progress
   onImport: (data: TransferData) => { added: number; total: number }
 }
 
 type Result = { good: boolean; text: string } | null
 
 // 폰 ↔ PC: 내보내기로 코드를 복사해 카톡 "나와의 채팅"으로 보내고, 다른 기기에서 가져오기에 붙여 넣는다
-export function TransferBox({ learned, settings, onImport }: Props) {
+export function TransferBox({ learned, settings, progress, onImport }: Props) {
   const [mode, setMode] = useState<'idle' | 'export' | 'import'>('idle')
   const [code, setCode] = useState('')
   const [input, setInput] = useState('')
@@ -21,7 +22,7 @@ export function TransferBox({ learned, settings, onImport }: Props) {
   const doExport = async () => {
     setMode('export')
     setResult(null)
-    const c = await encodeTransfer(learned, settings)
+    const c = await encodeTransfer(learned, settings, progress)
     setCode(c)
     try {
       await navigator.clipboard.writeText(c)
@@ -42,8 +43,8 @@ export function TransferBox({ learned, settings, onImport }: Props) {
       setResult({
         good: true,
         text: r.added
-          ? `${r.added}문장을 새로 가져왔어요 (모두 ${r.total}문장). 설정도 맞췄어요.`
-          : `새 문장은 없었어요 (모두 ${r.total}문장). 설정은 맞췄어요.`,
+          ? `${r.added}문장을 새로 가져왔어요 (모두 ${r.total}문장). 설정과 진도도 맞췄어요.`
+          : `새 문장은 없었어요 (모두 ${r.total}문장). 설정과 진도는 맞췄어요.`,
       })
       setInput('')
     } catch (err) {
@@ -59,7 +60,7 @@ export function TransferBox({ learned, settings, onImport }: Props) {
   return (
     <div className="transfer" id="transfer">
       <h3>다른 기기로 옮기기</h3>
-      <p className="note">문장장과 설정을 코드 하나로 옮겨요. Gemini 키와 목소리는 기기마다 따로 정해요.</p>
+      <p className="note">문장장·설정·교육과정 진도를 코드 하나로 옮겨요. Gemini 키와 목소리는 기기마다 따로 정해요.</p>
       <div className="tools">
         <button className="secondary" id="btnExport" type="button" onClick={doExport}>
           내보내기

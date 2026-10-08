@@ -4,7 +4,6 @@ import type { Settings } from './types'
 export const TARGET = { label: '영어', stt: 'en-US', tts: 'en' } as const
 export const NATIVE = { label: '한국어', stt: 'ko-KR', tts: 'ko' } as const
 
-export const LEVELS = ['완전 처음', '단어 몇 개 앎', '짧은 대화 됨', '일상 대화 됨']
 export const REPEAT_AMOUNTS = ['적게', '보통', '많이']
 
 export const GEMINI_KEY_URL = 'https://aistudio.google.com/apikey'
@@ -15,13 +14,12 @@ export const MAX_LEARNED = 300
 export const DEFAULT_SETTINGS: Settings = {
   apiKey: '',
   model: 'gemini-3.5-flash-lite',
-  level: '단어 몇 개 앎',
   likes: '',
   minutes: 15,
-  repeatAmount: '보통',
+  repeatAmount: '많이',
   friendName: 'Emma',
   friendStyle: '차분하고 다정함',
-  rate: 0.85,
+  rate: 0.8,
   voiceName: '',
   showKo: true,
   soundFirst: false,

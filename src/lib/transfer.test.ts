@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DEFAULT_SETTINGS } from './config'
+import { DEFAULT_PROGRESS } from './curriculum'
 import { applyImportedSettings, decodeTransfer, encodeTransfer, mergeImported } from './transfer'
 import type { LearnedItem } from './types'
 
@@ -8,32 +9,42 @@ const learned: LearnedItem[] = [
   { en: 'I like coffee.', ko: '커피 좋아해.', date: '2026-10-06' },
 ]
 const settings = { ...DEFAULT_SETTINGS, apiKey: 'SECRET-KEY', voiceName: 'Google US English', friendName: 'Mia', rate: 0.7 }
+const progress = {
+  ...DEFAULT_PROGRESS,
+  stage: 2,
+  unit: 's2-3',
+  doneUnits: ['s1-1', 's2-1'],
+  sessions: [
+    { id: '0abc-1', date: '2026-10-05', stage: 2, unit: 's2-1', minutes: 12, turns: 8, koTurns: 2, enOwnTurns: 5, enOwnWords: 20, repeatTurns: 1 },
+  ],
+}
 
 describe('encode/decodeTransfer', () => {
   it('문장장과 설정이 그대로 돌아온다 (압축 코드)', async () => {
-    const code = await encodeTransfer(learned, settings)
+    const code = await encodeTransfer(learned, settings, progress)
     expect(code.startsWith('EF1.')).toBe(true)
     const data = await decodeTransfer(code)
     expect(data.learned).toEqual(learned)
-    expect(data.settings).toMatchObject({ friendName: 'Mia', rate: 0.7, level: DEFAULT_SETTINGS.level })
+    expect(data.settings).toMatchObject({ friendName: 'Mia', rate: 0.7, repeatAmount: DEFAULT_SETTINGS.repeatAmount })
+    expect(data.progress).toEqual(progress)
   })
 
   it('Gemini 키와 목소리 이름은 코드에 넣지 않는다', async () => {
-    const data = await decodeTransfer(await encodeTransfer(learned, settings))
+    const data = await decodeTransfer(await encodeTransfer(learned, settings, progress))
     expect(data.settings).not.toHaveProperty('apiKey')
     expect(data.settings).not.toHaveProperty('voiceName')
   })
 
   it('압축을 못 하는 브라우저면 압축 없는 코드로 만들고, 그것도 읽는다', async () => {
     vi.stubGlobal('CompressionStream', undefined)
-    const code = await encodeTransfer(learned, settings)
+    const code = await encodeTransfer(learned, settings, progress)
     vi.unstubAllGlobals()
     expect(code.startsWith('EF0.')).toBe(true)
     expect((await decodeTransfer(code)).learned).toEqual(learned)
   })
 
   it('메신저가 넣은 줄바꿈·공백은 무시한다', async () => {
-    const code = await encodeTransfer(learned, settings)
+    const code = await encodeTransfer(learned, settings, progress)
     const messy = `  ${code.slice(0, 15)}\n${code.slice(15, 40)} \r\n${code.slice(40)}  `
     expect((await decodeTransfer(messy)).learned).toEqual(learned)
   })
@@ -43,7 +54,7 @@ describe('encode/decodeTransfer', () => {
   })
 
   it('잘린 코드면 다시 복사하라고 한다', async () => {
-    const code = await encodeTransfer(learned, settings)
+    const code = await encodeTransfer(learned, settings, progress)
     await expect(decodeTransfer(code.slice(0, code.length - 12))).rejects.toThrow('잘렸거나')
   })
 
@@ -53,7 +64,7 @@ describe('encode/decodeTransfer', () => {
       ko: `${i}번 문장을 연습하고 싶어.`,
       date: '2026-10-08',
     }))
-    const code = await encodeTransfer(many, settings)
+    const code = await encodeTransfer(many, settings, progress)
     const plain = JSON.stringify(many).length
     expect(code.length).toBeLessThan(plain / 3)
     expect((await decodeTransfer(code)).learned).toHaveLength(300)

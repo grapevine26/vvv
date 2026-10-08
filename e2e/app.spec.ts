@@ -178,7 +178,9 @@ test('처음 시작부터 마무리·복습까지 한 바퀴', async ({ page, co
     expect(r0.url).not.toContain('TEST-KEY')
     expect(r0.url).toMatch(/\/models\/gemini-3\.5-flash-lite:generateContent$/)
     const sys = r0.body.systemInstruction.parts[0].text
-    expect(sys).toContain('단어 몇 개 앎')
+    expect(sys).toContain('교육과정 1단계 「첫걸음」(A1)')
+    expect(sys).toContain('[오늘 단원] 인사와 자기소개')
+    expect(lastUserText(r0)).toContain('「인사와 자기소개」')
     expect(sys).toContain('커피, 여행')
     expect(sys).not.toContain('[복습]')
     expect(r0.body.generationConfig.responseMimeType).toBe('application/json')
@@ -191,7 +193,7 @@ test('처음 시작부터 마무리·복습까지 한 바퀴', async ({ page, co
     await expect
       .poll(() => spoken(page))
       .toContainEqual(
-        expect.objectContaining({ text: "Hi! I'm Emma. How was your day?", lang: 'en-US', voice: 'Google US English', rate: 0.85 }),
+        expect.objectContaining({ text: "Hi! I'm Emma. How was your day?", lang: 'en-US', voice: 'Google US English', rate: 0.8 }),
       )
     const unlocked = await page.evaluate(() => (window as unknown as MockWindow).__spoken.some((s) => s.volume === 0))
     expect(unlocked).toBe(true)
@@ -214,9 +216,9 @@ test('처음 시작부터 마무리·복습까지 한 바퀴', async ({ page, co
     await expect
       .poll(async () => (await spoken(page)).map((s) => `${s.lang}|${s.voice}|${s.text}|${s.rate}`))
       .toEqual([
-        "en-US|Google US English|Oh, you're tired.|0.85",
+        "en-US|Google US English|Oh, you're tired.|0.8",
         'ko-KR|Google 한국의|따라 해 볼까요?|1',
-        "en-US|Google US English|I'm so tired.|0.85",
+        "en-US|Google US English|I'm so tired.|0.8",
       ])
     await expect(page.locator('#micEn')).toHaveClass(/recommend/)
     await expect(page.locator('#guide')).toContainText("I'm so tired.")
@@ -309,6 +311,12 @@ test('처음 시작부터 마무리·복습까지 한 바퀴', async ({ page, co
     await page.click('#btnFinish')
     await expect(page.locator('#startSheet')).toBeVisible()
     await expect(page.locator('#startMsg')).toContainText('1문장')
+    // 내 말은 4번(한국어 2, 따라 말하기 1, 영어 1)이라 단원 완료 기준(5번)에 못 미친다
+    await expect(page.locator('#startMsg')).toContainText('단원을 마치려면 5번 이상')
+    const progress = await page.evaluate(() => JSON.parse(localStorage.getItem('englishFriend.progress') || '{}'))
+    expect(progress.sessions).toHaveLength(1)
+    expect(progress.sessions[0]).toMatchObject({ stage: 1, unit: 's1-1', turns: 4, koTurns: 2, repeatTurns: 1, enOwnTurns: 1, enOwnWords: 1 })
+    expect(progress.doneUnits).toEqual([])
     const learned = await page.evaluate(() => JSON.parse(localStorage.getItem('englishFriend.learned') || '[]'))
     expect(learned).toHaveLength(1)
     expect(learned[0]).toMatchObject({ en: "I'm so tired.", ko: '나 너무 피곤해.' })
@@ -389,6 +397,8 @@ test('내보내기 → 다른 기기에서 가져오기', async ({ browser }) =>
       'englishFriend.settings',
       JSON.stringify({ apiKey: 'KEY-A', friendName: 'Mia', voiceName: 'PC Voice', rate: 0.7 }),
     )
+    const stage1 = Array.from({ length: 10 }, (_, i) => `s1-${i + 1}`)
+    localStorage.setItem('englishFriend.progress', JSON.stringify({ stage: 2, unit: 's2-4', doneUnits: [...stage1, 's2-1'], sessions: [] }))
   })
   const pa = await deviceA.newPage()
   await pa.goto('/')
@@ -433,6 +443,90 @@ test('내보내기 → 다른 기기에서 가져오기', async ({ browser }) =>
 
   await pb.click('#btnBookClose')
   await expect(pb.locator('#startTitle')).toContainText('Mia')
+  await expect(pb.locator('#courseCard')).toContainText('2단계 · 기초 대화 (A2)')
+  await expect(pb.locator('#courseCard')).toContainText('쇼핑하기')
   await deviceA.close()
   await deviceB.close()
+})
+
+test('교육과정: 단원 마치기 → 승급 → 단원·단계 바꾸기', async ({ page, context }) => {
+  const { requests, queue } = await installMocks(context)
+  // 1단계 단원 9개는 마쳤고 마지막 단원만 남은 상태
+  await context.addInitScript(() => {
+    if (localStorage.getItem('englishFriend.progress')) return
+    localStorage.setItem('englishFriend.settings', JSON.stringify({ apiKey: 'K' }))
+    const done = Array.from({ length: 9 }, (_, i) => `s1-${i + 1}`)
+    localStorage.setItem('englishFriend.progress', JSON.stringify({ stage: 1, unit: 's1-10', doneUnits: done, sessions: [] }))
+  })
+  await page.goto('/')
+  await expect(page.locator('#courseCard')).toContainText('1단계 · 첫걸음 (A1)')
+  await expect(page.locator('#courseCard')).toContainText('오늘 단원 10/10 · 집과 동네')
+  await expect(page.locator('#btnPromoteStart')).toHaveCount(0)
+
+  await test.step('영어로 다섯 번 대답하면 단원을 마친다', async () => {
+    queue.push(reply(turn({ say: 'Hi! Where do you live?', say_ko: '안녕! 어디 살아?' })))
+    await page.click('#btnStart')
+    await expect(aiBubbles(page)).toHaveCount(1)
+    await expect(page.locator('#status')).toHaveText('집과 동네')
+    expect(requests[0].body.systemInstruction.parts[0].text).toContain('[오늘 단원] 집과 동네')
+    const answers = ['I live in Seoul.', 'There is a park near my house.', 'I like my town.', 'It is quiet.', 'I walk every day.']
+    for (const [i, answer] of answers.entries()) {
+      queue.push(reply(turn({ say: `Nice! Tell me more ${i}.`, say_ko: '좋아! 더 말해 줘.' })))
+      await page.fill('#typeInput', answer)
+      await page.press('#typeInput', 'Enter')
+      await expect(aiBubbles(page)).toHaveCount(i + 2)
+    }
+    await page.click('#btnEnd')
+    await page.click('#btnFinish')
+    await expect(page.locator('#startMsg')).toContainText('「집과 동네」 단원을 마쳤어요')
+    await expect(page.locator('#startMsg')).toContainText('다음 단계로 올라갈 준비가 됐어요')
+    await expect(page.locator('#btnPromoteStart')).toBeVisible()
+  })
+
+  await test.step('교육과정 화면에서 조건 확인 후 올라가기', async () => {
+    await page.click('#btnStartCourse')
+    await expect(page.locator('#criteria li.ok')).toHaveCount(3)
+    await expect(page.locator('#criteria')).toContainText('100% / 목표 50%')
+    await expect(page.locator('#unitList .unit.done')).toHaveCount(10)
+    await expect(page.locator('#routine li')).toHaveCount(3)
+    await page.screenshot({ path: 'test-results/shots/course.png', fullPage: true })
+    await page.click('#btnPromote')
+    await expect(page.locator('#toast')).toContainText('2단계 「기초 대화」 시작')
+    await expect(page.locator('#courseSheet .course-stage')).toContainText('2단계 · 기초 대화 (A2)')
+    await expect(page.locator('#criteria li.ok')).toHaveCount(0)
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('englishFriend.settings') || '{}'))
+    expect(s).toMatchObject({ apiKey: 'K', rate: 0.85, repeatAmount: '보통', showKo: true })
+  })
+
+  await test.step('단원 고르기와 단계 바꾸기', async () => {
+    await page.click('#unitList >> text=카페·식당에서 주문')
+    await expect(page.locator('#unitList .unit.current')).toContainText('카페·식당에서 주문')
+    page.once('dialog', (d) => d.accept())
+    await page.locator('#stageList .stage').nth(3).locator('text=이 단계로 바꾸기').click()
+    await expect(page.locator('#courseSheet .course-stage')).toContainText('4단계 · 자신감 있는 대화 (B2)')
+    const s = await page.evaluate(() => JSON.parse(localStorage.getItem('englishFriend.settings') || '{}'))
+    expect(s).toMatchObject({ rate: 1, showKo: false, repeatAmount: '적게' })
+    await page.click('#btnCourseClose')
+    await expect(page.locator('#courseCard')).toContainText('4단계 · 자신감 있는 대화 (B2)')
+  })
+
+  await test.step('4단계 대화: 지시문이 바뀌고 팁이 보인다', async () => {
+    queue.push(
+      reply(
+        turn({
+          say: 'So, do you think working from home is better?',
+          say_ko: '그래서, 재택근무가 더 낫다고 생각해?',
+          tip: '"I think so"보다 "I\'d say so"가 더 자연스러울 때가 있어요.',
+        }),
+      ),
+    )
+    await page.click('#btnStart')
+    await expect(aiBubbles(page)).toHaveCount(1)
+    const sys = requests[requests.length - 1].body.systemInstruction.parts[0].text
+    expect(sys).toContain('교육과정 4단계 「자신감 있는 대화」(B2)')
+    expect(sys).toContain('[오늘 단원] 찬반 토론: 재택근무')
+    expect(sys).not.toContain('6단어 이하')
+    await expect(page.locator('.msg.ai .tip')).toContainText('자연스러울 때가')
+    await expect(page.locator('.meaning.concealed')).toHaveCount(1)
+  })
 })

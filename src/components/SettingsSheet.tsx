@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { GEMINI_KEY_URL, LEVELS, REPEAT_AMOUNTS, sanitizeSettings } from '../lib/config'
+import { GEMINI_KEY_URL, REPEAT_AMOUNTS, sanitizeSettings } from '../lib/config'
 import type { Settings } from '../lib/types'
 
 interface Props {
@@ -63,14 +63,7 @@ export function SettingsSheet({ settings, notice, voices, onSave, onClose, onTes
 
         <fieldset>
           <legend>내 사용설명서</legend>
-          <label className="field">
-            <span>지금 수준</span>
-            <select name="level" value={form.level} onChange={(e) => set('level', e.target.value)}>
-              {LEVELS.map((l) => (
-                <option key={l}>{l}</option>
-              ))}
-            </select>
-          </label>
+          <p className="note">수준은 교육과정 단계로 정해져요. 시작 화면의 "교육과정"에서 바꿀 수 있어요.</p>
           <label className="field">
             <span>좋아하는 것</span>
             <input

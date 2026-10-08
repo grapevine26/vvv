@@ -30,6 +30,7 @@ export function AiBubble({ turn, veiled, showKo, onUnveil, onPlay }: AiProps) {
             {turn.repeat_ko && <Meaning text={turn.repeat_ko} conceal={!showKo} />}
           </div>
         )}
+        {turn.tip && <div className="tip">💡 {turn.tip}</div>}
         {turn.hints.length > 0 && (
           <ChipRow
             label="이렇게 대답해도 돼요 (누르면 들려요)"

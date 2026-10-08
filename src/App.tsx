@@ -1,21 +1,44 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { BookSheet } from './components/BookSheet'
 import { Composer } from './components/Composer'
+import { CourseSheet } from './components/CourseSheet'
 import { Header } from './components/Header'
 import { AiBubble, ErrorBubble, UserBubble } from './components/Messages'
 import { SettingsSheet } from './components/SettingsSheet'
 import { StartScreen } from './components/StartScreen'
 import { WrapSheet } from './components/WrapSheet'
-import { TARGET } from './lib/config'
+import { sanitizeSettings, TARGET } from './lib/config'
+import {
+  changeStage,
+  chooseUnit,
+  getStage,
+  getUnit,
+  MIN_TURNS_FOR_UNIT,
+  mergeProgress,
+  newSessionId,
+  promotionStatus,
+  recordSession,
+} from './lib/curriculum'
 import { callGemini, checkWriting, errorText, parseTurn, TURN_SCHEMA } from './lib/gemini'
-import { buildSystemPrompt, pushHistory, recentHistory, START_MESSAGE, userTag } from './lib/prompt'
+import { buildSystemPrompt, pushHistory, recentHistory, startMessage, userTag } from './lib/prompt'
 import { getRecognitionCtor, listen, micErrorText, Speaker, type Listening } from './lib/speech'
-import { loadLearned, loadSettings, mergeLearned, saveLearned, saveSettings } from './lib/storage'
+import {
+  loadLearned,
+  loadProgress,
+  loadSettings,
+  mergeLearned,
+  saveLearned,
+  saveProgress,
+  saveSettings,
+} from './lib/storage'
 import { applyImportedSettings, mergeImported, type TransferData } from './lib/transfer'
-import { fmt, localDate, same, turnSegments } from './lib/text'
-import type { Content, Lang, Message, Pair, Segment, Settings } from './lib/types'
+import { fmt, localDate, normWords, same, turnSegments } from './lib/text'
+import type { Content, Lang, Message, Pair, Progress, Segment, Settings } from './lib/types'
 
-type Sheet = 'settings' | 'wrap' | 'book' | null
+type Sheet = 'settings' | 'wrap' | 'book' | 'course' | null
+
+// 대화 한 번 동안 내 말을 세어 교육과정 승급 기준에 쓴다
+const EMPTY_STATS = { turns: 0, koTurns: 0, enOwnTurns: 0, enOwnWords: 0, repeatTurns: 0 }
 
 // AI 응답을 기다리는 동안 설정이 바뀌어도 최신 값을 읽기 위한 ref
 function useLatest<T>(value: T) {
@@ -29,6 +52,7 @@ function useLatest<T>(value: T) {
 export default function App() {
   const [settings, setSettings] = useState(loadSettings)
   const [learned, setLearned] = useState(loadLearned)
+  const [progress, setProgress] = useState(loadProgress)
   const [screen, setScreen] = useState<'start' | 'chat'>('start')
   const [sheet, setSheet] = useState<Sheet>(null)
   const [settingsNotice, setSettingsNotice] = useState('')
@@ -48,6 +72,8 @@ export default function App() {
 
   const settingsRef = useLatest(settings)
   const learnedRef = useLatest(learned)
+  const progressRef = useLatest(progress)
+  const statsRef = useRef({ ...EMPTY_STATS })
   const historyRef = useRef<Content[]>([])
   const activeRef = useRef(false)
   const busyRef = useRef(false)
@@ -117,7 +143,12 @@ export default function App() {
     let turn
     try {
       const s = settingsRef.current
-      const raw = await callGemini(s, buildSystemPrompt(s, learnedRef.current), recentHistory(historyRef.current), TURN_SCHEMA)
+      const raw = await callGemini(
+        s,
+        buildSystemPrompt(s, learnedRef.current, progressRef.current),
+        recentHistory(historyRef.current),
+        TURN_SCHEMA,
+      )
       turn = parseTurn(raw)
     } catch (err) {
       setBusyBoth(false)
@@ -141,6 +172,14 @@ export default function App() {
   const sendUser = (text: string, lang: Lang) => {
     if (!activeRef.current || busyRef.current) return
     const target = lang === 'en' ? pendingRepeatRef.current : ''
+    const stats = statsRef.current
+    stats.turns++
+    if (lang === 'ko') stats.koTurns++
+    else if (target) stats.repeatTurns++
+    else {
+      stats.enOwnTurns++
+      stats.enOwnWords += normWords(text).length
+    }
     addMessage({ kind: 'me', id: nextId(), text, lang, isRepeat: !!target })
     pushHistory(historyRef.current, 'user', `${userTag(lang, target)} ${text}`)
     void aiTurn()
@@ -192,6 +231,7 @@ export default function App() {
     const t = Date.now()
     historyRef.current = []
     pendingRepeatRef.current = ''
+    statsRef.current = { ...EMPTY_STATS }
     activeRef.current = true
     setMessages([])
     setRepeats([])
@@ -204,7 +244,7 @@ export default function App() {
     setStartMsg(null)
     setSheet(null)
     setScreen('chat')
-    pushHistory(historyRef.current, 'user', START_MESSAGE)
+    pushHistory(historyRef.current, 'user', startMessage(progress))
     void aiTurn()
   }
 
@@ -228,11 +268,43 @@ export default function App() {
     setSheet('wrap')
   }
 
+  const updateProgress = (next: Progress) => {
+    setProgress(next)
+    saveProgress(next)
+  }
+
   const finishSession = () => {
-    const { list, added } = mergeLearned(learned, repeats, localDate())
+    const today = localDate()
+    const { list, added } = mergeLearned(learned, repeats, today)
     setLearned(list)
     saveLearned(list)
-    endSession(added ? `오늘 ${added}문장을 문장장에 저장했어요. 다음 대화에서 다시 써 볼 거예요.` : '오늘도 수고했어요. 또 만나요!')
+    const parts = [added ? `오늘 ${added}문장을 문장장에 저장했어요.` : '오늘도 수고했어요.']
+    const stats = statsRef.current
+    if (stats.turns > 0) {
+      const unit = getUnit(progress)
+      const minutes = Math.max(1, Math.round((Date.now() - startedAt) / 60000))
+      const log = { id: newSessionId(), date: today, stage: progress.stage, unit: unit.id, minutes, ...stats }
+      const { progress: next, unitDone } = recordSession(progress, log)
+      updateProgress(next)
+      parts.push(unitDone ? `「${unit.title}」 단원을 마쳤어요.` : `단원을 마치려면 ${MIN_TURNS_FOR_UNIT}번 이상 주고받아야 해요.`)
+      if (promotionStatus(next)?.ready) parts.push('다음 단계로 올라갈 준비가 됐어요!')
+    }
+    endSession(parts.join(' '))
+  }
+
+  // 단계를 바꾸면 말 속도·뜻 보이기·따라 말하기 양도 그 단계에 맞춘다
+  const moveToStage = (n: number) => {
+    updateProgress(changeStage(progress, n))
+    const stage = getStage(n)
+    const next = sanitizeSettings({ ...settings, ...stage.defaults })
+    setSettings(next)
+    saveSettings(next)
+    showToast(`${stage.n}단계 「${stage.name}」 시작! 말 속도와 뜻 보이기를 이 단계에 맞췄어요.`)
+  }
+
+  const askStageChange = (n: number) => {
+    if (!window.confirm(`${n}단계로 바꿀까요? 말 속도와 뜻 보이기도 그 단계에 맞춰져요. 마친 단원 기록은 그대로 남아요.`)) return
+    moveToStage(n)
   }
 
   const saveNewSettings = (next: Settings) => {
@@ -250,6 +322,7 @@ export default function App() {
     const next = applyImportedSettings(settings, data.settings)
     setSettings(next)
     saveSettings(next)
+    if (data.progress) updateProgress(mergeProgress(progress, data.progress))
     return { added, total: list.length }
   }
 
@@ -259,7 +332,7 @@ export default function App() {
     saveLearned([])
   }
 
-  const startMessage =
+  const startText =
     startMsg ??
     (settings.apiKey
       ? `버튼을 누르면 ${settings.friendName}가 먼저 인사해요. 한국어로 대답해도 괜찮아요.`
@@ -270,7 +343,7 @@ export default function App() {
       <div className="app">
         <Header
           friendName={settings.friendName}
-          status={busy ? '생각 중…' : screen === 'chat' ? '' : `${TARGET.label} 친구`}
+          status={busy ? '생각 중…' : screen === 'chat' ? getUnit(progress).title : `${TARGET.label} 친구`}
           timer={screen === 'chat' ? `${fmt(elapsed)} / ${fmt(limitSec)}` : null}
           onSettings={() => openSettings()}
           onEnd={screen === 'chat' ? openWrap : null}
@@ -334,13 +407,19 @@ export default function App() {
       {screen === 'start' && (
         <StartScreen
           friendName={settings.friendName}
-          message={startMessage}
+          message={startText}
+          progress={progress}
           onStart={startSession}
           onSettings={() => openSettings()}
           onBook={() => {
             hideToast()
             setSheet('book')
           }}
+          onCourse={() => {
+            hideToast()
+            setSheet('course')
+          }}
+          onPromote={() => moveToStage(progress.stage + 1)}
         />
       )}
       {sheet === 'settings' && (
@@ -370,9 +449,19 @@ export default function App() {
         <BookSheet
           learned={learned}
           settings={settings}
+          progress={progress}
           onPlay={play}
           onImport={importData}
           onClear={clearBook}
+          onClose={() => setSheet(null)}
+        />
+      )}
+      {sheet === 'course' && (
+        <CourseSheet
+          progress={progress}
+          onChooseUnit={(id) => updateProgress(chooseUnit(progress, id))}
+          onChangeStage={askStageChange}
+          onPromote={() => moveToStage(progress.stage + 1)}
           onClose={() => setSheet(null)}
         />
       )}

@@ -1,21 +1,41 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS, sanitizeSettings } from './config'
-import { buildSystemPrompt, pushHistory, recentHistory, userTag } from './prompt'
+import { changeStage, chooseUnit, DEFAULT_PROGRESS } from './curriculum'
+import { buildSystemPrompt, pushHistory, recentHistory, startMessage, userTag } from './prompt'
 import { mergeLearned } from './storage'
 import type { Content } from './types'
 
 describe('buildSystemPrompt', () => {
-  it('수준·좋아하는 것·친구 이름을 넣는다', () => {
-    const p = buildSystemPrompt({ ...DEFAULT_SETTINGS, likes: '커피, 여행', friendName: 'Mia' }, [])
-    expect(p).toContain('단어 몇 개 앎')
+  it('1단계: 초보 규칙, 오늘 단원, 좋아하는 것·친구 이름', () => {
+    const p = buildSystemPrompt({ ...DEFAULT_SETTINGS, likes: '커피, 여행', friendName: 'Mia' }, [], DEFAULT_PROGRESS)
+    expect(p).toContain('교육과정 1단계 「첫걸음」(A1)')
+    expect(p).toContain('한 문장에 6단어 이하')
+    expect(p).toContain('[오늘 단원] 인사와 자기소개')
     expect(p).toContain('커피, 여행')
     expect(p).toContain('"Mia"')
+    expect(p).toContain('따라 말하기 횟수')
     expect(p).not.toContain('[복습]')
+  })
+
+  it('4단계는 초보 규칙이 빠지고 대답 예시도 주지 않는다', () => {
+    const p = buildSystemPrompt(DEFAULT_SETTINGS, [], changeStage(DEFAULT_PROGRESS, 4))
+    expect(p).toContain('교육과정 4단계 「자신감 있는 대화」(B2)')
+    expect(p).not.toContain('6단어 이하')
+    expect(p).not.toContain('문법은 모르고')
+    expect(p).toContain('hints: 항상 빈 배열.')
+    expect(p).not.toContain('따라 말하기 횟수')
+  })
+
+  it('상황극 단원이면 역할을 맡으라고 한다', () => {
+    const roleplay = chooseUnit(changeStage(DEFAULT_PROGRESS, 2), 's2-3')
+    expect(buildSystemPrompt(DEFAULT_SETTINGS, [], roleplay)).toContain('상황극이야')
+    expect(startMessage(roleplay)).toContain('상황극')
+    expect(startMessage(DEFAULT_PROGRESS)).toContain('「인사와 자기소개」')
   })
 
   it('저장한 문장이 있으면 최근 8개를 복습으로 넣는다', () => {
     const learned = Array.from({ length: 10 }, (_, i) => ({ en: `Sentence ${i}.`, ko: `문장 ${i}`, date: '2026-10-08' }))
-    const p = buildSystemPrompt(DEFAULT_SETTINGS, learned)
+    const p = buildSystemPrompt(DEFAULT_SETTINGS, learned, DEFAULT_PROGRESS)
     expect(p).toContain('[복습]')
     expect(p).toContain('Sentence 9.')
     expect(p).toContain('Sentence 2.')

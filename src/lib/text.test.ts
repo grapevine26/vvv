@@ -22,7 +22,7 @@ describe('splitByScript', () => {
 })
 
 describe('turnSegments', () => {
-  const base = { say: "Oh, you're tired.", say_ko: '', cue: '따라 해 볼까요?', repeat: "I'm so tired.", repeat_ko: '', hints: [], words: [] }
+  const base = { say: "Oh, you're tired.", say_ko: '', cue: '따라 해 볼까요?', repeat: "I'm so tired.", repeat_ko: '', hints: [], words: [], tip: '' }
 
   it('반응 → 한국어 신호 → 따라 할 문장 순서', () => {
     expect(turnSegments(base).map((s) => `${s.lang}:${s.text}`)).toEqual([

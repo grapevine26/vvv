@@ -1,9 +1,11 @@
 import { DEFAULT_SETTINGS, MAX_LEARNED } from './config'
+import { sanitizeProgress } from './curriculum'
 import { same } from './text'
-import type { LearnedItem, Pair, Settings } from './types'
+import type { LearnedItem, Pair, Progress, Settings } from './types'
 
 const KEY_SETTINGS = 'englishFriend.settings'
 const KEY_LEARNED = 'englishFriend.learned'
+const KEY_PROGRESS = 'englishFriend.progress'
 
 // 사생활 보호 모드 등에서 저장소가 막혀도 앱은 돌아가게 한다
 function read(key: string): unknown {
@@ -49,6 +51,10 @@ export function loadLearned(): LearnedItem[] {
 }
 
 export const saveLearned = (list: LearnedItem[]): boolean => write(KEY_LEARNED, list)
+
+export const loadProgress = (): Progress => sanitizeProgress(read(KEY_PROGRESS))
+
+export const saveProgress = (p: Progress): boolean => write(KEY_PROGRESS, p)
 
 // 오늘 따라 한 문장 중 처음 보는 것만 문장장에 더한다
 export function mergeLearned(learned: LearnedItem[], repeats: Pair[], today: string): { list: LearnedItem[]; added: number } {

@@ -10,7 +10,7 @@ const PAIR_SCHEMA = {
   required: ['en', 'ko'],
   propertyOrdering: ['en', 'ko'],
 }
-const TURN_FIELDS = ['say', 'say_ko', 'cue', 'repeat', 'repeat_ko', 'hints', 'words']
+const TURN_FIELDS = ['say', 'say_ko', 'cue', 'repeat', 'repeat_ko', 'hints', 'words', 'tip']
 
 export const TURN_SCHEMA = {
   type: 'OBJECT',
@@ -22,6 +22,7 @@ export const TURN_SCHEMA = {
     repeat_ko: { type: 'STRING' },
     hints: { type: 'ARRAY', items: PAIR_SCHEMA },
     words: { type: 'ARRAY', items: PAIR_SCHEMA },
+    tip: { type: 'STRING' },
   },
   required: TURN_FIELDS,
   propertyOrdering: TURN_FIELDS,
@@ -130,7 +131,7 @@ function pairs(v: unknown, max: number): Pair[] {
 export function parseTurn(text: string): Turn {
   const obj = parseJsonLoose(text)
   if (!obj || typeof obj !== 'object') {
-    return { say: str(text), say_ko: '', cue: '', repeat: '', repeat_ko: '', hints: [], words: [] }
+    return { say: str(text), say_ko: '', cue: '', repeat: '', repeat_ko: '', hints: [], words: [], tip: '' }
   }
   const o = obj as Record<string, unknown>
   const t: Turn = {
@@ -141,6 +142,7 @@ export function parseTurn(text: string): Turn {
     repeat_ko: str(o.repeat_ko),
     hints: pairs(o.hints, 2),
     words: pairs(o.words, 3),
+    tip: str(o.tip),
   }
   if (!t.repeat) {
     t.cue = ''
