@@ -1,0 +1,101 @@
+/* ── 듣고 따라 말하기 (ListenSheet) ── 토큰만 써서 밝은·어두운 모드 둘 다 맞춘다 */
+
+.lsn-hero {
+  display: flex; align-items: flex-start; gap: 12px; margin: 8px 0 4px;
+  padding: 14px; border-radius: var(--radius); background: var(--accent-soft);
+}
+.lsn-hero-ico {
+  flex: none; display: grid; place-items: center; width: 2.75rem; height: 2.75rem;
+  border-radius: 50%; background: var(--surface); color: var(--accent);
+}
+.lsn-hero-ico .ico { width: 1.4em; height: 1.4em; }
+.lsn-hero-text { margin: 0; font-weight: 700; font-size: 1rem; }
+.lsn-unit { margin: 4px 0 0; font-size: 0.875rem; color: var(--muted); }
+
+.lsn-steps { list-style: none; counter-reset: lsn; margin: 14px 0; padding: 0; display: grid; gap: 8px; }
+.lsn-steps li {
+  counter-increment: lsn; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px;
+  padding: 10px 12px 10px 3rem; position: relative; font-size: 0.875rem; color: var(--muted);
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface);
+}
+.lsn-steps li::before {
+  content: counter(lsn); position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+  width: 1.5rem; height: 1.5rem; border-radius: 50%; display: grid; place-items: center;
+  background: var(--accent); color: var(--accent-text); font-weight: 800; font-size: 0.8125rem;
+}
+.lsn-steps b { color: var(--text); font-size: 0.9375rem; }
+
+.lsn-error {
+  margin: 12px 0; padding: 12px 14px; border-radius: var(--radius);
+  background: var(--hot-soft); border: 1px solid var(--hot); color: var(--text);
+}
+.lsn-error p { margin: 0 0 8px; white-space: pre-line; font-size: 0.9375rem; }
+.lsn-error p:last-child { margin-bottom: 0; }
+.lsn-error .lsn-error-next { color: var(--hot); font-weight: 700; font-size: 0.875rem; }
+
+.lsn-last { justify-content: flex-start; text-align: left; margin-top: 4px; }
+.lsn-last > span { display: flex; flex-direction: column; min-width: 0; }
+.lsn-last-title { font-weight: 600; font-size: 0.875rem; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.lsn-loading {
+  display: flex; flex-direction: column; align-items: center; gap: 10px; text-align: center;
+  padding: 32px 12px; margin: 12px 0; border-radius: var(--radius); background: var(--surface-2);
+}
+.lsn-loading p { margin: 0; font-size: 0.9375rem; }
+.lsn-loading .lsn-spin { width: 2.25rem; height: 2.25rem; color: var(--accent); animation: lsn-spin 900ms linear infinite; }
+@keyframes lsn-spin { to { transform: rotate(360deg); } }
+
+.lsn-title-card {
+  margin: 8px 0 4px; padding: 14px; border-radius: var(--radius);
+  background: var(--accent-soft); border: 1px solid var(--border);
+}
+.lsn-kicker { font-size: 0.75rem; font-weight: 800; color: var(--accent-strong); letter-spacing: 0.02em; }
+.sheet-card h3.lsn-title { margin: 2px 0 0; font-size: 1.375rem; letter-spacing: -0.01em; }
+.lsn-title-card button.meaning.concealed { background: var(--surface); }
+
+.sheet-card h3.lsn-step { margin: 20px 0 4px; }
+.lsn-step-row { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.lsn-count { flex: none; font-weight: 800; color: var(--accent-strong); font-variant-numeric: tabular-nums; }
+.lsn-dots { display: flex; gap: 6px; margin: 8px 0 0; }
+.lsn-dot {
+  flex: 1; height: 6px; border-radius: 999px; background: var(--surface-2); border: 1px solid var(--border);
+  transition: background var(--fast) var(--ease);
+}
+.lsn-dot.tried { background: var(--repeat-border); border-color: var(--repeat-border); }
+.lsn-dot.good { background: var(--ok); border-color: var(--ok); }
+.lsn-dot.now { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* 문장 카드: 따라 말하기는 앱 전체에서 쓰는 따뜻한 노랑 */
+.lsn-card { background: var(--repeat-bg); border-color: var(--repeat-border); padding: 16px; }
+.lsn-say { font-size: 1.5rem; color: var(--text); }
+.lsn-card button.meaning.concealed { background: var(--surface); }
+.lsn-card .tools.two .mini { width: 100%; }
+.lsn-mic { margin-top: 10px; min-height: 52px; font-size: 1.0625rem; }
+.lsn-mic.on { background: var(--hot); border-color: var(--hot); color: var(--surface); box-shadow: none; }
+.lsn-result { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface); }
+.lsn-result:not(.good) { color: var(--text); }
+.lsn-good { display: inline-flex; align-items: center; gap: 6px; }
+.lsn-hint { margin: 10px 0 0; color: var(--repeat-ink); }
+
+.lsn-summary { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; }
+.lsn-summary .ico { margin-top: 0.15em; }
+
+.lsn-picks { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 8px; }
+.lsn-pick {
+  display: flex; align-items: flex-start; gap: 12px; min-height: 44px; padding: 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer;
+  transition: border-color var(--fast) var(--ease), background var(--fast) var(--ease);
+}
+.lsn-pick:has(input:checked:not(:disabled)) { border-color: var(--accent); background: var(--accent-soft); }
+.lsn-pick.in-book { cursor: default; background: var(--surface-2); }
+.lsn-pick input { flex: none; width: 1.375rem; height: 1.375rem; margin: 0.1em 0 0; accent-color: var(--accent); }
+.lsn-pick-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.lsn-pick-en { font-weight: 700; }
+.lsn-pick-ko { font-size: 0.875rem; color: var(--muted); }
+.lsn-tag { display: inline-flex; align-items: center; gap: 4px; font-size: 0.8125rem; font-weight: 700; color: var(--ok); }
+.lsn-saved {
+  display: flex; align-items: center; gap: 6px; margin: 4px 0 8px; padding: 10px 12px;
+  border-radius: var(--radius-sm); background: var(--ok-soft); color: var(--ok); font-weight: 700; font-size: 0.9375rem;
+}
+.lsn-prev { flex: none; }
+.actions .lsn-grow { flex: 1; }
