@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BookOpen, ChartColumn, Dumbbell, Flame, Headphones, ListChecks, Map as MapIcon, Mic, Play, Settings } from 'lucide-react'
+import { ArrowLeftRight, BookOpen, ChartColumn, Dumbbell, Flame, Headphones, Home, ListChecks, Map as MapIcon, MessageCircle, Mic, Play, Settings } from 'lucide-react'
 import { TARGET } from '../lib/config'
 import { doneToday, getStage, getUnit, minutesOn, promotionStatus, streakDays } from '../lib/curriculum'
 import type { MicState } from '../lib/speech'
@@ -136,16 +136,24 @@ export function StartScreen(props: Props) {
           <div className="avatar" aria-hidden="true">
             {initial}
           </div>
-          <h1 id="startTitle">
-            {friendName}와 {TARGET.label} 수다
-          </h1>
+          <div className="start-head-text">
+            <h1 id="startTitle">
+              {friendName}와 {TARGET.label} 수다
+            </h1>
+            <p className="start-subtitle">{stage.n}단계 {stage.name} · 반가워요!</p>
+          </div>
+          {streak > 0 && (
+            <div className="streak-badge">
+              <Flame className="ico" aria-hidden="true" />
+              <span>{streak}일 연속</span>
+            </div>
+          )}
         </div>
 
         {!firstTime && (
           <div className="today" id="todayLine">
-            <div>
-              {streak > 0 && <Flame className="ico" aria-hidden="true" />}
-              {streak > 0 ? `${streak}일 연속 · ` : ''}오늘 {todayMin}분 / 목표 {minutesGoal}분
+            <div className="today-line-header">
+              <span>{streak > 0 ? `${streak}일 연속 · ` : ''}오늘 {todayMin}분 / 목표 {minutesGoal}분</span>
             </div>
             <div className="bar" aria-hidden="true">
               <span style={{ width: `${Math.min(100, (todayMin / Math.max(1, minutesGoal)) * 100)}%` }} />
@@ -154,15 +162,19 @@ export function StartScreen(props: Props) {
         )}
 
         <div className="course-card" id="courseCard">
-          <div className="course-stage">
-            {stage.n}단계 · {stage.name} <span className="muted">· 완료 {doneCount}/{stage.units.length}</span>
+          <div className="course-card-top">
+            <span className="course-badge">Today's Unit {unitNo}</span>
+            <span className="course-float-icon" aria-hidden="true">☕</span>
           </div>
           <div className="course-unit">
             {finishedToday ? '다음 단원' : '오늘 단원'} {unitNo} · {unit.title}
             {unit.roleplay ? ' (상황극)' : ''}
           </div>
           <div className="course-focus" lang="en">
-            {unit.focus}
+            "{unit.focus}"
+          </div>
+          <div className="course-stage">
+            {stage.n}단계 · {stage.name} <span className="muted">· 완료 {doneCount}/{stage.units.length}</span>
           </div>
           {finishedToday && <div className="ok-text">오늘 단원 하나 완료 ✓ 더 해도 좋아요</div>}
           {promo && !firstTime && (
@@ -315,6 +327,57 @@ export function StartScreen(props: Props) {
           </div>
         )}
       </div>
+
+      <nav id="bottom-dock" className="bottom-dock" aria-label="하단 네비게이션 독">
+        <button
+          type="button"
+          id="tab-home"
+          className="dock-btn active"
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+        >
+          <div className="dock-icon-wrap">
+            <Home className="dock-icon" aria-hidden="true" />
+          </div>
+          <span className="dock-label">홈</span>
+        </button>
+
+        <button
+          type="button"
+          id="tab-chat"
+          className="dock-btn"
+          onClick={props.onStart}
+        >
+          <div className="dock-icon-wrap">
+            <MessageCircle className="dock-icon" aria-hidden="true" />
+          </div>
+          <span className="dock-label">대화</span>
+          <span className="dock-dot" aria-hidden="true" />
+        </button>
+
+        <button
+          type="button"
+          id="tab-practice"
+          className="dock-btn"
+          onClick={props.onQuiz}
+        >
+          <div className="dock-icon-wrap">
+            <ListChecks className="dock-icon" aria-hidden="true" />
+          </div>
+          <span className="dock-label">복습·퀴즈</span>
+        </button>
+
+        <button
+          type="button"
+          id="tab-library"
+          className="dock-btn"
+          onClick={props.onBook}
+        >
+          <div className="dock-icon-wrap">
+            <BookOpen className="dock-icon" aria-hidden="true" />
+          </div>
+          <span className="dock-label">내 서재</span>
+        </button>
+      </nav>
     </section>
   )
 }

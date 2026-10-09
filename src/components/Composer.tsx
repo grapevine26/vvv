@@ -100,6 +100,7 @@ export function Composer(props: Props) {
         onClick={() => onMic(lang)}
       >
         <span className="mic-top" aria-hidden="true">
+          <span className="mic-flag">{lang === 'ko' ? '🇰🇷' : '🎙️'}</span>
           <Mic className="ico" />
           <span className="badge">{badge}</span>
         </span>
@@ -112,6 +113,7 @@ export function Composer(props: Props) {
     // 입력칸에 포커스가 있어도 화면 키보드가 실제로 열려 있을 때만 마이크 줄을 숨긴다 (키보드만 내려도 버튼이 돌아오게)
     <footer className={`composer${typing && keyboardOpen ? ' typing' : ''}`} id="composer">
       <div className={guideClass} id="guide" role="status">
+        <span className="guide-ping-dot" aria-hidden="true" />
         <span className="guide-text">
           {GuideIcon && <GuideIcon className="ico" aria-hidden="true" />}
           {guide}

@@ -964,6 +964,7 @@ export default function App() {
           timeText={
             screen === 'chat' ? (elapsed >= limitSec ? '시간 됐어요' : `${Math.ceil((limitSec - elapsed) / 60)}분 남음`) : null
           }
+          onHome={screen === 'chat' ? () => setScreen('start') : undefined}
           onSettings={() => openSettings()}
           onEnd={screen === 'chat' ? openWrap : null}
         />

@@ -22,6 +22,31 @@ export function AiBubble({ turn, friendName, veiled, showKo, pickedHint, onUnvei
   return (
     <div className="msg ai">
       <div className={`bubble${veiled ? ' veiled' : ''}`} onClick={onUnveil}>
+        <div className="bubble-head">
+          <span className="bubble-speaker">{friendName}</span>
+          <div className="bubble-quick-tools">
+            <button
+              type="button"
+              className="quick-tool-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPlay(segs)
+              }}
+            >
+              <Volume2 className="ico" aria-hidden="true" /> 다시 듣기
+            </button>
+            <button
+              type="button"
+              className="quick-tool-btn"
+              onClick={(e) => {
+                e.stopPropagation()
+                onPlay(segs, true)
+              }}
+            >
+              <Snail className="ico" aria-hidden="true" /> 천천히
+            </button>
+          </div>
+        </div>
         {veiled && (
           <div className="veil-note">
             <Volume2 className="ico" aria-hidden="true" />
@@ -158,6 +183,13 @@ export function TypingBubble({ slow, onCancel }: { slow: boolean; onCancel: () =
   return (
     <div className="msg ai">
       <div className="bubble typing">
+        <div className="audio-wave-bars" aria-hidden="true">
+          <span className="wave-bar bar-1" />
+          <span className="wave-bar bar-2" />
+          <span className="wave-bar bar-3" />
+          <span className="wave-bar bar-4" />
+          <span className="wave-bar bar-5" />
+        </div>
         <span className="dots" aria-label="생각 중">
           <i />
           <i />

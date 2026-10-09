@@ -1,0 +1,698 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>영어 친구 - 트렌디 & 직관적 차세대 UX/UI 시안</title>
+  <script src="https://www.gstatic.com/antigravity/web/dev/tailwindcss.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+  <style>
+    * { font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Roboto, sans-serif; }
+    
+    /* 부드러운 전환 효과 */
+    .theme-transition { transition: background-color 0.3s ease, color 0.3s ease, border-color 0.3s ease; }
+
+    /* 트렌디한 AI 펄스 & 오디오 파동 애니메이션 */
+    @keyframes orb-pulse {
+      0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.9; filter: blur(20px); }
+      50% { transform: scale(1.18) rotate(180deg); opacity: 1; filter: blur(28px); }
+    }
+    @keyframes bar-wave {
+      0%, 100% { height: 12px; }
+      50% { height: 38px; }
+    }
+    @keyframes soft-bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-4px); }
+    }
+    
+    .animate-orb { animation: orb-pulse 4s infinite ease-in-out; }
+    .animate-wave-1 { animation: bar-wave 1.1s infinite ease-in-out; }
+    .animate-wave-2 { animation: bar-wave 1.4s infinite ease-in-out 0.2s; }
+    .animate-wave-3 { animation: bar-wave 0.9s infinite ease-in-out 0.4s; }
+    .animate-wave-4 { animation: bar-wave 1.3s infinite ease-in-out 0.1s; }
+    .animate-wave-5 { animation: bar-wave 1s infinite ease-in-out 0.3s; }
+    .animate-float { animation: soft-bounce 2.6s infinite ease-in-out; }
+
+    .hide-scrollbar::-webkit-scrollbar { display: none; }
+    .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+  </style>
+</head>
+<body id="page-body" class="bg-slate-950 text-slate-100 min-h-screen antialiased flex flex-col theme-transition">
+
+  <!-- 상단 컨트롤 헤더 바 -->
+  <header class="border-b border-slate-800/80 bg-slate-900/80 backdrop-blur-md sticky top-0 z-50 px-5 py-3.5">
+    <div class="max-w-7xl mx-auto flex flex-col md:flex-row items-center justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-indigo-500/30">
+          ✨
+        </div>
+        <div>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base font-bold text-white tracking-tight">영어 회화 차세대 UX/UI 개편 시안</h1>
+            <span class="px-2 py-0.5 rounded-full text-[11px] font-semibold bg-violet-500/20 text-violet-300 border border-violet-500/30">2026 Trend Design</span>
+          </div>
+          <p class="text-xs text-slate-400">사용자 편의성 극대화 · 직관적 원터치 플로우 · 트렌디한 비주얼</p>
+        </div>
+      </div>
+
+      <!-- 상단 툴바: 테마 전환 / 반응형 뷰 전환 -->
+      <div class="flex items-center gap-3">
+        <!-- 라이트 / 다크 모드 토글 -->
+        <div class="flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+          <button onclick="setTheme('dark')" id="theme-btn-dark" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white shadow-sm flex items-center gap-1.5 transition-all">
+            🌙 다크 모드
+          </button>
+          <button onclick="setTheme('light')" id="theme-btn-light" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 transition-all">
+            ☀️ 라이트 모드
+          </button>
+        </div>
+
+        <!-- 뷰 모드 토글 -->
+        <div class="hidden sm:flex items-center bg-slate-950/80 p-1 rounded-xl border border-slate-800">
+          <button onclick="setDeviceView('mobile')" id="dev-btn-mobile" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm transition-all">
+            📱 모바일 (390px)
+          </button>
+          <button onclick="setDeviceView('desktop')" id="dev-btn-desktop" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all">
+            💻 와이드 뷰
+          </button>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- 메인 인터랙티브 작업공간 -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col gap-6">
+
+    <!-- 💡 사용자 편의 & 트렌디 개편 4대 핵심 전략 안내 카드 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex items-center gap-2 mb-1.5 text-indigo-400">
+          <span class="text-base">⚡</span>
+          <b class="text-xs uppercase tracking-wider">원터치 즉시 시작</b>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">복잡한 단계 없이 앱을 켜자마자 <b>1초 만에 대화</b>로 진입할 수 있는 중앙 히어로 플로우를 구축했습니다.</p>
+      </div>
+
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex items-center gap-2 mb-1.5 text-emerald-400">
+          <span class="text-base">🎙️</span>
+          <b class="text-xs uppercase tracking-wider">AI 보이스 오브 & 햅틱</b>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">친구가 말할 때와 내가 말할 때 유기적으로 호흡하는 <b>네온 오디오 웨이브</b>로 생생한 현장감을 선사합니다.</p>
+      </div>
+
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex items-center gap-2 mb-1.5 text-amber-400">
+          <span class="text-base">🧭</span>
+          <b class="text-xs uppercase tracking-wider">9개 시트 → 4대 독 탭</b>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">산만하게 뜨던 9개의 바텀시트를 <b>[홈, 대화, 퀴즈, 서재]</b> 4대 하단 플로팅 탭으로 직관화하여 한 손 조작을 완성했습니다.</p>
+      </div>
+
+      <div class="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-between">
+        <div class="flex items-center gap-2 mb-1.5 text-pink-400">
+          <span class="text-base">💎</span>
+          <b class="text-xs uppercase tracking-wider">글래스모피즘 & 타이포</b>
+        </div>
+        <p class="text-xs text-slate-300 leading-relaxed">어른 학습자도 만족하는 고급스럽고 차분한 다크/라이트 글래스 재질과 <b>모던 카드 볼륨</b>을 적용했습니다.</p>
+      </div>
+    </div>
+
+    <!-- 디바이스 프레임 & 라이브 인터랙션 시뮬레이터 -->
+    <div class="flex justify-center items-center py-2">
+      <div id="device-wrapper" class="w-full max-w-[420px] transition-all duration-300">
+        
+        <!-- 스마트폰 외형 쉘 -->
+        <div id="phone-shell" class="bg-slate-900 border-[7px] border-slate-800/90 rounded-[50px] shadow-[0_25px_60px_-15px_rgba(0,0,0,0.7)] overflow-hidden min-h-[820px] flex flex-col relative theme-transition">
+
+          <!-- 상단 다이나믹 아일랜드 & 상태바 -->
+          <div id="phone-topbar" class="h-11 bg-slate-900/90 flex items-center justify-between px-7 pt-2.5 z-30 select-none theme-transition">
+            <span class="text-xs font-bold text-slate-200 font-mono tracking-tight">9:41</span>
+            <!-- 다이나믹 아일랜드 캡슐 -->
+            <div id="dynamic-island" class="w-24 h-5 bg-black rounded-full flex items-center justify-center gap-1.5 px-2">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+              <span class="text-[9px] font-mono text-emerald-400">AI LIVE</span>
+            </div>
+            <div class="flex items-center gap-1.5 text-xs text-slate-300">
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 3c-4.97 0-9 4.03-9 9 0 2.12.74 4.07 1.97 5.61L4.35 19.4c-.39.39-.39 1.02 0 1.41.39.39 1.02.39 1.41 0l1.9-1.9C9.22 19.67 10.56 20 12 20c4.97 0 9-4.03 9-9s-4.03-9-9-9z"/></svg>
+              <svg class="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M15.67 4H14V2h-4v2H8.33C7.6 4 7 4.6 7 5.33v15.33C7 21.4 7.6 22 8.33 22h7.33c.74 0 1.34-.6 1.34-1.33V5.33C17 4.6 16.4 4 15.67 4z"/></svg>
+            </div>
+          </div>
+
+          <!-- 동적 화면 주입 뷰 컨테이너 -->
+          <div id="app-viewport" class="flex-1 flex flex-col overflow-y-auto hide-scrollbar relative">
+            <!-- 탭 화면들이 자바스크립트로 렌더링됩니다 -->
+          </div>
+
+          <!-- 플로팅 모던 바텀 네비게이션 독 (4대 핵심 탭) -->
+          <nav id="bottom-dock" class="border-t border-slate-800/80 bg-slate-900/90 backdrop-blur-xl px-4 py-2.5 flex items-center justify-around z-30 select-none theme-transition">
+            <button onclick="navigateTab('home')" id="tab-home" class="flex flex-col items-center gap-1 text-indigo-400 font-bold transition-all transform active:scale-90">
+              <div class="w-7 h-7 rounded-xl flex items-center justify-center bg-indigo-500/15">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
+              </div>
+              <span class="text-[10px]">홈</span>
+            </button>
+
+            <button onclick="navigateTab('chat')" id="tab-chat" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-all transform active:scale-90 relative">
+              <div class="w-7 h-7 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+              </div>
+              <span class="text-[10px]">대화</span>
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 absolute top-0 right-1.5"></span>
+            </button>
+
+            <button onclick="navigateTab('practice')" id="tab-practice" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-all transform active:scale-90">
+              <div class="w-7 h-7 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+              </div>
+              <span class="text-[10px]">복습·퀴즈</span>
+            </button>
+
+            <button onclick="navigateTab('library')" id="tab-library" class="flex flex-col items-center gap-1 text-slate-400 hover:text-white transition-all transform active:scale-90">
+              <div class="w-7 h-7 rounded-xl flex items-center justify-center">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
+              </div>
+              <span class="text-[10px]">내 서재</span>
+            </button>
+          </nav>
+
+          <!-- 하단 홈 인디케이터 바 -->
+          <div id="phone-bottombar" class="h-5 bg-slate-900 flex items-center justify-center pb-1.5 select-none theme-transition">
+            <div class="w-32 h-1 bg-slate-700 rounded-full"></div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let activeTab = 'home';
+    let currentTheme = 'dark';
+    let isSpeaking = true;
+    let micState = 'idle'; // 'idle' | 'listening' | 'recorded'
+
+    // 테마 설정 함수
+    function setTheme(theme) {
+      currentTheme = theme;
+      const body = document.getElementById('page-body');
+      const phoneShell = document.getElementById('phone-shell');
+      const phoneTop = document.getElementById('phone-topbar');
+      const phoneBottom = document.getElementById('phone-bottombar');
+      const bottomDock = document.getElementById('bottom-dock');
+      const darkBtn = document.getElementById('theme-btn-dark');
+      const lightBtn = document.getElementById('theme-btn-light');
+
+      if (theme === 'light') {
+        body.classList.remove('bg-slate-950', 'text-slate-100');
+        body.classList.add('bg-slate-100', 'text-slate-800');
+
+        phoneShell.classList.remove('bg-slate-900', 'border-slate-800/90');
+        phoneShell.classList.add('bg-white', 'border-slate-300');
+
+        phoneTop.classList.remove('bg-slate-900/90');
+        phoneTop.classList.add('bg-white/90');
+
+        phoneBottom.classList.remove('bg-slate-900');
+        phoneBottom.classList.add('bg-white');
+
+        bottomDock.classList.remove('bg-slate-900/90', 'border-slate-800/80');
+        bottomDock.classList.add('bg-white/95', 'border-slate-200');
+
+        lightBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm flex items-center gap-1.5 transition-all';
+        darkBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-all';
+      } else {
+        body.classList.remove('bg-slate-100', 'text-slate-800');
+        body.classList.add('bg-slate-950', 'text-slate-100');
+
+        phoneShell.classList.remove('bg-white', 'border-slate-300');
+        phoneShell.classList.add('bg-slate-900', 'border-slate-800/90');
+
+        phoneTop.classList.remove('bg-white/90');
+        phoneTop.classList.add('bg-slate-900/90');
+
+        phoneBottom.classList.remove('bg-white');
+        phoneBottom.classList.add('bg-slate-900');
+
+        bottomDock.classList.remove('bg-white/95', 'border-slate-200');
+        bottomDock.classList.add('bg-slate-900/90', 'border-slate-800/80');
+
+        darkBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-800 text-white shadow-sm flex items-center gap-1.5 transition-all';
+        lightBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white flex items-center gap-1.5 transition-all';
+      }
+
+      renderCurrentTab();
+    }
+
+    // 디바이스 뷰 토글
+    function setDeviceView(mode) {
+      const wrapper = document.getElementById('device-wrapper');
+      const mobileBtn = document.getElementById('dev-btn-mobile');
+      const desktopBtn = document.getElementById('dev-btn-desktop');
+
+      if (mode === 'desktop') {
+        wrapper.className = 'w-full max-w-[760px] transition-all duration-300';
+        desktopBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm transition-all';
+        mobileBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all';
+      } else {
+        wrapper.className = 'w-full max-w-[420px] transition-all duration-300';
+        mobileBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow-sm transition-all';
+        desktopBtn.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-400 hover:text-white transition-all';
+      }
+    }
+
+    // 네비게이션 탭 전환
+    function navigateTab(tabName) {
+      activeTab = tabName;
+      const tabs = ['home', 'chat', 'practice', 'library'];
+      tabs.forEach(t => {
+        const btn = document.getElementById('tab-' + t);
+        const iconWrap = btn.querySelector('div');
+        if (t === tabName) {
+          btn.className = 'flex flex-col items-center gap-1 text-indigo-500 dark:text-indigo-400 font-bold transition-all transform scale-105';
+          iconWrap.className = 'w-7 h-7 rounded-xl flex items-center justify-center bg-indigo-500/15';
+        } else {
+          btn.className = 'flex flex-col items-center gap-1 text-slate-400 hover:text-slate-600 dark:hover:text-white transition-all';
+          iconWrap.className = 'w-7 h-7 rounded-xl flex items-center justify-center';
+        }
+      });
+
+      renderCurrentTab();
+    }
+
+    // 인터랙션 시뮬레이션 토글
+    function toggleMic() {
+      if (micState === 'idle') {
+        micState = 'listening';
+      } else if (micState === 'listening') {
+        micState = 'recorded';
+      } else {
+        micState = 'idle';
+      }
+      renderCurrentTab();
+    }
+
+    function toggleAiVoice() {
+      isSpeaking = !isSpeaking;
+      renderCurrentTab();
+    }
+
+    // 현재 탭 렌더링
+    function renderCurrentTab() {
+      const container = document.getElementById('app-viewport');
+      const isDark = currentTheme === 'dark';
+
+      // ─────────────────── 1. 홈 대시보드 ───────────────────
+      if (activeTab === 'home') {
+        container.innerHTML = `
+          <div class="p-5 flex flex-col gap-4 flex-1 ${isDark ? 'bg-slate-900 text-slate-100' : 'bg-slate-50 text-slate-800'}">
+            
+            <!-- 상단 프로필 & 스트릭 뱃지 -->
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-3">
+                <div class="relative">
+                  <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-500 via-purple-500 to-pink-500 p-0.5 shadow-md shadow-indigo-500/20">
+                    <div class="w-full h-full ${isDark ? 'bg-slate-900' : 'bg-white'} rounded-[14px] flex items-center justify-center font-black text-sm text-indigo-500">
+                      EM
+                    </div>
+                  </div>
+                  <span class="w-3 h-3 rounded-full bg-emerald-400 border-2 ${isDark ? 'border-slate-900' : 'border-white'} absolute -bottom-0.5 -right-0.5"></span>
+                </div>
+                <div>
+                  <h3 class="text-sm font-extrabold ${isDark ? 'text-white' : 'text-slate-900'} leading-tight">AI Emma</h3>
+                  <p class="text-[11px] font-semibold text-indigo-500 dark:text-indigo-400">1단계 첫걸음 · 반가워요!</p>
+                </div>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <div class="flex items-center gap-1.5 px-3 py-1.5 rounded-full ${isDark ? 'bg-amber-500/10 border-amber-500/20 text-amber-400' : 'bg-amber-50 border-amber-200 text-amber-600'} border text-xs font-bold shadow-sm">
+                  <span>🔥</span> 3일 연속
+                </div>
+              </div>
+            </div>
+
+            <!-- 오늘의 핵심 회화 카드 (히어로 덱) -->
+            <div class="rounded-3xl p-5 ${isDark ? 'bg-gradient-to-br from-indigo-950/80 via-slate-900 to-slate-900 border-indigo-500/40' : 'bg-gradient-to-br from-indigo-50 via-white to-purple-50/50 border-indigo-200'} border shadow-xl relative overflow-hidden">
+              <div class="flex justify-between items-start">
+                <div>
+                  <span class="px-2.5 py-0.5 rounded-md text-[10px] font-extrabold tracking-wider uppercase ${isDark ? 'bg-indigo-500 text-white' : 'bg-indigo-600 text-white'}">
+                    Today's Unit 01
+                  </span>
+                  <h4 class="text-base font-extrabold mt-2 ${isDark ? 'text-white' : 'text-slate-900'}">
+                    인사와 자기소개
+                  </h4>
+                  <p class="text-xs ${isDark ? 'text-indigo-200/80' : 'text-indigo-900/70'} mt-0.5">
+                    "Nice to meet you. I'm from Korea."
+                  </p>
+                </div>
+
+                <div class="w-12 h-12 rounded-2xl ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-indigo-100 text-indigo-600'} flex items-center justify-center text-2xl animate-float">
+                  ☕
+                </div>
+              </div>
+
+              <!-- 일일 목표 시간 진행 바 -->
+              <div class="mt-4 pt-3 border-t ${isDark ? 'border-slate-800' : 'border-indigo-100'}">
+                <div class="flex items-center justify-between text-xs mb-1.5">
+                  <span class="${isDark ? 'text-slate-400' : 'text-slate-500'} font-medium">오늘 말한 시간</span>
+                  <span class="font-extrabold text-indigo-500 dark:text-indigo-400">8분 / 15분</span>
+                </div>
+                <div class="w-full h-2 rounded-full ${isDark ? 'bg-slate-800' : 'bg-slate-200'} overflow-hidden">
+                  <div class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full" style="width: 53%;"></div>
+                </div>
+              </div>
+
+              <!-- 큰 원터치 대화 시작 CTA -->
+              <button onclick="navigateTab('chat')" class="w-full mt-4 py-3.5 bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-extrabold text-sm rounded-2xl shadow-lg shadow-indigo-500/30 transition-transform active:scale-95 flex items-center justify-center gap-2">
+                <span>▶</span> 지금 Emma와 수다 떨기
+              </button>
+            </div>
+
+            <!-- 대화 전 2분 말문 트기 추천 배너 -->
+            <div onclick="navigateTab('practice')" class="cursor-pointer rounded-2xl p-3.5 border ${isDark ? 'bg-slate-900/80 hover:bg-slate-800 border-slate-800' : 'bg-white hover:bg-slate-50 border-slate-200'} shadow-sm flex items-center justify-between transition-all">
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl ${isDark ? 'bg-amber-500/15 text-amber-400' : 'bg-amber-100 text-amber-600'} flex items-center justify-center text-lg">
+                  ⚡
+                </div>
+                <div>
+                  <h5 class="text-xs font-bold ${isDark ? 'text-white' : 'text-slate-900'}">대화 전 2분 입 풀기</h5>
+                  <p class="text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}">오늘 쓸 문장 틀 3개 미리 소리 내어 연습</p>
+                </div>
+              </div>
+              <span class="text-xs font-extrabold text-amber-500">연습 ›</span>
+            </div>
+
+            <!-- 빠른 기능 그리드 (5분 퀴즈 & 30초 쉐도잉) -->
+            <div class="grid grid-cols-2 gap-2.5">
+              <button onclick="navigateTab('practice')" class="p-3.5 rounded-2xl border text-left transition-all ${isDark ? 'bg-slate-900/50 hover:bg-slate-800 border-slate-800' : 'bg-white hover:bg-slate-50 border-slate-200'}">
+                <span class="text-xl block mb-1.5">🎯</span>
+                <b class="text-xs ${isDark ? 'text-white' : 'text-slate-900'} block">5분 복습 퀴즈</b>
+                <span class="text-[10px] text-emerald-500 font-semibold">망각곡선 3문장 대기</span>
+              </button>
+
+              <button onclick="navigateTab('practice')" class="p-3.5 rounded-2xl border text-left transition-all ${isDark ? 'bg-slate-900/50 hover:bg-slate-800 border-slate-800' : 'bg-white hover:bg-slate-50 border-slate-200'}">
+                <span class="text-xl block mb-1.5">🎧</span>
+                <b class="text-xs ${isDark ? 'text-white' : 'text-slate-900'} block">30초 쉐도잉</b>
+                <span class="text-[10px] ${isDark ? 'text-slate-400' : 'text-slate-500'}">원어민 발음 따라하기</span>
+              </button>
+            </div>
+
+            <!-- 오늘 루틴 체크리스트 -->
+            <div class="rounded-2xl p-4 border mt-auto ${isDark ? 'bg-slate-900/30 border-slate-800/80' : 'bg-white/70 border-slate-200'}">
+              <div class="flex items-center justify-between mb-2">
+                <h5 class="text-xs font-bold ${isDark ? 'text-slate-300' : 'text-slate-700'}">오늘의 3대 루틴</h5>
+                <span class="text-[10px] text-indigo-500 font-bold">1 / 3 완료</span>
+              </div>
+              <div class="space-y-2 text-xs">
+                <label class="flex items-center gap-2.5 cursor-pointer">
+                  <input type="checkbox" checked class="rounded text-indigo-600 accent-indigo-600">
+                  <span class="line-through ${isDark ? 'text-slate-500' : 'text-slate-400'}">대화 전 2분 말문 트기</span>
+                </label>
+                <label class="flex items-center gap-2.5 cursor-pointer">
+                  <input type="checkbox" class="rounded text-indigo-600 accent-indigo-600">
+                  <span class="${isDark ? 'text-slate-200' : 'text-slate-800'} font-medium">AI 친구와 15분 대화하기</span>
+                </label>
+                <label class="flex items-center gap-2.5 cursor-pointer">
+                  <input type="checkbox" class="rounded text-indigo-600 accent-indigo-600">
+                  <span class="${isDark ? 'text-slate-200' : 'text-slate-800'} font-medium">문장장 5문장 소리 내어 복습</span>
+                </label>
+              </div>
+            </div>
+
+          </div>
+        `;
+      }
+
+      // ─────────────────── 2. 실시간 대화 화면 ───────────────────
+      else if (activeTab === 'chat') {
+        container.innerHTML = `
+          <div class="flex flex-col h-full ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}">
+            
+            <!-- 상단 대화방 헤더 -->
+            <div class="px-4 py-3 border-b flex items-center justify-between ${isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white/90 border-slate-200'}">
+              <div class="flex items-center gap-2.5">
+                <button onclick="navigateTab('home')" class="text-xs text-slate-400 hover:text-indigo-500 flex items-center gap-0.5">
+                  ‹ 홈
+                </button>
+                <div class="flex items-center gap-2">
+                  <div class="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center font-bold text-white text-xs shadow-sm">
+                    E
+                  </div>
+                  <div>
+                    <h4 class="text-xs font-bold leading-none ${isDark ? 'text-white' : 'text-slate-900'}">Emma</h4>
+                    <span class="text-[10px] text-indigo-500 font-semibold">단원 1 · 4/5 턴 완료</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 단원 마무리 저장 버튼 -->
+              <button class="px-3 py-1.5 rounded-full text-xs font-extrabold bg-indigo-500/10 text-indigo-500 border border-indigo-500/30 hover:bg-indigo-500/20">
+                세션 종료
+              </button>
+            </div>
+
+            <!-- 대화 메시지 피드 영역 -->
+            <div class="flex-1 p-4 overflow-y-auto space-y-4">
+
+              <!-- AI 메시지 카드 -->
+              <div class="flex items-start gap-2.5 max-w-[92%]">
+                <div class="w-7 h-7 rounded-full bg-indigo-500/20 text-indigo-400 flex items-center justify-center text-xs font-extrabold flex-shrink-0 mt-1">
+                  E
+                </div>
+                <div class="rounded-3xl rounded-tl-sm p-4 border shadow-sm space-y-2.5 ${isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'}">
+                  
+                  <div class="flex items-center justify-between">
+                    <span class="text-[11px] font-bold text-indigo-400">Emma의 질문</span>
+                    <div class="flex items-center gap-1.5">
+                      <button onclick="toggleAiVoice()" class="text-[11px] px-2 py-0.5 rounded-lg border flex items-center gap-1 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}">
+                        🔊 다시 듣기
+                      </button>
+                      <button class="text-[11px] px-2 py-0.5 rounded-lg border flex items-center gap-1 ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}">
+                        🐢 천천히
+                      </button>
+                    </div>
+                  </div>
+
+                  <p class="text-sm font-bold ${isDark ? 'text-white' : 'text-slate-900'} leading-relaxed">
+                    "Nice to meet you! Where are you from?"
+                  </p>
+
+                  <p class="text-xs pt-1.5 border-t ${isDark ? 'border-slate-800 text-slate-400' : 'border-slate-100 text-slate-500'}">
+                    만나서 반가워요! 어디서 오셨어요?
+                  </p>
+
+                  <!-- 힌트 추천 칩 -->
+                  <div class="p-3 rounded-2xl border ${isDark ? 'bg-indigo-950/40 border-indigo-500/20' : 'bg-indigo-50/60 border-indigo-200/60'}">
+                    <span class="text-[10px] font-bold text-indigo-400 uppercase tracking-wider block mb-1">💡 이렇게 대답해 보세요</span>
+                    <div class="flex items-center justify-between">
+                      <span class="text-xs font-bold ${isDark ? 'text-indigo-200' : 'text-indigo-900'}">"I'm from Seoul, Korea."</span>
+                      <button class="px-2 py-1 rounded-lg text-[11px] font-black bg-indigo-500 text-white shadow-sm">
+                        따라하기
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- 사용자 발화 카드 -->
+              <div class="flex items-end justify-end gap-2 ml-auto max-w-[88%]">
+                <div class="rounded-3xl rounded-tr-sm p-3.5 shadow-md ${isDark ? 'bg-indigo-600 text-white' : 'bg-indigo-600 text-white'}">
+                  <span class="text-[10px] font-bold text-indigo-200 uppercase block mb-0.5">내 답변 (영어 음성)</span>
+                  <p class="text-sm font-bold">"I'm from Seoul!"</p>
+                  <div class="mt-1 flex items-center gap-1 text-[11px] font-semibold text-emerald-300">
+                    <span>👍 잘 들렸어요 (98% 매칭)</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- 실시간 AI 오디오 반응 비주얼라이저 (말할 때 애니메이션) -->
+              ${isSpeaking ? `
+                <div class="flex flex-col items-center justify-center p-3 rounded-2xl border ${isDark ? 'bg-slate-900/50 border-slate-800' : 'bg-white border-slate-200'}">
+                  <div class="flex items-center gap-1.5 h-8">
+                    <span class="w-1 bg-indigo-500 rounded-full animate-wave-1"></span>
+                    <span class="w-1 bg-violet-400 rounded-full animate-wave-2"></span>
+                    <span class="w-1 bg-pink-400 rounded-full animate-wave-3"></span>
+                    <span class="w-1 bg-indigo-400 rounded-full animate-wave-4"></span>
+                    <span class="w-1 bg-emerald-400 rounded-full animate-wave-5"></span>
+                  </div>
+                  <span class="text-[10px] font-mono text-indigo-400 mt-1">Emma가 말하는 중… 끝나면 내 차례예요</span>
+                </div>
+              ` : ''}
+
+            </div>
+
+            <!-- 하단 인터랙티브 컨트롤 독 (듀얼 마이크 & 안내 바) -->
+            <div class="p-4 border-t space-y-3 ${isDark ? 'bg-slate-950 border-slate-800' : 'bg-white border-slate-200'}">
+              
+              <!-- 진행 가이드 줄 -->
+              <div class="text-center">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold ${isDark ? 'bg-slate-900 text-emerald-400 border border-slate-800' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'}">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  내 차례예요! EN 버튼을 누르고 말씀하세요
+                </span>
+              </div>
+
+              <!-- 듀얼 마이크 액션 버튼 -->
+              <div class="grid grid-cols-2 gap-3">
+                <button onclick="toggleMic()" class="py-3 px-4 rounded-2xl border flex flex-col items-center gap-1 shadow-sm transition-transform active:scale-95 ${isDark ? 'bg-slate-900 hover:bg-slate-800 border-slate-800 text-slate-200' : 'bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-800'}">
+                  <span class="text-base">🇰🇷</span>
+                  <span class="text-xs font-bold">한국어로 말하기</span>
+                </button>
+
+                <button onclick="toggleMic()" class="py-3 px-4 rounded-2xl bg-gradient-to-r from-indigo-500 via-indigo-600 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white flex flex-col items-center gap-1 shadow-lg shadow-indigo-500/30 transition-transform active:scale-95">
+                  <span class="text-base">🎙️ EN</span>
+                  <span class="text-xs font-black">영어로 대답하기 (추천)</span>
+                </button>
+              </div>
+
+              <!-- 키보드 보조 입력 줄 -->
+              <div class="flex items-center gap-2 rounded-xl px-3 py-1.5 border ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-slate-100 border-slate-200'}">
+                <input type="text" placeholder="키보드로 직접 입력 (한/영 가능)" class="bg-transparent text-xs focus:outline-none flex-1 ${isDark ? 'text-white' : 'text-slate-800'}">
+                <button class="text-xs font-bold text-indigo-500">전송</button>
+              </div>
+
+            </div>
+
+          </div>
+        `;
+      }
+
+      // ─────────────────── 3. 복습 & 퀴즈 화면 ───────────────────
+      else if (activeTab === 'practice') {
+        container.innerHTML = `
+          <div class="p-5 flex flex-col h-full ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'}">
+            
+            <div class="flex items-center justify-between pb-3 border-b mb-4 ${isDark ? 'border-slate-800' : 'border-slate-200'}">
+              <button onclick="navigateTab('home')" class="text-xs text-slate-400">‹ 홈</button>
+              <h4 class="text-sm font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}">5분 에빙하우스 복습 퀴즈</h4>
+              <span class="text-xs font-bold text-indigo-500">2 / 4 문제</span>
+            </div>
+
+            <!-- 퀴즈 본문 영역 -->
+            <div class="flex-1 flex flex-col justify-center gap-5">
+              
+              <!-- 문제 카드 -->
+              <div class="rounded-3xl p-6 border text-center space-y-3 shadow-md ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'}">
+                <span class="px-3 py-1 rounded-full text-xs font-extrabold bg-indigo-500/10 text-indigo-500 border border-indigo-500/20">
+                  단어 조각 순서 맞추기
+                </span>
+                
+                <h3 class="text-base font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}">
+                  "저는 서울에 살고 있어요."
+                </h3>
+                <p class="text-xs text-slate-400">알맞은 영어 단어 조각을 순서대로 터치하세요</p>
+              </div>
+
+              <!-- 맞춰진 단어 슬롯 박스 -->
+              <div class="min-h-[58px] p-3 rounded-2xl border-2 border-dashed flex flex-wrap gap-2 items-center justify-center ${isDark ? 'bg-slate-900/40 border-slate-700' : 'bg-white/80 border-slate-300'}">
+                <span class="px-3.5 py-2 rounded-xl bg-indigo-500 text-white text-xs font-extrabold shadow-sm">I</span>
+                <span class="px-3.5 py-2 rounded-xl bg-indigo-500 text-white text-xs font-extrabold shadow-sm">live in</span>
+                <span class="px-3 py-1 rounded-lg text-xs text-slate-400 font-mono">…</span>
+              </div>
+
+              <!-- 선택 가능한 단어 조각 후보 -->
+              <div class="flex flex-wrap justify-center gap-2.5">
+                <button class="px-4 py-2.5 rounded-xl border text-xs font-bold transition-transform active:scale-95 ${isDark ? 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200' : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800'}">
+                  Seoul
+                </button>
+                <button class="px-4 py-2.5 rounded-xl border text-xs font-bold transition-transform active:scale-95 ${isDark ? 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200' : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800'}">
+                  Korea
+                </button>
+                <button class="px-4 py-2.5 rounded-xl border text-xs font-bold transition-transform active:scale-95 ${isDark ? 'bg-slate-900 hover:bg-slate-800 border-slate-700 text-slate-200' : 'bg-white hover:bg-slate-50 border-slate-300 text-slate-800'}">
+                  house
+                </button>
+              </div>
+
+            </div>
+
+            <!-- 하단 채점 & 다음 버튼 -->
+            <div class="pt-4 mt-auto">
+              <button class="w-full py-4 rounded-2xl bg-gradient-to-r from-indigo-500 to-violet-600 hover:from-indigo-600 hover:to-violet-700 text-white font-black text-sm shadow-lg shadow-indigo-500/30">
+                정답 확인 및 다음 문제 ›
+              </button>
+            </div>
+
+          </div>
+        `;
+      }
+
+      // ─────────────────── 4. 내 서재 & 통계 화면 ───────────────────
+      else if (activeTab === 'library') {
+        container.innerHTML = `
+          <div class="p-5 flex flex-col h-full overflow-y-auto ${isDark ? 'bg-slate-950 text-slate-100' : 'bg-slate-50 text-slate-800'} space-y-4">
+            
+            <div class="flex items-center justify-between pb-2 border-b ${isDark ? 'border-slate-800' : 'border-slate-200'}">
+              <h3 class="text-sm font-extrabold ${isDark ? 'text-white' : 'text-slate-900'}">내 문장장 & 성장 통계</h3>
+              <span class="text-xs text-indigo-500 font-bold">총 24문장</span>
+            </div>
+
+            <!-- 이번 주 학습 통계 카드 -->
+            <div class="rounded-3xl p-5 border space-y-3 ${isDark ? 'bg-slate-900 border-slate-800' : 'bg-white border-slate-200'} shadow-sm">
+              <div class="flex items-center justify-between">
+                <span class="text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-500'}">영어로 직접 대답한 비율</span>
+                <span class="text-xs font-extrabold text-emerald-500">▲ +14% 상승</span>
+              </div>
+              <div class="flex items-baseline gap-2">
+                <span class="text-3xl font-black text-indigo-500">72%</span>
+                <span class="text-xs ${isDark ? 'text-slate-400' : 'text-slate-500'}">한국어 대신 영어로 스스로 생각하여 말함</span>
+              </div>
+              <div class="w-full h-2 rounded-full ${isDark ? 'bg-slate-800' : 'bg-slate-200'} overflow-hidden">
+                <div class="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full" style="width: 72%;"></div>
+              </div>
+            </div>
+
+            <!-- 저장된 문장 목록 (최신순) -->
+            <div class="space-y-2.5">
+              <h4 class="text-xs font-bold ${isDark ? 'text-slate-400' : 'text-slate-600'}">최근 저장된 핵심 표현</h4>
+              
+              <div class="p-3.5 rounded-2xl border flex items-center justify-between ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}">
+                <div>
+                  <b class="text-xs ${isDark ? 'text-white' : 'text-slate-900'} block">"Nice to meet you."</b>
+                  <span class="text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}">만나서 반가워요.</span>
+                </div>
+                <button class="w-8 h-8 rounded-xl flex items-center justify-center border text-xs ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}">
+                  🔊
+                </button>
+              </div>
+
+              <div class="p-3.5 rounded-2xl border flex items-center justify-between ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}">
+                <div>
+                  <b class="text-xs ${isDark ? 'text-white' : 'text-slate-900'} block">"I'm from Korea."</b>
+                  <span class="text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}">저는 한국에서 왔어요.</span>
+                </div>
+                <button class="w-8 h-8 rounded-xl flex items-center justify-center border text-xs ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}">
+                  🔊
+                </button>
+              </div>
+
+              <div class="p-3.5 rounded-2xl border flex items-center justify-between ${isDark ? 'bg-slate-900/60 border-slate-800' : 'bg-white border-slate-200'}">
+                <div>
+                  <b class="text-xs ${isDark ? 'text-white' : 'text-slate-900'} block">"I want some water, please."</b>
+                  <span class="text-[11px] ${isDark ? 'text-slate-400' : 'text-slate-500'}">물 좀 부탁드려요.</span>
+                </div>
+                <button class="w-8 h-8 rounded-xl flex items-center justify-center border text-xs ${isDark ? 'bg-slate-800 border-slate-700 text-slate-300' : 'bg-slate-100 border-slate-200 text-slate-700'}">
+                  🔊
+                </button>
+              </div>
+            </div>
+
+            <!-- 기기 백업 바로가기 -->
+            <div class="pt-2">
+              <button class="w-full py-3 rounded-xl border text-xs font-bold flex items-center justify-center gap-2 ${isDark ? 'bg-slate-900 border-slate-800 text-slate-300' : 'bg-white border-slate-300 text-slate-700'}">
+                <span>🔄</span> 폰 ↔ PC 데이터 동기화 및 백업
+              </button>
+            </div>
+
+          </div>
+        `;
+      }
+    }
+
+    // 초기 실행
+    renderCurrentTab();
+  </script>
+</body>
+</html>

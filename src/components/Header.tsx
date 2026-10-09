@@ -6,14 +6,20 @@ interface Props {
   // 대화 중에만: 단원까지 주고받은 횟수, 남은 시간
   turnsText: string | null
   timeText: string | null
+  onHome?: () => void
   onSettings: () => void
   onEnd: (() => void) | null
 }
 
-export function Header({ friendName, status, turnsText, timeText, onSettings, onEnd }: Props) {
+export function Header({ friendName, status, turnsText, timeText, onHome, onSettings, onEnd }: Props) {
   const initial = (friendName || 'E').trim().charAt(0).toUpperCase()
   return (
-    <header>
+    <header id="header">
+      {onHome && (
+        <button className="back-btn" id="btnBackHome" type="button" onClick={onHome} aria-label="홈으로 가기">
+          ‹ 홈
+        </button>
+      )}
       <div className="avatar" aria-hidden="true">
         {initial}
       </div>
