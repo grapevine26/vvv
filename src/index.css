@@ -208,6 +208,13 @@ button.meaning.concealed {
 .typing .dots i:nth-child(2) { animation-delay: 0.15s; }
 .typing .dots i:nth-child(3) { animation-delay: 0.3s; }
 @keyframes blink { 50% { opacity: 1; } }
+.word-marks { margin-top: 6px; font-size: 0.875rem; color: var(--muted); text-align: right; }
+.result .word-marks { text-align: left; }
+.wm-label { font-weight: 600; }
+.wm { display: inline-block; margin: 0 2px; padding: 0 4px; border-radius: 6px; }
+.wm.ok { color: var(--muted); }
+/* 안 들린 단어: 색만으로 알리지 않게 밑줄도 */
+.wm.miss { color: var(--hot); background: var(--hot-soft); font-weight: 700; text-decoration: underline wavy; text-underline-offset: 3px; }
 .error .bubble { border-color: var(--hot); background: var(--hot-soft); white-space: pre-line; font-size: 0.9375rem; }
 
 /* ── 아래 말하기 칸 ── */
@@ -416,6 +423,8 @@ legend { font-weight: 800; padding: 0 6px; }
 .mic-line { display: flex; align-items: center; justify-content: center; gap: 8px; flex-wrap: wrap; margin: 10px auto; font-size: 0.9375rem; }
 .start-btn { display: flex; width: 100%; margin: 12px auto 0; font-size: 1.125rem; min-height: 58px; border-radius: var(--radius-lg); }
 .start-btn .ico { width: 1.2em; height: 1.2em; }
+.menu-title { font-size: 0.875rem; font-weight: 800; color: var(--muted); margin: 18px 0 0; }
+.warmup-btn { margin-top: 10px; }
 .start-menu { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 12px; }
 .start-menu button.tile {
   display: flex; flex-direction: column; align-items: flex-start; gap: 6px; min-height: 76px;

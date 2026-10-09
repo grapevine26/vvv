@@ -1,4 +1,4 @@
-import { ArrowLeftRight, BookOpen, Flame, Map as MapIcon, Mic, Play, Settings } from 'lucide-react'
+import { ArrowLeftRight, BookOpen, ChartColumn, Dumbbell, Flame, Headphones, ListChecks, Map as MapIcon, Mic, Play, Settings } from 'lucide-react'
 import { TARGET } from '../lib/config'
 import { doneToday, getStage, getUnit, minutesOn, promotionStatus, streakDays } from '../lib/curriculum'
 import type { MicState } from '../lib/speech'
@@ -31,6 +31,8 @@ interface Props {
   mic: MicInfo
   // 이 브라우저에 쌓인 문장장·기록이 있는지 (앱 안 브라우저에서 떠나기 전에 옮기라고 알린다)
   hasData: boolean
+  // 오래 백업하지 않았으면 안내
+  backupDue: boolean
   dailyChecks: number[]
   onToggleCheck: (i: number) => void
   onStart: () => void
@@ -44,6 +46,11 @@ interface Props {
   onCourse: () => void
   onTransfer: () => void
   onPromote: () => void
+  // 오늘의 연습
+  onWarmup: () => void
+  onQuiz: () => void
+  onListen: () => void
+  onProgress: () => void
 }
 
 // 승급 조건 중 가장 모자란 것에 맞춘 한 줄 도움말. 오늘 단원을 이미 마쳤으면 단원 말고 다른 조건을 말한다
@@ -230,6 +237,38 @@ export function StartScreen(props: Props) {
           {!hasKey ? '키 넣고 시작하기' : draft ? '새로 시작하기' : '시작하기'}
         </button>
 
+        {hasKey && (
+          <button className="secondary wide warmup-btn" id="btnWarmup" type="button" onClick={props.onWarmup}>
+            <Dumbbell className="ico" aria-hidden="true" />
+            대화 전 2분 연습 (오늘 단원 문장 틀)
+          </button>
+        )}
+
+        {props.backupDue && (
+          <div className="banner-box" id="backupReminder">
+            <span>기록을 일주일 넘게 백업하지 않았어요. 폰을 바꾸거나 크롬 기록을 지우면 사라질 수 있어요.</span>
+            <button className="secondary small" id="btnBackupNow" type="button" onClick={props.onTransfer}>
+              지금 백업하기
+            </button>
+          </div>
+        )}
+
+        <h3 className="menu-title">더 연습하기</h3>
+        <div className="start-menu">
+          <button className="secondary tile" id="btnQuiz" type="button" onClick={props.onQuiz}>
+            <ListChecks className="ico" aria-hidden="true" />
+            5분 복습 퀴즈
+          </button>
+          <button className="secondary tile" id="btnListen" type="button" onClick={props.onListen}>
+            <Headphones className="ico" aria-hidden="true" />
+            듣고 따라 말하기
+          </button>
+          <button className="secondary tile" id="btnProgress" type="button" onClick={props.onProgress}>
+            <ChartColumn className="ico" aria-hidden="true" />
+            이번 주 기록
+          </button>
+        </div>
+        <h3 className="menu-title">메뉴</h3>
         <div className="start-menu">
           <button className="secondary tile" id="btnStartSettings" type="button" onClick={props.onSettings}>
             <Settings className="ico" aria-hidden="true" />

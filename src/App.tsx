@@ -8,9 +8,14 @@ import { SettingsSheet } from './components/SettingsSheet'
 import { StartScreen } from './components/StartScreen'
 import { TransferSheet } from './components/TransferSheet'
 import { WrapSheet } from './components/WrapSheet'
+import { WarmupSheet } from './components/WarmupSheet'
+import { QuizSheet } from './components/QuizSheet'
+import { ProgressSheet } from './components/ProgressSheet'
+import { ListenSheet } from './components/ListenSheet'
+import { isBackupDue } from './lib/backup'
 import { useLatestRef } from './hooks/useLatestRef'
 import { sanitizeSettings, TARGET } from './lib/config'
-import { changeStage, chooseUnit, getStage, MIN_TURNS_FOR_UNIT, mergeProgress, minutesOn, unitById } from './lib/curriculum'
+import { changeStage, chooseUnit, getStage, getUnit, MIN_TURNS_FOR_UNIT, mergeProgress, minutesOn, unitById } from './lib/curriculum'
 import { AppError, callGemini, checkKey, checkWriting, errorText, parseTurn, TURN_SCHEMA } from './lib/gemini'
 import { buildSystemPrompt, pushHistory, recentHistory, startMessage, userTag } from './lib/prompt'
 import { commitSession, EMPTY_STATS, type SessionData } from './lib/session'
@@ -42,6 +47,7 @@ import {
   loadLearned,
   loadProgress,
   loadSettings,
+  mergeLearned,
   resumableDrafts,
   saveDailyChecks,
   saveDraft,
@@ -54,7 +60,7 @@ import { applyImportedSettings, mergeImported, type TransferData } from './lib/t
 import { localDate, normWords, overlap, ro, same, turnSegments } from './lib/text'
 import type { Content, Draft, FixTarget, Lang, Message, Pair, Progress, Segment, Settings } from './lib/types'
 
-type SheetName = 'settings' | 'wrap' | 'book' | 'course' | 'transfer' | null
+type SheetName = 'settings' | 'wrap' | 'book' | 'course' | 'transfer' | 'warmup' | 'quiz' | 'progress' | 'listen' | null
 
 interface SettingsOpen {
   notice: string
@@ -544,7 +550,7 @@ export default function App() {
     }
     const goal = target || chip
     const heardWell = !!goal && overlap(goal, text) >= 0.7
-    const mine: Message = { kind: 'me', id: nextId(), text, lang, isRepeat: !!target, fromHint: !!chip, heardWell }
+    const mine: Message = { kind: 'me', id: nextId(), text, lang, isRepeat: !!target, fromHint: !!chip, heardWell, goal: goal || undefined }
     // 지난 오류 말풍선은 새 말을 하면 치운다
     setMessages((prev) => [...prev.filter((m) => m.kind !== 'error'), mine])
     pickedHintRef.current = ''
@@ -886,6 +892,14 @@ export default function App() {
     return { added, total: list.length }
   }
 
+  // 듣기 연습에서 고른 문장을 문장장에 더한다 (다른 탭 기록과 합쳐서)
+  const saveSentences = (pairs: Pair[]): number => {
+    const { list, added } = mergeLearned(freshLearned(), pairs, localDate())
+    setLearned(list)
+    saveLearned(list)
+    return added
+  }
+
   const clearBook = () => {
     if (!window.confirm('문장장을 모두 지울까요? 되돌릴 수 없어요.')) return
     setLearned([])
@@ -985,7 +999,15 @@ export default function App() {
               )
             if (m.kind === 'me')
               return (
-                <UserBubble key={m.id} text={m.text} lang={m.lang} isRepeat={m.isRepeat} fromHint={m.fromHint} heardWell={m.heardWell} />
+                <UserBubble
+                  key={m.id}
+                  text={m.text}
+                  lang={m.lang}
+                  isRepeat={m.isRepeat}
+                  fromHint={m.fromHint}
+                  heardWell={m.heardWell}
+                  goal={m.goal}
+                />
               )
             return (
               <ErrorBubble
@@ -1044,6 +1066,7 @@ export default function App() {
             help: micBlockedHelp(env),
           }}
           hasData={learned.length > 0 || progress.sessions.length > 0}
+          backupDue={isBackupDue(today, learned.length > 0 || progress.sessions.length > 0)}
           dailyChecks={dailyChecks}
           onToggleCheck={toggleCheck}
           onStart={() => startSession()}
@@ -1060,6 +1083,38 @@ export default function App() {
           onCourse={() => openSheet('course')}
           onTransfer={() => openSheet('transfer')}
           onPromote={() => askStageChange(progress.stage + 1)}
+          onWarmup={() => openSheet('warmup')}
+          onQuiz={() => openSheet('quiz')}
+          onListen={() => openSheet('listen')}
+          onProgress={() => openSheet('progress')}
+        />
+      )}
+      {sheet === 'warmup' && (
+        <WarmupSheet
+          stage={getStage(progress.stage)}
+          unit={getUnit(progress)}
+          onPlay={(segs, slow) => void play(segs, slow)}
+          onMic={startMic}
+          onDone={() => startSession()}
+          onClose={closeSheet}
+        />
+      )}
+      {sheet === 'quiz' && (
+        <QuizSheet learned={learned} settings={settings} onPlay={(segs, slow) => void play(segs, slow)} onMic={startMic} onClose={closeSheet} />
+      )}
+      {sheet === 'progress' && (
+        <ProgressSheet progress={progress} today={today} minutesGoal={settings.minutes} onClose={closeSheet} />
+      )}
+      {sheet === 'listen' && (
+        <ListenSheet
+          settings={settings}
+          progress={progress}
+          learned={learned}
+          onPlay={(segs, slow) => void play(segs, slow)}
+          onMic={startMic}
+          onSaveSentences={saveSentences}
+          onNeedSettings={() => openSettings({ focus: 'apiKey' })}
+          onClose={closeSheet}
         />
       )}
       {sheet === 'settings' && (

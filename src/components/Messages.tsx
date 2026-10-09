@@ -2,7 +2,7 @@ import { Lightbulb, Snail, ThumbsUp, Volume2 } from 'lucide-react'
 import { TARGET } from '../lib/config'
 import { splitByScript, turnSegments } from '../lib/text'
 import type { FixTarget, Lang, Pair, Segment, Turn } from '../lib/types'
-import { ChipRow, Meaning, MiniButton } from './common'
+import { ChipRow, Meaning, MiniButton, WordMarks } from './common'
 
 type Play = (segments: Segment[], slow?: boolean) => void
 
@@ -84,9 +84,11 @@ interface UserBubbleProps {
   isRepeat: boolean
   fromHint?: boolean
   heardWell?: boolean
+  // 따라 말하기·대답 예시의 목표 문장 (발음 피드백용)
+  goal?: string
 }
 
-export function UserBubble({ text, lang, isRepeat, fromHint, heardWell }: UserBubbleProps) {
+export function UserBubble({ text, lang, isRepeat, fromHint, heardWell, goal }: UserBubbleProps) {
   const tag = isRepeat ? '따라 말하기' : fromHint ? '대답 예시' : lang === 'ko' ? '한국어' : TARGET.label
   return (
     <div className="msg me">
@@ -94,6 +96,7 @@ export function UserBubble({ text, lang, isRepeat, fromHint, heardWell }: UserBu
         <div className="tag">{tag}</div>
         <div lang={lang === 'en' ? 'en' : undefined}>{text}</div>
       </div>
+      {goal && <WordMarks goal={goal} said={text} />}
       {heardWell && (
         <div className="heard">
           <ThumbsUp className="ico" aria-hidden="true" />잘 들렸어요

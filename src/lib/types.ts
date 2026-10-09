@@ -53,7 +53,7 @@ export type FixTarget = 'apiKey' | 'model' | null
 
 export type Message =
   | { kind: 'ai'; id: number; turn: Turn; veiled: boolean }
-  | { kind: 'me'; id: number; text: string; lang: Lang; isRepeat: boolean; fromHint?: boolean; heardWell?: boolean }
+  | { kind: 'me'; id: number; text: string; lang: Lang; isRepeat: boolean; fromHint?: boolean; heardWell?: boolean; goal?: string }
   | { kind: 'error'; id: number; text: string; fix: FixTarget }
 
 export interface Unit {

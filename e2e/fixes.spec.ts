@@ -246,6 +246,22 @@ test.describe('대화에서 한 말 세기', () => {
     expect(errors).toEqual([])
   })
 
+  test('발음 피드백: 따라 말하기에서 덜 들린 단어만 표시하고, 다 들리면 표시하지 않는다', async ({ page, context }) => {
+    const { queue, errors } = await open(page, context)
+    await startWithGreeting(page, queue, { say: 'Say it!', say_ko: '말해 봐!', repeat: 'I went to the park yesterday.', repeat_ko: '어제 공원에 갔어.' })
+    queue.push(reply(turn({ say: 'Again!', say_ko: '한 번 더!', repeat: 'I like it.', repeat_ko: '좋아.' })))
+    await speak(page, 'en', 'I want to the park')
+    await expect(aiBubbles(page)).toHaveCount(2)
+    const marks = page.locator('.msg.me').last().locator('.word-marks')
+    // 화면 낭독기용으로 '(안 들림)'이 숨은 글자로 붙는다
+    await expect(marks.locator('.wm.miss')).toHaveText([/^went/, /^yesterday\./])
+    queue.push(reply(turn({ say: 'Great!', say_ko: '좋아!' })))
+    await speak(page, 'en', 'I like it')
+    await expect(aiBubbles(page)).toHaveCount(3)
+    await expect(page.locator('.msg.me').last().locator('.word-marks')).toHaveCount(0)
+    expect(errors).toEqual([])
+  })
+
   test('대답 예시를 그대로 읽으면 "대답 예시", 예시보다 길게 늘려 말하면 "내 대답"', async ({ page, context }) => {
     const { queue, requests, errors } = await open(page, context)
     const hints = [{ en: "I'm tired.", ko: '피곤해.' }]

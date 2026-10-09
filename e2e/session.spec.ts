@@ -223,7 +223,11 @@ test.describe('마무리', () => {
     await expect(readBtn).toHaveText('읽어 보기')
     await cards.nth(1).locator('.btn-read').click()
     await say(page, 'nice to see')
-    await expect(cards.nth(1).locator('.result')).toHaveText('이렇게 들렸어요: "nice to see" — 한 번 더 해 볼까요?')
+    await expect(cards.nth(1).locator('.result')).toContainText('이렇게 들렸어요: "nice to see" — 한 번 더 해 볼까요?')
+    // 발음 피드백: 목표 문장에서 안 들린 단어를 표시한다
+    const missed = await cards.nth(1).locator('.wm.miss').allTextContents()
+    expect(missed.length).toBeGreaterThan(0)
+    expect(missed.join(' ')).not.toMatch(/\bnice\b/i)
     // 마무리 창에서 읽은 말은 대화로 보내지 않는다
     expect(requests).toHaveLength(2)
     await expect(page.locator('.msg.me')).toHaveCount(1)

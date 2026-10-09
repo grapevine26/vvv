@@ -4,7 +4,7 @@ import { TARGET } from '../lib/config'
 import { errorText } from '../lib/gemini'
 import { overlap, same, splitByScript } from '../lib/text'
 import type { Lang, Pair, Segment, WriteCheck } from '../lib/types'
-import { MiniButton, Sheet } from './common'
+import { MiniButton, Sheet, WordMarks } from './common'
 
 export type Play = (segments: Segment[], slow?: boolean) => void
 // 마이크를 실제로 켰으면 true. onEnd는 듣기가 끝나면 항상 불린다
@@ -73,7 +73,7 @@ export function WrapSheet({ cards, unitTitle, turns, minTurns, onPlay, onMic, on
 
 export function ReadCard({ card, onPlay, onMic }: { card: Pair; onPlay: Play; onMic: Mic }) {
   const [listening, setListening] = useState(false)
-  const [result, setResult] = useState<{ good: boolean; text: string } | null>(null)
+  const [result, setResult] = useState<{ good: boolean; text: string; said: string } | null>(null)
 
   const read = () => {
     const started = onMic(
@@ -81,6 +81,7 @@ export function ReadCard({ card, onPlay, onMic }: { card: Pair; onPlay: Play; on
       (said) => {
         const good = overlap(card.en, said) >= 0.7
         setResult({
+          said,
           good,
           text: good ? `잘 들렸어요! ("${said}")` : `이렇게 들렸어요: "${said}" — 한 번 더 해 볼까요?`,
         })
@@ -101,7 +102,12 @@ export function ReadCard({ card, onPlay, onMic }: { card: Pair; onPlay: Play; on
         <MiniButton label="천천히" icon={<Snail className="ico" aria-hidden="true" />} ariaLabel={`${card.en} 천천히 듣기`} onClick={() => onPlay(splitByScript(card.en), true)} />
         <MiniButton label={listening ? '듣는 중… 누르면 끝' : '읽어 보기'} icon={<Mic className="ico" aria-hidden="true" />} className="btn-read" onClick={read} />
       </div>
-      {result && <div className={`result${result.good ? ' good' : ''}`}>{result.text}</div>}
+      {result && (
+        <div className={`result${result.good ? ' good' : ''}`}>
+          {result.text}
+          <WordMarks goal={card.en} said={result.said} />
+        </div>
+      )}
     </div>
   )
 }

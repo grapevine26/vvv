@@ -1,6 +1,7 @@
 import { Eye, X } from 'lucide-react'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useLatestRef } from '../hooks/useLatestRef'
+import { diffWords } from '../lib/pronounce'
 import type { Pair } from '../lib/types'
 
 interface MiniButtonProps {
@@ -31,6 +32,25 @@ export function MiniButton({ label, icon, onClick, ariaLabel, disabled, classNam
       {icon}
       {label}
     </button>
+  )
+}
+
+// 발음 피드백: 목표 문장에서 안 들린 단어를 표시한다. 다 들렸으면 아무것도 그리지 않는다
+export function WordMarks({ goal, said }: { goal: string; said: string }) {
+  const marks = diffWords(goal, said)
+  if (marks.every((m) => m.ok)) return null
+  return (
+    <div className="word-marks" lang="en">
+      <span className="wm-label" lang="ko">
+        덜 들린 단어:
+      </span>{' '}
+      {marks.map((m, i) => (
+        <span key={i} className={m.ok ? 'wm ok' : 'wm miss'}>
+          {m.word}
+          {m.ok ? '' : <span className="sr-only"> (안 들림)</span>}
+        </span>
+      ))}
+    </div>
   )
 }
 

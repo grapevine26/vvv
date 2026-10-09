@@ -14,7 +14,7 @@ const KEY_TAB = 'englishFriend.tabId'
 export const isAppKey = (key: string | null): boolean => !!key && key.startsWith('englishFriend.')
 
 // 사생활 보호 모드 등에서 저장소가 막혀도 앱은 돌아가게 한다
-function read(key: string): unknown {
+export function read(key: string): unknown {
   try {
     const raw = localStorage.getItem(key)
     return raw ? JSON.parse(raw) : null
@@ -34,7 +34,7 @@ export function storageWorks(): boolean {
   }
 }
 
-function write(key: string, value: unknown): boolean {
+export function write(key: string, value: unknown): boolean {
   try {
     localStorage.setItem(key, JSON.stringify(value))
     return true
