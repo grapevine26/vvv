@@ -1,3 +1,4 @@
+import { Download, Upload } from 'lucide-react'
 import { useState } from 'react'
 import { decodeTransfer, encodeTransfer, TransferError, type TransferData } from '../lib/transfer'
 import type { LearnedItem, Progress, Settings } from '../lib/types'
@@ -95,7 +96,8 @@ export function TransferSheet({ learned, settings, progress, onImport, onNeedKey
         <p className="note">문장장·설정·교육과정 진도가 합쳐져요. Gemini 키와 목소리는 기기마다 따로 정해요.</p>
         <div className="tools two">
           <button className="secondary" id="btnExport" type="button" onClick={doExport}>
-            📤 내보내기
+            <Upload className="ico" aria-hidden="true" />
+            내보내기
           </button>
           <button
             className="secondary"
@@ -106,7 +108,8 @@ export function TransferSheet({ learned, settings, progress, onImport, onNeedKey
               setResult(null)
             }}
           >
-            📥 가져오기
+            <Download className="ico" aria-hidden="true" />
+            가져오기
           </button>
         </div>
         {mode === 'export' && code && (

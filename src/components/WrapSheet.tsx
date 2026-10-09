@@ -1,3 +1,4 @@
+import { Mic, Snail, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { TARGET } from '../lib/config'
 import { errorText } from '../lib/gemini'
@@ -57,7 +58,7 @@ export function WrapSheet({ cards, unitTitle, turns, minTurns, onPlay, onMic, on
         ) : (
           <>
             <h3>① 듣고 소리 내어 읽기</h3>
-            <p className="note">🔊로 듣고, 🎤를 누른 뒤 소리 내어 읽어 보세요.</p>
+            <p className="note">듣기로 듣고, 읽어 보기를 누른 뒤 소리 내어 읽어 보세요.</p>
             {cards.map((c) => (
               <ReadCard key={c.en} card={c} onPlay={onPlay} onMic={onMic} />
             ))}
@@ -81,7 +82,7 @@ export function ReadCard({ card, onPlay, onMic }: { card: Pair; onPlay: Play; on
         const good = overlap(card.en, said) >= 0.7
         setResult({
           good,
-          text: good ? `잘 들렸어요 👍 ("${said}")` : `이렇게 들렸어요: "${said}" — 한 번 더 해 볼까요?`,
+          text: good ? `잘 들렸어요! ("${said}")` : `이렇게 들렸어요: "${said}" — 한 번 더 해 볼까요?`,
         })
       },
       () => setListening(false),
@@ -96,9 +97,9 @@ export function ReadCard({ card, onPlay, onMic }: { card: Pair; onPlay: Play; on
       </div>
       {card.ko && <div className="meaning">{card.ko}</div>}
       <div className="tools">
-        <MiniButton label="🔊 듣기" ariaLabel={`${card.en} 듣기`} onClick={() => onPlay(splitByScript(card.en))} />
-        <MiniButton label="🐢 천천히" ariaLabel={`${card.en} 천천히 듣기`} onClick={() => onPlay(splitByScript(card.en), true)} />
-        <MiniButton label={listening ? '듣는 중… 누르면 끝' : '🎤 읽어 보기'} className="btn-read" onClick={read} />
+        <MiniButton label="듣기" icon={<Volume2 className="ico" aria-hidden="true" />} ariaLabel={`${card.en} 듣기`} onClick={() => onPlay(splitByScript(card.en))} />
+        <MiniButton label="천천히" icon={<Snail className="ico" aria-hidden="true" />} ariaLabel={`${card.en} 천천히 듣기`} onClick={() => onPlay(splitByScript(card.en), true)} />
+        <MiniButton label={listening ? '듣는 중… 누르면 끝' : '읽어 보기'} icon={<Mic className="ico" aria-hidden="true" />} className="btn-read" onClick={read} />
       </div>
       {result && <div className={`result${result.good ? ' good' : ''}`}>{result.text}</div>}
     </div>
@@ -137,7 +138,7 @@ export function WriteBox({
     }
     // 정확히 맞으면 AI를 부르지 않는다 (무료 사용량 아끼기)
     if (same(written, card.en)) {
-      setResult({ good: true, message: '완벽해요! 👍' })
+      setResult({ good: true, message: '완벽해요!' })
       return
     }
     setChecking(true)
@@ -155,7 +156,8 @@ export function WriteBox({
   // 확인 결과가 아래 고정 버튼줄이나 키보드에 가리지 않게 보이는 곳으로
   const resultRef = useRef<HTMLDivElement>(null)
   useEffect(() => {
-    if (result) resultRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    // 부드러운 스크롤은 입력칸 포커스 때의 스크롤에 끊길 수 있어 바로 옮긴다
+    if (result) resultRef.current?.scrollIntoView({ block: 'nearest' })
   }, [result])
 
   const next = () => {
@@ -202,7 +204,7 @@ export function WriteBox({
           {result.answer && (
             <div>
               <b lang="en">{result.answer} </b>
-              <MiniButton label="🔊" ariaLabel={`${result.answer} 듣기`} onClick={() => onPlay(splitByScript(result.answer ?? ''))} />
+              <MiniButton label="" icon={<Volume2 className="ico" aria-hidden="true" />} ariaLabel={`${result.answer} 듣기`} onClick={() => onPlay(splitByScript(result.answer ?? ''))} />
             </div>
           )}
         </div>

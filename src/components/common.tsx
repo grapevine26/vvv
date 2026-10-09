@@ -1,9 +1,12 @@
+import { Eye, X } from 'lucide-react'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useLatestRef } from '../hooks/useLatestRef'
 import type { Pair } from '../lib/types'
 
 interface MiniButtonProps {
   label: string
+  // 글자 앞에 붙는 아이콘 (SVG). 글자 없이 아이콘만 쓰면 ariaLabel을 꼭 준다
+  icon?: ReactNode
   onClick: () => void
   ariaLabel?: string
   disabled?: boolean
@@ -12,7 +15,7 @@ interface MiniButtonProps {
 }
 
 // 말풍선 클릭(가림 해제)과 겹치지 않게 클릭을 위로 전달하지 않는다
-export function MiniButton({ label, onClick, ariaLabel, disabled, className, id }: MiniButtonProps) {
+export function MiniButton({ label, icon, onClick, ariaLabel, disabled, className, id }: MiniButtonProps) {
   return (
     <button
       type="button"
@@ -25,6 +28,7 @@ export function MiniButton({ label, onClick, ariaLabel, disabled, className, id 
         onClick()
       }}
     >
+      {icon}
       {label}
     </button>
   )
@@ -62,7 +66,9 @@ export function Meaning({ text, conceal }: { text: string; conceal: boolean }) {
       <span className="blurred" aria-hidden="true">
         {text}
       </span>
-      <span className="reveal-tag">👀 뜻 보기</span>
+      <span className="reveal-tag">
+        <Eye className="ico" aria-hidden="true" />뜻 보기
+      </span>
     </button>
   )
 }
@@ -166,7 +172,7 @@ export function Sheet({ id, title, onClose, children, footer }: SheetProps) {
             {title}
           </h2>
           <button type="button" className="icon-btn sheet-x" aria-label="닫기" onClick={onClose}>
-            ✕
+            <X className="ico" aria-hidden="true" />
           </button>
         </div>
         {children}

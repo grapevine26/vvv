@@ -203,7 +203,7 @@ export default function App() {
       setSpeaking(false)
     }
     if (result === 'error' && activeRef.current && !sheetRef.current)
-      setMicNotice('소리가 안 나왔어요. 말풍선의 🔊 다시를 누르거나, 설정 → 고급에서 목소리를 바꿔 보세요.')
+      setMicNotice('소리가 안 나왔어요. 말풍선의 "다시"를 누르거나, 설정 → 고급에서 목소리를 바꿔 보세요.')
     return result === 'done'
   }
 

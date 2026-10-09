@@ -687,7 +687,7 @@ test.describe('4) 높은 단계 대화', () => {
     expect(lastUserText(requests[0])).toBe('[대화 시작] 오늘 단원은 상황극이야. 네 역할로 바로 첫마디를 해. 상황 설명이 필요하면 tip에 한국어 한 줄로.')
 
     const first = aiBubbles(page).nth(0)
-    await expect(first.locator('.tip')).toHaveText('💡 ' + tip1)
+    await expect(first.locator('.tip')).toHaveText(tip1)
     // 4단계 기본은 뜻 가리기
     await expect(first.locator('.meaning.concealed')).toBeVisible()
 
@@ -698,7 +698,7 @@ test.describe('4) 높은 단계 대화', () => {
       say_ko: '흥미롭네요. 부모용으로도 만들면 어때요?',
       tip: tip2,
     })
-    await expect(aiBubbles(page).nth(1).locator('.tip')).toHaveText('💡 ' + tip2)
+    await expect(aiBubbles(page).nth(1).locator('.tip')).toHaveText(tip2)
     await exchange(page, queue, 'That sounds good to me', { say: 'Great, let us vote.', say_ko: '좋아요, 투표하죠.' })
     await expect(aiBubbles(page).nth(2).locator('.tip')).toHaveCount(0)
     // 같은 대화 안에서는 지시문이 그대로 4단계
@@ -732,7 +732,7 @@ test.describe('4) 높은 단계 대화', () => {
     expect(sys).toContain('- repeat: 따라 말할 영어 문장 하나. 쓰지 마. 항상 빈칸. 없으면 빈칸.')
     expect(sys).toContain('[오늘 단원] 농담과 문화 맥락')
     expect(sys).not.toContain('따라 말하기 횟수')
-    await expect(aiBubbles(page).nth(0).locator('.tip')).toHaveText('💡 "dad joke"는 뻔하고 썰렁한 말장난 농담이에요.')
+    await expect(aiBubbles(page).nth(0).locator('.tip')).toHaveText('"dad joke"는 뻔하고 썰렁한 말장난 농담이에요.')
     expect(errors).toEqual([])
   })
 })
@@ -763,7 +763,7 @@ test.describe('5) 문장장', () => {
     const learned = many(25)
     const { errors } = await open(page, context, { storage: { [K.learned]: learned } })
     await page.click('#btnStartBook')
-    await expect(page.locator('#btnReview')).toHaveText('🔁 오늘 복습 5문장')
+    await expect(page.locator('#btnReview')).toHaveText('오늘 복습 5문장')
     await expect(page.locator('#bookBody')).toContainText('모두 25문장 · 최근 것부터')
     const cards = page.locator('#bookBody > .card')
     await expect(cards).toHaveCount(20)
@@ -812,7 +812,7 @@ test.describe('5) 문장장', () => {
     const card = body.locator('.read-card', { hasText: 'Phrase 25.' })
     await card.locator('.btn-read').click()
     await say(page, 'phrase 25')
-    await expect(card.locator('.result')).toHaveText('잘 들렸어요 👍 ("phrase 25")')
+    await expect(card.locator('.result')).toHaveText('잘 들렸어요! ("phrase 25")')
 
     // 뜻 보고 써 보기: 정확히 쓰면 AI 없이 칭찬
     await expect(body.getByRole('heading', { name: '뜻 보고 써 보기' })).toBeVisible()
@@ -822,7 +822,7 @@ test.describe('5) 문장장', () => {
     expect(n).toBeTruthy()
     await box.locator('textarea').fill(`phrase ${n}`)
     await box.locator('.btn-check').click()
-    await expect(box.locator('.result')).toHaveText('완벽해요! 👍')
+    await expect(box.locator('.result')).toHaveText('완벽해요!')
     expect(requests).toHaveLength(0)
 
     await expect(page.locator('#btnReviewDone')).toHaveText('목록으로')
@@ -846,7 +846,7 @@ test.describe('5) 문장장', () => {
   test('복습 카드 수는 버튼에 적힌 수(5문장)와 같다 — 오래 쓴 문장장(간격 복습 대상이 많을 때)', async ({ page, context }) => {
     const { errors } = await open(page, context, { storage: { [K.learned]: SPACED } })
     await page.click('#btnStartBook')
-    await expect(page.locator('#btnReview')).toHaveText('🔁 오늘 복습 5문장')
+    await expect(page.locator('#btnReview')).toHaveText('오늘 복습 5문장')
     await page.click('#btnReview')
     const says = page.locator('#reviewBody .read-card .say')
     await expect(says.first()).toBeVisible()

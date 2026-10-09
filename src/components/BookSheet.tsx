@@ -1,3 +1,4 @@
+import { ArrowLeftRight, Repeat, Snail, Volume2 } from 'lucide-react'
 import { useState } from 'react'
 import { pickReview } from '../lib/prompt'
 import { localDate, splitByScript } from '../lib/text'
@@ -64,7 +65,8 @@ export function BookSheet({ learned, initialReview, onPlay, onMic, onCheck, onTo
           ) : (
             <>
               <button className="primary wide" id="btnReview" type="button" onClick={() => setReviewing(true)}>
-                🔁 오늘 복습 {Math.min(REVIEW_COUNT, learned.length)}문장
+                <Repeat className="ico" aria-hidden="true" />
+                오늘 복습 {Math.min(REVIEW_COUNT, learned.length)}문장
               </button>
               <p className="note">모두 {learned.length}문장 · 최근 것부터</p>
               {recentFirst.slice(0, shown).map((s) => (
@@ -73,8 +75,8 @@ export function BookSheet({ learned, initialReview, onPlay, onMic, onCheck, onTo
                     <span className="repeat-text" lang="en">
                       {s.en}
                     </span>
-                    <MiniButton label="🔊" ariaLabel={`${s.en} 듣기`} onClick={() => onPlay(splitByScript(s.en))} />
-                    <MiniButton label="🐢" ariaLabel={`${s.en} 천천히 듣기`} onClick={() => onPlay(splitByScript(s.en), true)} />
+                    <MiniButton label="" icon={<Volume2 className="ico" aria-hidden="true" />} ariaLabel={`${s.en} 듣기`} onClick={() => onPlay(splitByScript(s.en))} />
+                    <MiniButton label="" icon={<Snail className="ico" aria-hidden="true" />} ariaLabel={`${s.en} 천천히 듣기`} onClick={() => onPlay(splitByScript(s.en), true)} />
                   </div>
                   {s.ko && <div className="meaning">{s.ko}</div>}
                   {s.date && <div className="book-date">{s.date}</div>}
@@ -89,7 +91,8 @@ export function BookSheet({ learned, initialReview, onPlay, onMic, onCheck, onTo
           )}
           <div className="book-links">
             <button className="link" id="btnBookTransfer" type="button" onClick={onTransfer}>
-              📲 폰↔PC 옮기기
+              <ArrowLeftRight className="ico" aria-hidden="true" />
+              폰↔PC 옮기기
             </button>
             {learned.length > 0 && (
               <button className="link danger" id="btnBookClear" type="button" onClick={onClear}>

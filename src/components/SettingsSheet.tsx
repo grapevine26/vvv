@@ -1,3 +1,4 @@
+import { ExternalLink, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState, type RefObject } from 'react'
 import { clamp, GEMINI_KEY_URL, REPEAT_AMOUNTS, sanitizeSettings } from '../lib/config'
 import { AppError, errorText } from '../lib/gemini'
@@ -178,7 +179,8 @@ export function SettingsSheet(props: Props) {
             <div className="key-guide" id="keyGuide">
               <b>키 받는 법 (2분, 무료)</b>
               <a className="primary link-btn" href={GEMINI_KEY_URL} target="_blank" rel="noopener noreferrer" id="btnOpenStudio">
-                Google AI Studio 열기 ↗
+                Google AI Studio 열기
+                <ExternalLink className="ico" aria-hidden="true" />
               </a>
               <ol className="list steps">
                 <li>구글 계정으로 로그인해요. 처음이면 약관에 체크하고 파란 버튼을 눌러요.</li>
@@ -246,7 +248,8 @@ export function SettingsSheet(props: Props) {
                   onChange={(e) => set('rate', Number(e.target.value))}
                 />
                 <button className="secondary small" type="button" onClick={() => onTestVoice(voiceValue, Number(form.rate))}>
-                  🔊 들어보기
+                  <Volume2 className="ico" aria-hidden="true" />
+                  들어보기
                 </button>
               </div>
               <label className="check">

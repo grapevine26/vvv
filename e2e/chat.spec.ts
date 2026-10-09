@@ -117,7 +117,7 @@ test('단계 안내: 생각 중(타이핑 말풍선) → 말하는 중(■ 그�
   await page.click('#btnStart')
 
   // 생각 중: 안내·타이핑 말풍선·머리줄 상태, 마이크·보내기는 잠김
-  await expect(guide(page)).toHaveText('🤔 Emma가 생각 중이에요…')
+  await expect(guide(page)).toHaveText('Emma가 생각 중이에요…')
   await expect(page.locator('.bubble.typing')).toBeVisible()
   await expect(page.locator('#status')).toHaveText('생각 중…')
   await expect(page.locator('#micKo')).toBeDisabled()
@@ -128,7 +128,7 @@ test('단계 안내: 생각 중(타이핑 말풍선) → 말하는 중(■ 그�
   // 말하는 중
   await expect(aiBubbles(page)).toHaveCount(1)
   await expect(page.locator('.bubble.typing')).toHaveCount(0)
-  await expect(guide(page)).toContainText('🔊 Emma가 말하는 중… 끝나면 내 차례예요')
+  await expect(guide(page)).toContainText('Emma가 말하는 중… 끝나면 내 차례예요')
   await expect(page.locator('#status')).toHaveText('말하는 중…')
   await expect(page.locator('#micKo')).toBeEnabled()
 
@@ -137,7 +137,7 @@ test('단계 안내: 생각 중(타이핑 말풍선) → 말하는 중(■ 그�
   await page.click('#btnStopSpeak')
   expect(await cancelCount(page)).toBe(cancelsBefore + 1)
   await expect(page.locator('#btnStopSpeak')).toHaveCount(0)
-  await expect(guide(page)).toHaveText(`👉 이제 내 차례! EN을 누르고 "I'm fine." 따라 말해요`)
+  await expect(guide(page)).toHaveText(`이제 내 차례! EN을 누르고 "I'm fine." 따라 말해요`)
   await expect(page.locator('#status')).toHaveText('인사와 자기소개')
   await expect(page.locator('#micEn')).toHaveClass(/recommend/)
 
@@ -151,7 +151,7 @@ test('단계 안내: 생각 중(타이핑 말풍선) → 말하는 중(■ 그�
   queue.push(reply(turn({ say: 'Good!', say_ko: '좋아!', cue: '따라 해 볼까요?', repeat: 'Me too.', repeat_ko: '나도.' })))
   await typeSend(page, '좋아')
   await expect(guide(page)).toContainText('말하는 중')
-  await expect(guide(page)).toHaveText(`👉 이제 내 차례! EN을 누르고 "Me too." 따라 말해요`, { timeout: 8000 })
+  await expect(guide(page)).toHaveText(`이제 내 차례! EN을 누르고 "Me too." 따라 말해요`, { timeout: 8000 })
   expect(await spoken(page)).toEqual([
     expect.objectContaining({ text: 'Good!', lang: 'en-US' }),
     expect.objectContaining({ text: '따라 해 볼까요?', lang: 'ko-KR' }),
@@ -193,7 +193,7 @@ test('한국어로 대답 → 따라 말하기 제안(EN 추천) → 거의 같�
   // AI가 따라 할 문장을 주면: 말풍선에 문장, EN 버튼 추천, 안내에 그 문장
   await expect(aiBubbles(page).last().locator('.repeat-text')).toHaveText("I'm tired today.")
   await expect(aiBubbles(page).last().locator('.cue')).toHaveText('이렇게 말해 보세요')
-  await expect(guide(page)).toHaveText(`👉 이제 내 차례! EN을 누르고 "I'm tired today." 따라 말해요`)
+  await expect(guide(page)).toHaveText(`이제 내 차례! EN을 누르고 "I'm tired today." 따라 말해요`)
   await expect(page.locator('#micEn')).toHaveClass(/recommend/)
   await expect(page.locator('#micKo')).not.toHaveClass(/recommend/)
 
@@ -204,7 +204,7 @@ test('한국어로 대답 → 따라 말하기 제안(EN 추천) → 거의 같�
   await say(page, 'I am tired today')
   await expect(aiBubbles(page)).toHaveCount(3)
   await expect(lastMe(page).locator('.tag')).toHaveText('따라 말하기')
-  await expect(lastMe(page).locator('.heard')).toHaveText('잘 들렸어요 👍')
+  await expect(lastMe(page).locator('.heard')).toHaveText('잘 들렸어요')
   expect(lastUserText(requests[2])).toBe(`[따라 말하기 — 목표 문장: "I'm tired today."] I am tired today`)
   // 머리줄 횟수는 한국어·따라 말하기·내 영어를 가리지 않고 '내 대답' 하나마다 1씩 오른다 (App.tsx sendUser: stats.turns++)
   await expect(page.locator('#turnCount')).toHaveText('2/5번')
@@ -247,7 +247,7 @@ test('힌트 칩: 누르면 들려주고 고른 칩 표시 → 그 문장을 말
   await expect.poll(() => spoken(page)).toEqual([expect.objectContaining({ text: 'Yes, I like coffee.', lang: 'en-US' })])
   await expect(chips.first()).toHaveClass(/picked/)
   await expect(chips.nth(1)).not.toHaveClass(/picked/)
-  await expect(guide(page)).toHaveText('👉 EN을 누르고 "Yes, I like coffee." 말해 보세요')
+  await expect(guide(page)).toHaveText('EN을 누르고 "Yes, I like coffee." 말해 보세요')
   await expect(page.locator('#micEn')).toHaveClass(/recommend/)
   // 칩을 눌러도 대화 칸이 늘거나 요청이 가지 않는다
   expect(requests).toHaveLength(1)
@@ -306,11 +306,11 @@ test('힌트 칩: 따라 할 문장도 같이 있을 때(1단계에서 흔함) �
   await page.click('#micKo')
   await say(page, '오늘 피곤해')
   await expect(aiBubbles(page)).toHaveCount(2)
-  await expect(guide(page)).toHaveText(`👉 이제 내 차례! EN을 누르고 "I'm tired today." 따라 말해요`)
+  await expect(guide(page)).toHaveText(`이제 내 차례! EN을 누르고 "I'm tired today." 따라 말해요`)
 
   // 칩을 고르면 안내가 칩 문장으로 바뀐다
   await page.locator('.chip.hint').first().click()
-  await expect(guide(page)).toHaveText('👉 EN을 누르고 "I ate pizza." 말해 보세요')
+  await expect(guide(page)).toHaveText('EN을 누르고 "I ate pizza." 말해 보세요')
 
   // 안내대로 칩 문장을 말한다
   queue.push(reply(turn({ say: 'Yummy!', say_ko: '맛있겠다!' })))
@@ -334,7 +334,7 @@ test('힌트 칩: 지난 말풍선의 칩도 눌러서 들을 수 있고, 안내
 
   await aiBubbles(page).first().locator('.chip.hint').click()
   await expect.poll(async () => (await spoken(page)).map((s) => s.text)).toEqual(['I like K-pop.'])
-  await expect(guide(page)).toHaveText('👉 EN을 누르고 "I like K-pop." 말해 보세요')
+  await expect(guide(page)).toHaveText('EN을 누르고 "I like K-pop." 말해 보세요')
   await expect(page.locator('#micEn')).toHaveClass(/recommend/)
   expect(requests).toHaveLength(2)
   // 그 칩 문장을 말하면 '대답 예시'로 보내고, 스스로 한 영어 대답으로는 세지 않는다
@@ -378,7 +378,7 @@ test('마이크: 듣는 중 표시와 중간 글자, 같은 버튼 다시 누르
   await expect(page.locator('#micKo')).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('#micEn')).toHaveAttribute('aria-pressed', 'false')
   await expect(page.locator('#micKo .mic-label')).toHaveText('듣는 중… 누르면 보내기')
-  await expect(guide(page)).toContainText('🎤 듣는 중… 말을 멈추면 자동으로 보내져요')
+  await expect(guide(page)).toContainText('듣는 중… 말을 멈추면 자동으로 보내져요')
   await expect(page.locator('#btnMicCancel')).toBeVisible()
 
   // 중간 글자
@@ -457,7 +457,7 @@ test('소리를 내기 전에 듣기를 멈춘다: 듣는 중 "🔊 다시"를 �
   // 듣는 중에 말풍선의 '🔊 다시'를 누르면: 듣기를 버리고(보내지 않음) 다시 들려준다
   await page.click('#micKo')
   await say(page, '음', false)
-  await page.locator('.msg.ai').first().getByRole('button', { name: '🔊 다시' }).click()
+  await page.locator('.msg.ai').first().getByRole('button', { name: '다시', exact: true }).click()
   await expect.poll(() => lastRec(page)).toMatchObject({ lang: 'ko-KR', stopped: true })
   await expect(page.locator('#micKo')).not.toHaveClass(/listening/)
   const replay = (await speakLog(page)).filter((e) => e.text === 'What did you eat?')
@@ -468,7 +468,7 @@ test('소리를 내기 전에 듣기를 멈춘다: 듣는 중 "🔊 다시"를 �
 
   // 듣는 중에 말하기를 시작해도(■ 그만이 보이는 동안 마이크를 누르면) 말을 끊고 듣는다
   await setSpeakDelay(page, 2000)
-  await page.locator('.msg.ai').first().getByRole('button', { name: '🔊 다시' }).click()
+  await page.locator('.msg.ai').first().getByRole('button', { name: '다시', exact: true }).click()
   await expect(guide(page)).toContainText('말하는 중')
   const cancels = await cancelCount(page)
   await page.click('#micEn')
@@ -502,7 +502,7 @@ test('듣는 중에 글로 보내면 마이크를 끈다: 생각 중에 "듣는 
   // 마이크를 켰다가 마음을 바꿔 키보드로 써서 보낸다
   queue.push(slow(reply(turn({ say: 'Cool!', say_ko: '좋아!' })), 3000))
   await typeSend(page, 'I will type instead')
-  await expect(guide(page)).toHaveText('🤔 Emma가 생각 중이에요…')
+  await expect(guide(page)).toHaveText('Emma가 생각 중이에요…')
   // 기대: 생각 중(버튼이 잠긴 동안)에 마이크가 '듣는 중… 누르면 보내기'로 남지 않는다 (답이 오기 전에 한 번만 읽는다)
   const during = await page.evaluate(() => ({
     cls: document.querySelector('#micKo')!.className,

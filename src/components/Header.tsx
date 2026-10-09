@@ -1,3 +1,5 @@
+import { Settings } from 'lucide-react'
+
 interface Props {
   friendName: string
   status: string
@@ -36,7 +38,7 @@ export function Header({ friendName, status, turnsText, timeText, onSettings, on
         </small>
       </div>
       <button className="icon-btn" id="btnSettings" type="button" aria-label="설정" onClick={onSettings}>
-        ⚙️
+        <Settings className="ico" aria-hidden="true" />
       </button>
       {onEnd && (
         <button className="icon-btn end" id="btnEnd" type="button" onClick={onEnd}>

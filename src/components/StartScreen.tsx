@@ -1,3 +1,4 @@
+import { ArrowLeftRight, BookOpen, Flame, Map as MapIcon, Mic, Play, Settings } from 'lucide-react'
 import { TARGET } from '../lib/config'
 import { doneToday, getStage, getUnit, minutesOn, promotionStatus, streakDays } from '../lib/curriculum'
 import type { MicState } from '../lib/speech'
@@ -77,7 +78,7 @@ export function StartScreen(props: Props) {
               : '이 브라우저는 음성 인식이 안 돼요. 크롬이나 엣지에서 열어 주세요. (입력칸에 써서 연습할 수는 있어요)'}
             {mic.inApp && props.hasData && (
               <div className="note" id="inAppData">
-                여기서 쓰던 문장장·진도는 크롬에 없어요. 크롬으로 열기 전에 <b>📲 폰↔PC 옮기기 → 내보내기</b>로 코드를 복사해
+                여기서 쓰던 문장장·진도는 크롬에 없어요. 크롬으로 열기 전에 <b>폰↔PC 옮기기 → 내보내기</b>로 코드를 복사해
                 두고, 크롬에서 가져오기 하세요.{' '}
                 <button className="secondary small" id="btnInAppExport" type="button" onClick={props.onTransfer}>
                   코드 복사하러 가기
@@ -136,7 +137,8 @@ export function StartScreen(props: Props) {
         {!firstTime && (
           <div className="today" id="todayLine">
             <div>
-              {streak > 0 ? `🔥 ${streak}일 연속 · ` : ''}오늘 {todayMin}분 / 목표 {minutesGoal}분
+              {streak > 0 && <Flame className="ico" aria-hidden="true" />}
+              {streak > 0 ? `${streak}일 연속 · ` : ''}오늘 {todayMin}분 / 목표 {minutesGoal}분
             </div>
             <div className="bar" aria-hidden="true">
               <span style={{ width: `${Math.min(100, (todayMin / Math.max(1, minutesGoal)) * 100)}%` }} />
@@ -209,7 +211,8 @@ export function StartScreen(props: Props) {
               <>
                 <span>말하기에 마이크가 필요해요.</span>
                 <button className="secondary small" id="btnMicAllow" type="button" onClick={props.onAllowMic}>
-                  🎤 마이크 켜기
+                  <Mic className="ico" aria-hidden="true" />
+                  마이크 켜기
                 </button>
               </>
             )}
@@ -217,26 +220,32 @@ export function StartScreen(props: Props) {
         )}
         {mic.supported && !mic.inApp && mic.state === 'granted' && (
           <div className="mic-line ok-text" id="micStatus">
-            🎤 마이크 준비됨
+            <Mic className="ico" aria-hidden="true" />
+            마이크 준비됨
           </div>
         )}
 
         <button className="primary start-btn" id="btnStart" type="button" onClick={props.onStart}>
+          <Play className="ico" aria-hidden="true" />
           {!hasKey ? '키 넣고 시작하기' : draft ? '새로 시작하기' : '시작하기'}
         </button>
 
         <div className="start-menu">
-          <button className="secondary" id="btnStartSettings" type="button" onClick={props.onSettings}>
-            ⚙️ 설정
+          <button className="secondary tile" id="btnStartSettings" type="button" onClick={props.onSettings}>
+            <Settings className="ico" aria-hidden="true" />
+            설정
           </button>
-          <button className="secondary" id="btnStartBook" type="button" onClick={props.onBook}>
-            📒 문장장
+          <button className="secondary tile" id="btnStartBook" type="button" onClick={props.onBook}>
+            <BookOpen className="ico" aria-hidden="true" />
+            문장장
           </button>
-          <button className="secondary" id="btnStartCourse" type="button" onClick={props.onCourse}>
-            🗺 교육과정
+          <button className="secondary tile" id="btnStartCourse" type="button" onClick={props.onCourse}>
+            <MapIcon className="ico" aria-hidden="true" />
+            교육과정
           </button>
-          <button className="secondary" id="btnStartTransfer" type="button" onClick={props.onTransfer}>
-            📲 폰↔PC 옮기기
+          <button className="secondary tile" id="btnStartTransfer" type="button" onClick={props.onTransfer}>
+            <ArrowLeftRight className="ico" aria-hidden="true" />
+            폰↔PC 옮기기
           </button>
         </div>
 

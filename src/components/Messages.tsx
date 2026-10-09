@@ -1,3 +1,4 @@
+import { Lightbulb, Snail, ThumbsUp, Volume2 } from 'lucide-react'
 import { TARGET } from '../lib/config'
 import { splitByScript, turnSegments } from '../lib/text'
 import type { FixTarget, Lang, Pair, Segment, Turn } from '../lib/types'
@@ -21,7 +22,12 @@ export function AiBubble({ turn, friendName, veiled, showKo, pickedHint, onUnvei
   return (
     <div className="msg ai">
       <div className={`bubble${veiled ? ' veiled' : ''}`} onClick={onUnveil}>
-        {veiled && <div className="veil-note">🔊 {friendName}의 말을 먼저 들어 보세요. 다 들으면 글자가 보여요 (누르면 바로 보기)</div>}
+        {veiled && (
+          <div className="veil-note">
+            <Volume2 className="ico" aria-hidden="true" />
+            {friendName}의 말을 먼저 들어 보세요. 다 들으면 글자가 보여요 (누르면 바로 보기)
+          </div>
+        )}
         {turn.say && (
           <div className="say" lang="en">
             {turn.say}
@@ -35,9 +41,15 @@ export function AiBubble({ turn, friendName, veiled, showKo, pickedHint, onUnvei
               <span className="repeat-text" lang="en">
                 {turn.repeat}
               </span>
-              <MiniButton label="🔊" ariaLabel={`따라 할 문장 듣기: ${turn.repeat}`} onClick={() => onPlay(splitByScript(turn.repeat))} />
               <MiniButton
-                label="🐢"
+                label=""
+                icon={<Volume2 className="ico" aria-hidden="true" />}
+                ariaLabel={`따라 할 문장 듣기: ${turn.repeat}`}
+                onClick={() => onPlay(splitByScript(turn.repeat))}
+              />
+              <MiniButton
+                label=""
+                icon={<Snail className="ico" aria-hidden="true" />}
                 ariaLabel={`따라 할 문장 천천히 듣기: ${turn.repeat}`}
                 onClick={() => onPlay(splitByScript(turn.repeat), true)}
               />
@@ -45,7 +57,12 @@ export function AiBubble({ turn, friendName, veiled, showKo, pickedHint, onUnvei
             {turn.repeat_ko && <Meaning text={turn.repeat_ko} conceal={!showKo} />}
           </div>
         )}
-        {turn.tip && <div className="tip">💡 {turn.tip}</div>}
+        {turn.tip && (
+          <div className="tip">
+            <Lightbulb className="ico" aria-hidden="true" />
+            <span>{turn.tip}</span>
+          </div>
+        )}
         {turn.hints.length > 0 && (
           <ChipRow label="이렇게 대답해도 돼요 (누르면 들려요)" items={turn.hints} kind="hint" picked={pickedHint} onPick={onPickHint} />
         )}
@@ -53,8 +70,8 @@ export function AiBubble({ turn, friendName, veiled, showKo, pickedHint, onUnvei
           <ChipRow label="단어" items={turn.words} kind="word" onPick={(w) => onPlay([{ text: w.en, lang: 'en' }])} />
         )}
         <div className="tools">
-          <MiniButton label="🔊 다시" onClick={() => onPlay(segs)} />
-          <MiniButton label="🐢 천천히" onClick={() => onPlay(segs, true)} />
+          <MiniButton label="다시" icon={<Volume2 className="ico" aria-hidden="true" />} onClick={() => onPlay(segs)} />
+          <MiniButton label="천천히" icon={<Snail className="ico" aria-hidden="true" />} onClick={() => onPlay(segs, true)} />
         </div>
       </div>
     </div>
@@ -77,7 +94,11 @@ export function UserBubble({ text, lang, isRepeat, fromHint, heardWell }: UserBu
         <div className="tag">{tag}</div>
         <div lang={lang === 'en' ? 'en' : undefined}>{text}</div>
       </div>
-      {heardWell && <div className="heard">잘 들렸어요 👍</div>}
+      {heardWell && (
+        <div className="heard">
+          <ThumbsUp className="ico" aria-hidden="true" />잘 들렸어요
+        </div>
+      )}
     </div>
   )
 }
@@ -134,7 +155,11 @@ export function TypingBubble({ slow, onCancel }: { slow: boolean; onCancel: () =
   return (
     <div className="msg ai">
       <div className="bubble typing">
-        …
+        <span className="dots" aria-label="생각 중">
+          <i />
+          <i />
+          <i />
+        </span>
         {slow && (
           <div className="tools">
             <span className="muted">조금 오래 걸려요…</span>
