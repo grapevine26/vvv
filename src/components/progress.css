@@ -1,0 +1,82 @@
+/* 이번 주 기록 (ProgressSheet) 전용. index.css 토큰만 쓴다 */
+
+.pg-empty { margin: 8px 0; padding: 16px; border-radius: var(--radius); background: var(--surface-2); }
+.pg-empty-title { margin: 0; font-weight: 800; font-size: 1.0625rem; }
+
+/* 맨 위 요약: 이번 주 분 · 공부한 날 · 연속 */
+.pg-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 4px; }
+.pg-stat {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0;
+  padding: 10px 12px; border-radius: var(--radius); background: var(--surface);
+  border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+.pg-stat .ico { color: var(--accent); }
+.pg-stat .pg-flame { color: var(--repeat-border); }
+.pg-stat-label { font-size: 0.8125rem; color: var(--muted); font-weight: 600; }
+.pg-stat b { font-size: 1.375rem; font-weight: 800; letter-spacing: -0.01em; line-height: 1.2; }
+.pg-compare {
+  display: flex; align-items: flex-start; gap: 8px; margin: 10px 0 0; padding: 10px 12px;
+  border-radius: var(--radius-sm); background: var(--accent-soft); color: var(--text); font-size: 0.9375rem; font-weight: 700;
+}
+.pg-compare .ico { color: var(--accent); margin-top: 3px; }
+
+/* 막대 차트 공통 */
+.pg-chart {
+  padding: 12px; border-radius: var(--radius); background: var(--surface); border: 1px solid var(--border);
+}
+/* 막대가 서는 칸. 위쪽 여백은 맨 위 막대의 숫자 자리 */
+.pg-area { position: relative; height: 9rem; margin-top: 1.5rem; border-bottom: 1px solid var(--control-border); }
+.pg-cols { display: grid; gap: 2px; }
+.pg-cols-7 { grid-template-columns: repeat(7, 1fr); }
+.pg-cols-6 { grid-template-columns: repeat(6, 1fr); }
+.pg-area > .pg-cols { position: absolute; inset: 0; }
+.pg-col {
+  position: relative; display: flex; align-items: flex-end; justify-content: center;
+  min-width: 0; min-height: 44px; height: 100%; padding: 0; border: 0; border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  background: transparent; transition: background var(--fast) var(--ease);
+}
+.pg-col.picked { background: var(--surface-2); }
+.pg-bar {
+  position: relative; display: block; width: 60%; max-width: 24px; min-height: 0;
+  border-radius: 4px 4px 0 0; background: color-mix(in srgb, var(--accent) 55%, var(--surface));
+  transition: height 200ms var(--ease);
+}
+.pg-col.pg-now .pg-bar { background: var(--accent); }
+.pg-val {
+  position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); padding-bottom: 2px;
+  font-size: 0.8125rem; font-weight: 700; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.pg-col.pg-now .pg-val { color: var(--text); font-weight: 800; }
+.pg-x { margin-top: 4px; text-align: center; font-size: 0.8125rem; color: var(--muted); }
+.pg-x span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pg-x .pg-now { color: var(--text); font-weight: 800; }
+
+/* 목표선: 막대 위를 가로지르는 가는 선 */
+.pg-goal { position: absolute; left: 0; right: 0; height: 0; border-top: 2px solid var(--ok); z-index: 1; pointer-events: none; }
+
+/* 비율 차트의 눈금선 (왼쪽에 숫자 자리) */
+.pg-area-ratio > .pg-cols { left: 2.5rem; }
+.pg-x-ratio { margin-left: 2.5rem; }
+.pg-grid { position: absolute; left: 0; right: 0; height: 0; border-top: 1px solid var(--border); pointer-events: none; }
+.pg-grid span {
+  position: absolute; left: 0; top: 0; transform: translateY(-50%);
+  font-size: 0.75rem; color: var(--muted); font-variant-numeric: tabular-nums; background: var(--surface); padding-right: 4px;
+}
+
+.pg-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 8px; font-size: 0.8125rem; color: var(--muted); }
+.pg-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.pg-key-bar { display: inline-block; width: 10px; height: 12px; border-radius: 3px 3px 0 0; background: var(--accent); }
+.pg-key-goal { display: inline-block; width: 16px; height: 0; border-top: 2px solid var(--ok); }
+.pg-readout { margin: 8px 0 0; font-size: 0.9375rem; font-weight: 700; }
+
+/* 주별 숫자 표. 좁은 화면에서는 표 안에서만 옆으로 민다 */
+.pg-table-wrap { overflow-x: auto; }
+.pg-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.pg-table th, .pg-table td { padding: 8px 6px; text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+.pg-table thead th { font-size: 0.75rem; color: var(--muted); font-weight: 700; }
+.pg-table th[scope="row"], .pg-table thead th:first-child { text-align: left; font-weight: 700; }
+.pg-table tbody tr:last-child th, .pg-table tbody tr:last-child td { border-bottom: 0; }
+
+@media (hover: hover) {
+  .pg-col:hover { background: var(--surface-2); }
+}
