@@ -1113,7 +1113,7 @@ export default function App() {
           onPlay={(segs, slow) => void play(segs, slow)}
           onMic={startMic}
           onSaveSentences={saveSentences}
-          onNeedSettings={() => openSettings({ focus: 'apiKey' })}
+          onNeedSettings={(fix) => openSettings({ focus: fix ?? 'apiKey' })}
           onClose={closeSheet}
         />
       )}

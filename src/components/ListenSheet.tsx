@@ -20,7 +20,8 @@ export interface ListenProps {
   // 문장장에 더하고, 새로 더한 개수를 돌려준다
   onSaveSentences: (pairs: Pair[]) => number
   // 키·모델 문제면 설정을 연다
-  onNeedSettings: () => void
+  // 키·모델 문제면 그 칸이 열린 설정을 연다
+  onNeedSettings: (fix?: FixTarget) => void
   onClose: () => void
 }
 
@@ -161,7 +162,7 @@ export function ListenSheet({ settings, progress, learned, onPlay, onMic, onSave
         {failure?.retryable ? '다시 시도' : '이야기 만들기'}
       </button>
     ) : (
-      <button className="primary" id="lsnNeedKey" type="button" onClick={onNeedSettings}>
+      <button className="primary" id="lsnNeedKey" type="button" onClick={() => onNeedSettings('apiKey')}>
         <SettingsIcon className="ico" aria-hidden="true" />
         설정에서 키 넣기
       </button>
@@ -241,7 +242,7 @@ export function ListenSheet({ settings, progress, learned, onPlay, onMic, onSave
             <div className="lsn-error" id="lsnError" role="alert">
               <p>{failure.text}</p>
               {failure.fix ? (
-                <button className="secondary small" id="lsnFixSettings" type="button" onClick={onNeedSettings}>
+                <button className="secondary small" id="lsnFixSettings" type="button" onClick={() => onNeedSettings(failure.fix)}>
                   <SettingsIcon className="ico" aria-hidden="true" />
                   설정 열기
                 </button>

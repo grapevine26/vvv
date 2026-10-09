@@ -46,6 +46,8 @@ async function open(page: Page, context: BrowserContext, progress?: unknown, col
   await expect(page.locator('#startSheet')).toBeVisible()
   await page.click('#btnProgress')
   await expect(page.locator('#progressSheet')).toBeVisible()
+  // 누른 자리에 남은 마우스가 막대 위에 올라가 '자세히 보기'를 바꾸지 않게 치운다
+  await page.mouse.move(0, 0)
   return errors
 }
 

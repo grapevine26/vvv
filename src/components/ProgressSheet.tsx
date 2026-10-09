@@ -75,26 +75,29 @@ export function ProgressSheet({ progress, today, minutesGoal, onClose }: Progres
 // 최근 7일 막대: 목표선, 오늘 강조, 막대마다 분. 누르면(또는 마우스를 올리면) 아래에 자세히 보여 준다
 function DayChart({ days, goal }: { days: DayBar[]; goal: number }) {
   const [picked, setPicked] = useState(days.length - 1)
+  // 마우스를 올린 동안만 그날을 보여 주고, 벗어나면 누른 날(처음엔 오늘)로 돌아간다
+  const [hovered, setHovered] = useState<number | null>(null)
   const max = Math.max(goal, ...days.map((d) => d.minutes), 1)
   const pct = (m: number) => `${Math.round((m / max) * 1000) / 10}%`
-  const sel = days[picked] ?? days[days.length - 1]
+  const shown = hovered ?? picked
+  const sel = days[shown] ?? days[days.length - 1]
   const detail = (d: DayBar) =>
     `${d.isToday ? '오늘 ' : ''}${d.label}요일 ${shortDate(d.date)} · ${d.minutes}분${goal > 0 ? (d.metGoal ? ' · 목표 달성' : ` · 목표 ${goal}분`) : ''}`
   return (
     <div className="pg-chart">
-      <div className="pg-area" id="pgDayChart" role="group" aria-label="최근 7일 공부한 분">
+      <div className="pg-area" id="pgDayChart" role="group" aria-label="최근 7일 공부한 분" onPointerLeave={() => setHovered(null)}>
         {goal > 0 && <div className="pg-goal" id="pgGoalLine" style={{ bottom: pct(goal) }} aria-hidden="true" />}
         <div className="pg-cols pg-cols-7">
           {days.map((d, i) => (
             <button
               key={d.date}
               type="button"
-              className={`pg-col${d.isToday ? ' pg-now' : ''}${i === picked ? ' picked' : ''}`}
+              className={`pg-col${d.isToday ? ' pg-now' : ''}${i === shown ? ' picked' : ''}`}
               data-date={d.date}
               aria-label={detail(d)}
               aria-pressed={i === picked}
               onClick={() => setPicked(i)}
-              onPointerEnter={(e) => e.pointerType === 'mouse' && setPicked(i)}
+              onPointerEnter={(e) => e.pointerType === 'mouse' && setHovered(i)}
             >
               <span className="pg-bar" style={{ height: pct(d.minutes) }}>
                 <span className="pg-val">{d.minutes}</span>
@@ -134,14 +137,22 @@ const weekName = (w: WeekStat) => (w.label.endsWith('~') ? `${w.label.slice(0, -
 // 최근 6주 '영어로 스스로 대답한 비율' 막대 (0~100%)
 function WeekChart({ weeks }: { weeks: WeekStat[] }) {
   const [picked, setPicked] = useState(weeks.length - 1)
-  const sel = weeks[picked] ?? weeks[weeks.length - 1]
+  const [hovered, setHovered] = useState<number | null>(null)
+  const shown = hovered ?? picked
+  const sel = weeks[shown] ?? weeks[weeks.length - 1]
   const detail = (w: WeekStat) =>
     w.ratio === null
       ? `${weekName(w)} · 대답 기록 없음`
       : `${weekName(w)} · ${percent(w.ratio)} (영어 ${w.enOwnTurns}번, 한국어 ${w.koTurns}번)`
   return (
     <div className="pg-chart">
-      <div className="pg-area pg-area-ratio" id="pgWeekChart" role="group" aria-label="주별 영어로 스스로 대답한 비율">
+      <div
+        className="pg-area pg-area-ratio"
+        id="pgWeekChart"
+        role="group"
+        aria-label="주별 영어로 스스로 대답한 비율"
+        onPointerLeave={() => setHovered(null)}
+      >
         <div className="pg-grid" style={{ bottom: '50%' }} aria-hidden="true">
           <span>50%</span>
         </div>
@@ -153,12 +164,12 @@ function WeekChart({ weeks }: { weeks: WeekStat[] }) {
             <button
               key={w.start}
               type="button"
-              className={`pg-col${i === weeks.length - 1 ? ' pg-now' : ''}${i === picked ? ' picked' : ''}`}
+              className={`pg-col${i === weeks.length - 1 ? ' pg-now' : ''}${i === shown ? ' picked' : ''}`}
               data-week={w.start}
               aria-label={detail(w)}
               aria-pressed={i === picked}
               onClick={() => setPicked(i)}
-              onPointerEnter={(e) => e.pointerType === 'mouse' && setPicked(i)}
+              onPointerEnter={(e) => e.pointerType === 'mouse' && setHovered(i)}
             >
               <span className={`pg-bar${w.ratio === null ? ' none' : ''}`} style={{ height: w.ratio === null ? '0%' : `${Math.round(w.ratio * 1000) / 10}%` }}>
                 <span className="pg-val">{w.ratio === null ? '-' : percent(w.ratio)}</span>

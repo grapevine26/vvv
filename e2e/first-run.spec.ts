@@ -528,7 +528,7 @@ test.describe('5) 나중에', () => {
       await c.act(page)
       await expect(page.locator('#settingsSheet')).toHaveCount(0)
       await expect(page.locator('#startSheet')).toBeVisible()
-      expect(new URL(page.url()).origin).toBe('http://localhost:4173')
+      expect(new URL(page.url()).origin).toBe(new URL(test.info().project.use.baseURL ?? page.url()).origin)
       // 닫은 뒤에도 다시 열 수 있다
       await page.click('#btnStart')
       await expect(page.locator('#keyGuide')).toBeVisible()
