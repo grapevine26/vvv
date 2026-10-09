@@ -1,0 +1,76 @@
+/* ── 대화 전 2분 연습 (WarmupSheet) ── */
+.wu-unit { margin: 4px 0 10px; font-size: 0.9375rem; color: var(--muted); }
+.wu-unit b { color: var(--text); }
+
+/* 진행 표시: 1/3 + 이 틀에서 할 일 */
+.wu-progress { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.wu-count {
+  flex: none; padding: 4px 12px; border-radius: 999px; background: var(--accent-soft); color: var(--accent-strong);
+  font-size: 0.9375rem; font-variant-numeric: tabular-nums;
+}
+.wu-count b { font-size: 1.0625rem; }
+.wu-steps { display: flex; flex-wrap: wrap; gap: 4px 12px; margin: 0; padding: 0; list-style: none; font-size: 0.8125rem; color: var(--muted); }
+.wu-steps li { display: inline-flex; align-items: center; gap: 4px; }
+.wu-steps li.now { color: var(--text); font-weight: 700; }
+.wu-steps li.done { color: var(--ok); }
+.wu-dot {
+  display: inline-grid; place-items: center; width: 1.4rem; height: 1.4rem; border-radius: 50%;
+  border: 1px solid var(--border); background: var(--surface-2); font-size: 0.75rem; font-weight: 800;
+}
+.wu-steps li.now .wu-dot { background: var(--accent); border-color: var(--accent); color: var(--accent-text); }
+.wu-steps li.done .wu-dot { background: var(--ok-soft); border-color: var(--ok); color: var(--ok); }
+.wu-dot .ico { width: 0.85rem; height: 0.85rem; vertical-align: 0; }
+
+/* 문장 틀: 빈칸을 노란 칸으로 */
+.wu-frame {
+  padding: 12px 14px; border-radius: var(--radius); background: var(--repeat-bg); border: 1px solid var(--repeat-border);
+}
+.wu-frame-label { font-size: 0.8125rem; font-weight: 700; color: var(--repeat-ink); }
+.wu-frame-en { font-size: 1.25rem; font-weight: 800; line-height: 1.6; margin-top: 2px; }
+.wu-blank {
+  display: inline-block; width: 3.2em; height: 1.1em; margin: 0 0.15em; vertical-align: -0.15em;
+  border-bottom: 3px solid var(--repeat-border); border-radius: 4px; background: var(--surface);
+}
+.wu-frame-ko { font-size: 0.9375rem; color: var(--muted); margin-top: 2px; }
+
+/* 단계 안내 */
+.wu-guide { display: flex; align-items: center; gap: 8px; margin: 16px 0 4px; font-size: 1.0625rem; font-weight: 800; }
+.wu-guide-n {
+  display: inline-grid; place-items: center; flex: none; width: 1.75rem; height: 1.75rem; border-radius: 50%;
+  background: var(--accent); color: var(--accent-text); font-size: 0.9375rem;
+}
+.wu-card { animation: wu-in 200ms var(--ease) both; }
+@keyframes wu-in { from { opacity: 0; transform: translateY(6px); } }
+.wu-say { font-size: 1.375rem; }
+.wu-play { min-width: 96px; }
+.wu-hint { margin: 10px 0 0; font-size: 0.875rem; color: var(--muted); }
+
+/* 말하기 버튼: 크게, 듣는 중에는 빨갛게 */
+.wu-mic { width: 100%; margin-top: 12px; min-height: 52px; font-size: 1rem; }
+.wu-mic.listening { border: 2px solid var(--hot); background: var(--hot-soft); color: var(--hot); }
+.wu-mic.listening .ico { color: var(--hot); }
+.wu-result { padding: 10px 12px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.wu-result.good { background: var(--ok-soft); }
+.wu-praise { display: flex; align-items: center; gap: 6px; }
+
+/* 바꿔 말하기 칩: 해 본 것은 초록 체크 */
+.wu-chip { display: inline-flex; align-items: center; gap: 4px; }
+.wu-chip.done { border-color: var(--ok); }
+.wu-chip-check { color: var(--ok); }
+.wu-swapped { margin-top: 14px; padding-top: 12px; border-top: 1px dashed var(--border); }
+
+/* 끝 화면 */
+.wu-done-head {
+  display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: var(--radius);
+  background: var(--ok-soft); color: var(--ok); font-size: 1rem;
+}
+.wu-done-head b { font-size: 1.125rem; }
+.wu-done-head > .ico { width: 2rem; height: 2rem; }
+.wu-done-head div div { color: var(--text); font-weight: 700; }
+.wu-recap { list-style: none; margin: 0; padding: 0; }
+.wu-recap li { display: flex; align-items: center; gap: 10px; }
+.wu-recap-text { flex: 1; min-width: 0; }
+.wu-recap-en { font-weight: 800; font-size: 1.0625rem; }
+
+/* 아래 버튼줄: '다음'을 넓게 */
+.actions .wu-next { flex: 1; }
