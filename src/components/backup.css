@@ -1,0 +1,25 @@
+/* 4) 기록 백업 (옮기기 시트 안의 백업 칸). 색은 index.css 토큰만 쓴다 */
+.bk-card {
+  margin: 4px 0 8px; padding: 14px; border-radius: var(--radius);
+  background: var(--accent-soft); border: 1px solid var(--border);
+}
+.sheet-card h3.bk-title {
+  display: flex; align-items: center; gap: 8px; margin: 0 0 6px; font-size: 1.0625rem;
+}
+.bk-title .ico { color: var(--accent); width: 1.3em; height: 1.3em; }
+.bk-why { margin: 0 0 8px; font-size: 0.9375rem; line-height: 1.5; }
+.bk-last { margin: 0 0 12px; font-size: 0.9375rem; color: var(--muted); }
+.bk-last b { color: var(--text); }
+.bk-last.never b { color: var(--hot); }
+.bk-actions { display: grid; grid-template-columns: 1fr; gap: 8px; }
+.bk-actions button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; width: 100%; }
+.bk-actions .secondary { background: var(--surface); }
+.bk-hint { margin: 10px 0 0; font-size: 0.8125rem; line-height: 1.5; color: var(--muted); }
+.bk-card .unit-status { margin-top: 10px; }
+.bk-card .result { line-height: 1.5; }
+.bk-card .result.good { font-weight: 600; }
+.sheet-card h3.bk-sub { margin: 22px 0 4px; }
+@media (min-width: 420px) {
+  .bk-actions { grid-template-columns: 1fr 1fr; }
+  .bk-actions button:first-child:nth-last-child(odd) { grid-column: 1 / -1; }
+}
