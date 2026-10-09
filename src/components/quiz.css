@@ -1,0 +1,119 @@
+/* 5분 복습 퀴즈 (QuizSheet) 전용. index.css의 색·모서리·그림자 토큰만 쓴다 */
+
+.qz-lead { font-size: 1.125rem; font-weight: 700; margin: 8px 0 4px; }
+.qz-lead b { color: var(--accent); }
+.qz-kinds { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 8px; }
+.qz-kinds li {
+  display: flex; align-items: center; gap: 10px; padding: 12px 14px;
+  background: var(--surface-2); border-radius: var(--radius-sm); font-weight: 600;
+}
+.qz-kinds .ico { color: var(--accent); }
+
+/* 빈 문장장·오늘 다 함 */
+.qz-empty { text-align: center; padding: 24px 4px 8px; }
+.qz-empty-ico { width: 3rem; height: 3rem; color: var(--accent); }
+.qz-empty-ico.ok { color: var(--ok); }
+.qz-empty .muted { margin: 4px 0 16px; }
+
+/* 진행 막대 */
+.qz-progress { margin: 4px 0 12px; }
+.qz-progress-text { font-size: 0.875rem; font-weight: 700; color: var(--muted); margin-bottom: 6px; font-variant-numeric: tabular-nums; }
+.qz-bar { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.qz-bar-fill { height: 100%; border-radius: inherit; background: var(--accent); transition: width 200ms var(--ease); }
+
+/* 문제 */
+.sheet-card .qz-ask { display: flex; align-items: center; gap: 8px; margin: 8px 0 10px; }
+.qz-ask:focus { outline: none; }
+.qz-ask .ico { color: var(--accent); }
+.qz-prompt {
+  font-size: 1.25rem; font-weight: 700; line-height: 1.45; padding: 16px;
+  background: var(--accent-soft); border-radius: var(--radius); margin-bottom: 12px;
+}
+.qz-prompt.small { font-size: 1.0625rem; padding: 12px 14px; }
+
+/* (a) 뜻 고르기 보기 */
+.qz-choices { display: grid; gap: 10px; margin-top: 14px; }
+.qz-choice {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  min-height: 56px; width: 100%; padding: 12px 16px; text-align: left; font-size: 1.0625rem; font-weight: 600;
+  background: var(--surface); border: 2px solid var(--border); border-radius: var(--radius);
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+.qz-choice:disabled { cursor: default; }
+.qz-choice-text { flex: 1; min-width: 0; }
+.qz-choice.right { border-color: var(--ok); background: var(--ok-soft); }
+.qz-choice.wrong { border-color: var(--hot); background: var(--hot-soft); }
+.qz-choice.dim { opacity: 0.6; }
+.qz-tag { flex: none; display: inline-flex; align-items: center; gap: 4px; font-size: 0.875rem; font-weight: 800; }
+.qz-tag.ok { color: var(--ok); }
+.qz-tag.bad { color: var(--hot); }
+@media (hover: hover) {
+  .qz-choice:hover:not(:disabled), .qz-piece:hover:not(:disabled) { background: var(--accent-soft); border-color: var(--accent); }
+}
+.qz-choice:active:not(:disabled), .qz-piece:active:not(:disabled), .qz-mic:active { transform: scale(0.97); }
+
+/* (b) 말하기 */
+.qz-mic {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%;
+  min-height: 60px; margin-top: 4px; padding: 10px 16px; font-size: 1.0625rem; font-weight: 800;
+  border-radius: var(--radius-lg); border: 2px solid var(--accent); background: var(--accent-soft); color: var(--accent-strong);
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+.qz-mic .ico { width: 1.35em; height: 1.35em; }
+.qz-mic.listening { border-color: var(--hot); background: var(--hot-soft); color: var(--hot); }
+.qz-type { display: flex; gap: 8px; margin-top: 12px; }
+.qz-type input {
+  flex: 1; min-width: 0; min-height: 46px; padding: 10px 14px; border-radius: var(--radius);
+  border: 1px solid var(--control-border); background: var(--surface);
+}
+.qz-skip { display: block; margin: 6px auto 0; }
+
+/* (c) 순서 맞추기 */
+.qz-slot {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; min-height: 64px; padding: 10px;
+  border: 2px dashed var(--control-border); border-radius: var(--radius); background: var(--surface-2);
+}
+.qz-slot.right { border-style: solid; border-color: var(--ok); background: var(--ok-soft); }
+.qz-slot.wrong { border-style: solid; border-color: var(--hot); background: var(--hot-soft); }
+.qz-slot-hint { color: var(--muted); font-size: 0.9375rem; padding: 0 4px; }
+.qz-pool { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+.qz-piece {
+  min-height: 44px; min-width: 44px; padding: 8px 14px; font-size: 1.0625rem; font-weight: 700;
+  background: var(--surface); border: 1px solid var(--control-border); border-radius: 12px; box-shadow: var(--shadow);
+  transition: background var(--fast) var(--ease), border-color var(--fast) var(--ease), opacity var(--fast) var(--ease), transform var(--fast) var(--ease);
+}
+.qz-piece.placed { border-color: var(--accent); }
+.qz-piece.placed:disabled { cursor: default; color: var(--text); }
+/* 놓은 조각은 자리만 남겨 둔다 (다른 조각이 움직이지 않게) */
+.qz-piece.used { opacity: 0.25; box-shadow: none; border-style: dashed; cursor: default; }
+
+/* 바로 알려 주기 */
+.qz-feedback {
+  margin-top: 16px; padding: 14px; border-radius: var(--radius); border: 2px solid;
+  animation: qz-pop 200ms var(--ease) both;
+}
+@keyframes qz-pop { from { opacity: 0; transform: translateY(6px); } }
+.qz-feedback.ok { border-color: var(--ok); background: var(--ok-soft); }
+.qz-feedback.bad { border-color: var(--hot); background: var(--hot-soft); }
+.qz-feedback-title { display: flex; align-items: center; gap: 8px; font-size: 1.125rem; font-weight: 800; }
+.qz-feedback.ok .qz-feedback-title { color: var(--ok); }
+.qz-feedback.bad .qz-feedback-title { color: var(--hot); }
+.qz-feedback-title .ico { width: 1.35em; height: 1.35em; }
+.qz-heard { margin-top: 8px; font-size: 0.9375rem; color: var(--text); }
+.qz-heard .word-marks { text-align: left; }
+.qz-answer { margin-top: 10px; padding: 12px 14px; background: var(--surface); border-radius: var(--radius-sm); }
+.qz-answer .tools { margin-top: 8px; }
+.qz-next-hint { margin: 10px 0 0; font-size: 0.875rem; color: var(--text); }
+
+/* 결과 */
+.qz-result { text-align: center; padding-top: 12px; }
+.qz-result:focus { outline: none; }
+.qz-result-ico { width: 3rem; height: 3rem; color: var(--repeat-border); }
+.qz-score { font-size: 1.375rem; font-weight: 800; margin: 6px 0 4px; }
+.qz-score b { color: var(--accent); }
+.qz-score-sub { font-weight: 700; color: var(--muted); margin: 0 0 8px; }
+.qz-result h3, .qz-result .note { text-align: left; }
+.qz-wrong-card { text-align: left; }
+.qz-wrong-row { display: flex; align-items: center; gap: 10px; }
+.qz-wrong-text { flex: 1; min-width: 0; }
+.qz-wrong-en { font-weight: 700; font-size: 1.0625rem; }
