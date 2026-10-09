@@ -13,6 +13,7 @@ import { QuizSheet } from './components/QuizSheet'
 import { ProgressSheet } from './components/ProgressSheet'
 import { ListenSheet } from './components/ListenSheet'
 import { isBackupDue } from './lib/backup'
+import { loadQuizStats, mergeQuizStats, saveQuizStats } from './lib/quiz'
 import { useLatestRef } from './hooks/useLatestRef'
 import { sanitizeSettings, TARGET } from './lib/config'
 import { changeStage, chooseUnit, getStage, getUnit, MIN_TURNS_FOR_UNIT, mergeProgress, minutesOn, unitById } from './lib/curriculum'
@@ -68,8 +69,10 @@ interface SettingsOpen {
   focus: FixTarget
   // 저장하면 바로 대화를 시작한다 (처음 키를 넣을 때)
   startAfter: boolean
+  // 저장한 뒤 다시 열 연습 화면 (듣기 연습에서 키를 넣으러 온 경우)
+  returnTo: 'listen' | null
 }
-const NO_SETTINGS: SettingsOpen = { notice: '', firstRun: false, focus: null, startAfter: false }
+const NO_SETTINGS: SettingsOpen = { notice: '', firstRun: false, focus: null, startAfter: false, returnTo: null }
 
 // 답이 이만큼 늦으면 '그만 기다리기'를 보여 준다
 const SLOW_WAIT_MS = 8000
@@ -634,8 +637,9 @@ export default function App() {
   })
 
   const closeSheet = () => {
-    // 마무리·문장장 카드에서 켠 마이크가 시트를 닫은 뒤에도 듣고 있지 않게
+    // 마무리·문장장 카드에서 켠 마이크가 시트를 닫은 뒤에도 듣고 있지 않게, 읽던 소리도 멈춘다
     stopListening()
+    stopSpeaking()
     setSheet(null)
     setSettingsOpen(NO_SETTINGS)
     setBookReview(false)
@@ -876,8 +880,10 @@ export default function App() {
     settingsRef.current = next
     if (!saveSettings(next)) showToast('이 브라우저에서는 설정이 저장되지 않아요(사생활 보호 모드?). 이번에만 적용돼요.')
     if (activeRef.current) setLimitSec((l) => Math.max(l, next.minutes * 60 - minutesOn(progress, session.date) * 60))
+    const returnTo = settingsOpen.returnTo
     closeSheet()
     if (startAfter) startSession(next)
+    else if (returnTo) openSheet(returnTo)
   }
 
   // 다른 기기에서 가져온 문장장·진도는 합치고, 설정은 키·목소리만 빼고 맞춘다
@@ -889,6 +895,7 @@ export default function App() {
     setSettings(next)
     saveSettings(next)
     if (data.progress) updateProgress(mergeProgress(freshProgress(), data.progress))
+    if (data.quiz) saveQuizStats(mergeQuizStats(loadQuizStats(), data.quiz))
     return { added, total: list.length }
   }
 
@@ -1095,12 +1102,20 @@ export default function App() {
           unit={getUnit(progress)}
           onPlay={(segs, slow) => void play(segs, slow)}
           onMic={startMic}
+          onStopMic={stopListening}
           onDone={() => startSession()}
           onClose={closeSheet}
         />
       )}
       {sheet === 'quiz' && (
-        <QuizSheet learned={learned} settings={settings} onPlay={(segs, slow) => void play(segs, slow)} onMic={startMic} onClose={closeSheet} />
+        <QuizSheet
+          learned={learned}
+          settings={settings}
+          onPlay={(segs, slow) => void play(segs, slow)}
+          onMic={startMic}
+          onStopMic={stopListening}
+          onClose={closeSheet}
+        />
       )}
       {sheet === 'progress' && (
         <ProgressSheet progress={progress} today={today} minutesGoal={settings.minutes} onClose={closeSheet} />
@@ -1113,7 +1128,7 @@ export default function App() {
           onPlay={(segs, slow) => void play(segs, slow)}
           onMic={startMic}
           onSaveSentences={saveSentences}
-          onNeedSettings={(fix) => openSettings({ focus: fix ?? 'apiKey' })}
+          onNeedSettings={(fix) => openSettings({ focus: fix ?? 'apiKey', returnTo: 'listen' })}
           onClose={closeSheet}
         />
       )}
@@ -1176,6 +1191,7 @@ export default function App() {
           settings={settings}
           progress={progress}
           onImport={importData}
+          inApp={!!inApp}
           onNeedKey={() => openSettings({ firstRun: true })}
           onClose={closeSheet}
         />

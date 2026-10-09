@@ -49,6 +49,16 @@ export function sanitizeQuizStats(v: unknown): QuizStats {
 export const loadQuizStats = (): QuizStats => sanitizeQuizStats(read(QUIZ_KEY))
 export const saveQuizStats = (s: QuizStats): boolean => write(QUIZ_KEY, s)
 
+// 두 기기(또는 백업 파일)의 복습 기록을 문장마다 합친다: 더 많이 본 쪽, 같으면 복습 날짜가 늦은 쪽
+export function mergeQuizStats(local: QuizStats, incoming: QuizStats): QuizStats {
+  const out: QuizStats = { ...local }
+  for (const [en, b] of Object.entries(incoming)) {
+    const a = out[en]
+    if (!a || b.seen > a.seen || (b.seen === a.seen && b.due > a.due)) out[en] = b
+  }
+  return out
+}
+
 // 한 문장을 채점한 뒤의 상자. 처음 보는 문장은 1칸에 있던 것으로 본다
 export function grade(stats: QuizStats, en: string, correct: boolean, today: string): QuizStats {
   const prev = stats[en]
@@ -130,11 +140,25 @@ function scramble(pieces: string[], rng: Rng): string[] {
   return pieces.slice().reverse()
 }
 
+// 뜻 비교용으로 다듬기: 띄어쓰기·문장부호와 앞의 '저는/나는' 같은 주어를 뺀다
+const normKo = (s: string) =>
+  s
+    .replace(/[\s.,!?~'"“”‘’]/g, '')
+    .replace(/^(저는|나는|난|전|제가|내가)/, '')
+
+// 정답과 같은 뜻으로 볼 만한 보기인지 (한쪽이 다른 쪽을 품으면 같은 뜻으로 친다)
+export function sameMeaning(a: string, b: string): boolean {
+  const x = normKo(a)
+  const y = normKo(b)
+  return !!x && !!y && (x.includes(y) || y.includes(x))
+}
+
 function choicesFor(item: Pair, pool: Pair[], rng: Rng): string[] {
   const wrong: string[] = []
   const add = (ko: string) => {
     const k = ko.trim()
-    if (k && k !== item.ko.trim() && !wrong.includes(k)) wrong.push(k)
+    // 정답과 같은 뜻이 오답 보기로 나오면, 맞게 골라도 틀린 것이 된다
+    if (k && !sameMeaning(k, item.ko) && !wrong.some((w) => sameMeaning(w, k))) wrong.push(k)
   }
   for (const p of shuffle(pool, rng)) if (p.en !== item.en) add(p.ko)
   for (const d of shuffle(DEFAULT_WRONG, rng)) add(d)

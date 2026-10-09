@@ -103,3 +103,13 @@ describe('applyImportedSettings', () => {
     expect(next.minutes).toBe(120) // 범위 밖 값은 바로잡는다
   })
 })
+
+describe('퀴즈 복습 일정도 옮기기·백업에 들어간다', () => {
+  it('넣으면 그대로 돌아오고, 없으면 null (옛 코드도 읽힘)', async () => {
+    const quiz = { 'I like tea.': { box: 3, due: '2026-10-12', seen: 4 } }
+    const withQuiz = await decodeTransfer(await encodeTransfer([], DEFAULT_SETTINGS, DEFAULT_PROGRESS, quiz))
+    expect(withQuiz.quiz).toEqual(quiz)
+    const without = await decodeTransfer(await encodeTransfer([], DEFAULT_SETTINGS, DEFAULT_PROGRESS, {}))
+    expect(without.quiz).toBeNull()
+  })
+})

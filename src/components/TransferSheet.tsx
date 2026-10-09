@@ -22,6 +22,8 @@ interface Props {
   onImport: (data: TransferData) => { added: number; total: number }
   onNeedKey: () => void
   onClose: () => void
+  // 카톡 같은 앱 안 브라우저면 파일 저장이 조용히 실패하므로 코드 복사를 앞세운다
+  inApp?: boolean
 }
 
 type Result = { good: boolean; text: string } | null
@@ -48,7 +50,7 @@ function canShareFile(): boolean {
 
 // 폰 ↔ PC: 내보내기로 코드를 복사해 카톡 "나와의 채팅"으로 보내고, 다른 기기에서 가져오기에 붙여 넣는다
 // 기록 백업: 같은 코드를 .txt 파일로 저장해 두었다가, 크롬 기록을 지웠거나 폰을 바꾸면 그 파일로 되살린다
-export function TransferSheet({ learned, settings, progress, onImport, onNeedKey, onClose }: Props) {
+export function TransferSheet({ learned, settings, progress, onImport, onNeedKey, onClose, inApp = false }: Props) {
   const [mode, setMode] = useState<'idle' | 'export' | 'import'>('idle')
   const [code, setCode] = useState('')
   const [input, setInput] = useState('')
@@ -138,7 +140,8 @@ export function TransferSheet({ learned, settings, progress, onImport, onNeedKey
       noteBackup()
       show('file', {
         good: true,
-        text: `"${file.name}" 파일로 저장했어요. 폰에서는 "다운로드" 폴더(내 파일)에 있어요. 이 파일을 카톡 "나와의 채팅"이나 메일로 보내 두면 폰을 바꿔도 안전해요.`,
+        // 브라우저가 내려받기를 조용히 막을 수도 있어서 단정하지 않는다
+        text: `"${file.name}" 파일 저장을 시작했어요. 폰에서는 "다운로드" 폴더(내 파일)에 생겨요. 다운로드 알림이 안 보이면 아래 "내보내기" 코드를 카톡 "나와의 채팅"에 보내 두세요. 파일은 카톡 "나와의 채팅"이나 메일로 보내 두면 폰을 바꿔도 안전해요.`,
       })
     } catch {
       show('file', {
@@ -183,6 +186,8 @@ export function TransferSheet({ learned, settings, progress, onImport, onNeedKey
         throw new TransferError('파일이 너무 커요. "파일로 저장"으로 만든 english-friend-backup-날짜.txt 파일을 골라 주세요.')
       }
       const r = onImport(await readBackupText(await file.text()))
+      // 고른 파일이 곧 백업이므로 '백업하세요' 안내를 다시 띄우지 않는다
+      noteBackup()
       show('file', { good: true, text: '기록을 되살렸어요. ' + importedText(r) })
       setNeedKey(!settings.apiKey)
     } catch (err) {
@@ -235,12 +240,20 @@ export function TransferSheet({ learned, settings, progress, onImport, onNeedKey
           <p className={`bk-last${last ? '' : ' never'}`} id="backupLast">
             마지막 백업: <b>{lastBackupText(today, last)}</b>
           </p>
+          {inApp && (
+            <p className="notice" id="backupInApp">
+              카톡 같은 앱 안 화면에서는 파일이 저장되지 않아요. 아래 <b>"내보내기"</b>로 코드를 복사해 카톡 "나와의 채팅"에 보내
+              두세요. 그것이 백업이에요.
+            </p>
+          )}
           <div className="bk-actions">
-            <button className="primary" id="btnBackupSave" type="button" disabled={working} onClick={saveFile}>
-              <FileDown className="ico" aria-hidden="true" />
-              파일로 저장
-            </button>
-            {shareOk && (
+            {!inApp && (
+              <button className="primary" id="btnBackupSave" type="button" disabled={working} onClick={saveFile}>
+                <FileDown className="ico" aria-hidden="true" />
+                파일로 저장
+              </button>
+            )}
+            {shareOk && !inApp && (
               <button className="secondary" id="btnBackupShare" type="button" disabled={working} onClick={shareFile}>
                 <Share2 className="ico" aria-hidden="true" />
                 카톡·메일로 보내기

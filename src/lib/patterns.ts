@@ -132,7 +132,8 @@ export const PATTERNS: Record<string, Pattern[]> = {
 export function quotedPhrases(focus: string): string[] {
   const out: string[] = []
   for (const m of focus.matchAll(/"([^"]+)"/g)) {
-    const phrase = m[1].replace(/\s*~\s*/g, ` ${BLANK} `).replace(/\s+([.,!?])/g, '$1').replace(/\s+/g, ' ').trim()
+    // '~ing'처럼 ~에 붙은 글자는 빈칸에 함께 넣는다 ('mind ___ ing'가 되지 않게)
+    const phrase = m[1].replace(/~\w+/g, '~').replace(/\s*~\s*/g, ` ${BLANK} `).replace(/\s+([.,!?])/g, '$1').replace(/\s+/g, ' ').trim()
     if (phrase && !out.includes(phrase)) out.push(phrase)
   }
   return out

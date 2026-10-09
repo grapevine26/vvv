@@ -1,3 +1,4 @@
+import { useLatestRef } from '../hooks/useLatestRef'
 import { ArrowRight, Check, CircleCheckBig, Mic as MicIcon, Snail, Square, Volume2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { diffWords } from '../lib/pronounce'
@@ -14,6 +15,8 @@ export interface WarmupProps {
   unit: Unit
   onPlay: Play
   onMic: Mic
+  // 듣는 중인 마이크를 보내지 않고 끈다
+  onStopMic?: () => void
   // 연습을 마치고 바로 대화 시작
   onDone: () => void
   onClose: () => void
@@ -25,7 +28,7 @@ const STEP_NAMES: Record<Step, string> = { listen: '듣기', say: '따라 말하
 
 const stepsOf = (p: Pattern): Step[] => (swapFills(p).length > 0 ? ['listen', 'say', 'swap'] : ['listen', 'say'])
 
-export function WarmupSheet({ unit, onPlay, onMic, onDone, onClose }: WarmupProps) {
+export function WarmupSheet({ unit, onPlay, onMic, onStopMic, onDone, onClose }: WarmupProps) {
   const patterns = useMemo(() => patternsFor(unit), [unit])
   const [idx, setIdx] = useState(0)
   const [step, setStep] = useState<Step>('listen')
@@ -96,8 +99,8 @@ export function WarmupSheet({ unit, onPlay, onMic, onDone, onClose }: WarmupProp
             <Progress idx={idx} total={patterns.length} steps={steps} step={step} />
             <FrameLine pattern={pattern} />
             {step === 'listen' && <ListenStep key={`l${idx}`} pattern={pattern} onPlay={onPlay} onTried={() => setTried(true)} />}
-            {step === 'say' && <SayStep key={`s${idx}`} pattern={pattern} onPlay={onPlay} onMic={onMic} onTried={() => setTried(true)} />}
-            {step === 'swap' && <SwapStep key={`w${idx}`} pattern={pattern} onPlay={onPlay} onMic={onMic} onAllDone={markTried} />}
+            {step === 'say' && <SayStep key={`s${idx}`} pattern={pattern} onPlay={onPlay} onMic={onMic} onStopMic={onStopMic} onTried={() => setTried(true)} />}
+            {step === 'swap' && <SwapStep key={`w${idx}`} pattern={pattern} onPlay={onPlay} onMic={onMic} onStopMic={onStopMic} onAllDone={markTried} />}
           </>
         )}
       </div>
@@ -254,8 +257,11 @@ interface Heard {
 }
 
 // 마이크로 말해 보고, 목표 문장과 단어를 비교한다 (AI는 부르지 않는다)
-function useTry(onMic: Mic) {
+function useTry(onMic: Mic, onStopMic?: () => void) {
   const [listening, setListening] = useState(false)
+  // 이 단계를 떠나면 듣던 마이크를 끈다 (다음 단계의 첫 누르기가 헛돌지 않게)
+  const stopRef = useLatestRef(onStopMic)
+  useEffect(() => () => stopRef.current?.(), [stopRef])
   const [heard, setHeard] = useState<Heard | null>(null)
   const start = (goal: string, onResult?: (h: Heard) => void) => {
     const started = onMic(
@@ -305,10 +311,10 @@ function HeardResult({ goal, heard }: { goal: string; heard: Heard }) {
   )
 }
 
-function SayStep({ pattern, onPlay, onMic, onTried }: { pattern: Pattern; onPlay: Play; onMic: Mic; onTried: () => void }) {
+function SayStep({ pattern, onPlay, onMic, onStopMic, onTried }: { pattern: Pattern; onPlay: Play; onMic: Mic; onStopMic?: () => void; onTried: () => void }) {
   const ex = exampleOf(pattern)
   const goal = speakable(ex.en)
-  const t = useTry(onMic)
+  const t = useTry(onMic, onStopMic)
   return (
     <>
       <Guide n={2}>듣고 똑같이 따라 말해 보세요</Guide>
@@ -324,11 +330,11 @@ function SayStep({ pattern, onPlay, onMic, onTried }: { pattern: Pattern; onPlay
   )
 }
 
-function SwapStep({ pattern, onPlay, onMic, onAllDone }: { pattern: Pattern; onPlay: Play; onMic: Mic; onAllDone: () => void }) {
+function SwapStep({ pattern, onPlay, onMic, onStopMic, onAllDone }: { pattern: Pattern; onPlay: Play; onMic: Mic; onStopMic?: () => void; onAllDone: () => void }) {
   const fills = swapFills(pattern)
   const [picked, setPicked] = useState<Fill | null>(null)
   const [done, setDone] = useState<string[]>([])
-  const t = useTry(onMic)
+  const t = useTry(onMic, onStopMic)
   const now = picked ? sentence(pattern, picked) : null
   const goal = now ? speakable(now.en) : ''
 

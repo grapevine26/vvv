@@ -120,7 +120,9 @@ test.describe('4) 기록 백업', () => {
     expect(text).not.toContain('SECRET_KEY_A')
 
     const result = page.locator('#transferResult')
-    await expect(result).toContainText(`"${FILE_NAME}" 파일로 저장했어요`)
+    await expect(result).toContainText(`"${FILE_NAME}" 파일 저장을 시작했어요`)
+    // 브라우저가 내려받기를 조용히 막을 수도 있어서, 안 되면 코드를 쓰라고 함께 알린다
+    await expect(result).toContainText('내보내기')
     await expect(result).toHaveClass(/good/)
     // 결과는 누른 버튼이 있는 백업 칸 안에 뜬다
     await expect(page.locator('#backupBox #transferResult')).toHaveCount(1)

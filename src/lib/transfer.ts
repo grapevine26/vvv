@@ -1,3 +1,4 @@
+import { loadQuizStats, sanitizeQuizStats, type QuizStats } from './quiz'
 import { DEFAULT_SETTINGS, MAX_LEARNED, sanitizeSettings } from './config'
 import { sanitizeProgress } from './curriculum'
 import { same } from './text'
@@ -28,6 +29,8 @@ export interface TransferData {
   settings: Partial<Settings>
   // 진도가 없는 옛 코드면 null
   progress: Progress | null
+  // 5분 복습 퀴즈의 복습 일정 (없는 옛 코드면 null)
+  quiz: QuizStats | null
 }
 
 function toBase64Url(bytes: Uint8Array): string {
@@ -52,11 +55,17 @@ async function pipeThrough(
   return new Uint8Array(await new Response(stream).arrayBuffer())
 }
 
-export async function encodeTransfer(learned: LearnedItem[], settings: Settings, progress: Progress): Promise<string> {
+export async function encodeTransfer(
+  learned: LearnedItem[],
+  settings: Settings,
+  progress: Progress,
+  quiz: QuizStats = loadQuizStats(),
+): Promise<string> {
   const s: Record<string, unknown> = {}
   for (const key of SYNC_KEYS) s[key] = settings[key]
-  // 키 이름을 반복하지 않게 문장은 [영어, 뜻, 날짜] 배열로 적는다
-  const json = JSON.stringify({ v: 1, l: learned.map((x) => [x.en, x.ko, x.date]), s, p: progress })
+  // 키 이름을 반복하지 않게 문장은 [영어, 뜻, 날짜] 배열로 적는다. 퀴즈 기록은 있을 때만
+  const q = Object.keys(quiz).length ? quiz : undefined
+  const json = JSON.stringify({ v: 1, l: learned.map((x) => [x.en, x.ko, x.date]), s, p: progress, q })
   const bytes = new TextEncoder().encode(json)
   if (canCompress()) return PREFIX_GZIP + toBase64Url(await pipeThrough(bytes, new CompressionStream('gzip')))
   return PREFIX_PLAIN + toBase64Url(bytes)
@@ -80,7 +89,7 @@ export async function decodeTransfer(code: string): Promise<TransferData> {
   } catch {
     throw new TransferError('코드가 잘렸거나 바뀌었어요. 처음부터 끝까지 다시 복사해서 붙여 넣어 주세요.')
   }
-  const o = (parsed ?? {}) as { v?: unknown; l?: unknown; s?: unknown; p?: unknown }
+  const o = (parsed ?? {}) as { v?: unknown; l?: unknown; s?: unknown; p?: unknown; q?: unknown }
   if (o.v !== 1 || !Array.isArray(o.l)) {
     throw new TransferError('코드 형식이 맞지 않아요. 보내는 기기에서 앱을 새로고침한 뒤 다시 내보내 주세요.')
   }
@@ -95,7 +104,7 @@ export async function decodeTransfer(code: string): Promise<TransferData> {
       if (typeof src[key] === typeof DEFAULT_SETTINGS[key]) dst[key] = src[key]
     }
   }
-  return { learned, settings, progress: o.p ? sanitizeProgress(o.p) : null }
+  return { learned, settings, progress: o.p ? sanitizeProgress(o.p) : null, quiz: o.q ? sanitizeQuizStats(o.q) : null }
 }
 
 // 겹치는 문장은 하나만 남기고(더 이른 날짜 유지), 날짜순으로 정리한다

@@ -184,3 +184,26 @@ describe('저장', () => {
     expect(saveQuizStats({})).toBe(false)
   })
 })
+
+describe('검토에서 고친 것', () => {
+  it('정답과 같은 뜻(주어·문장부호만 다름)은 오답 보기로 내지 않는다', async () => {
+    const { buildQuestions, sameMeaning } = await import('./quiz')
+    expect(sameMeaning('저는 커피를 좋아해요.', '커피를 좋아해요.')).toBe(true)
+    expect(sameMeaning('내일 봐요.', '오늘 날씨가 좋아요.')).toBe(false)
+    const item = { en: 'I like coffee.', ko: '커피를 좋아해요.' }
+    for (let seed = 0; seed < 30; seed++) {
+      let n = seed
+      const rng = () => ((n = (n * 9301 + 49297) % 233280) / 233280)
+      const [q] = buildQuestions([item], [item], rng)
+      if (q.kind !== 'meaning') continue
+      expect(q.choices.filter((c) => sameMeaning(c, item.ko))).toHaveLength(1)
+    }
+  })
+
+  it('두 기기의 복습 기록은 문장마다 더 많이 본 쪽으로 합친다', async () => {
+    const { mergeQuizStats } = await import('./quiz')
+    const local = { a: { box: 2, due: '2026-10-10', seen: 3 }, b: { box: 1, due: '2026-10-09', seen: 1 } }
+    const incoming = { a: { box: 4, due: '2026-10-20', seen: 5 }, c: { box: 2, due: '2026-10-11', seen: 1 } }
+    expect(mergeQuizStats(local, incoming)).toEqual({ a: incoming.a, b: local.b, c: incoming.c })
+  })
+})

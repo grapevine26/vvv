@@ -27,6 +27,8 @@ export interface QuizProps {
   settings: Settings
   onPlay: Play
   onMic: Mic
+  // 듣는 중인 마이크를 보내지 않고 끈다
+  onStopMic?: () => void
   onClose: () => void
 }
 
@@ -49,7 +51,7 @@ const dayLabel = (d: string) => {
   return `${m}월 ${day}일`
 }
 
-export function QuizSheet({ learned, onPlay, onMic, onClose }: QuizProps) {
+export function QuizSheet({ learned, onPlay, onMic, onStopMic, onClose }: QuizProps) {
   const [today] = useState(() => localDate())
   const [stats, setStats] = useState<QuizStats>(loadQuizStats)
   // 처음 연 순간의 오늘 할 문장 (다시 그려도 섞이지 않게 한 번만 고른다)
@@ -77,7 +79,10 @@ export function QuizSheet({ learned, onPlay, onMic, onClose }: QuizProps) {
       next[idx] = a
       return next
     })
-    const s = grade(stats, q.item.en, a.correct, today)
+    // 듣던 마이크는 끈다 (입력칸으로 답했을 때 다음 말하기 문제의 첫 누르기가 헛돌지 않게)
+    onStopMic?.()
+    // 쓰기 직전에 저장소를 다시 읽어 이 문장만 바꾼다 (다른 탭에서 푼 결과를 덮어쓰지 않게)
+    const s = grade(loadQuizStats(), q.item.en, a.correct, today)
     setStats(s)
     saveQuizStats(s)
     // 틀렸으면 정답 문장을 바로 들려준다 (뜻 고르기는 이미 들었으니 뺀다)

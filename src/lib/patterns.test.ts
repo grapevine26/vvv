@@ -123,3 +123,11 @@ describe('patternsFor', () => {
       }
   })
 })
+
+describe('검토에서 고친 것', () => {
+  it("'~ing'처럼 ~에 붙은 글자는 빈칸에 함께 들어간다", () => {
+    expect(quotedPhrases('"Would you mind ~ing?" / "I like ~."')).toEqual([`Would you mind ${BLANK}?`, `I like ${BLANK}.`])
+    const p = patternsFor(unitById('s3-9')!)
+    expect(p.map((x) => speakable(x.frame)).join(' | ')).not.toMatch(/\bing\b/)
+  })
+})
