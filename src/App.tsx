@@ -2,8 +2,10 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { BookSheet } from './components/BookSheet'
 import { Composer, type Phase } from './components/Composer'
 import { CourseSheet } from './components/CourseSheet'
+import { Dock, type Tab } from './components/Dock'
 import { Header } from './components/Header'
-import { AiBubble, ErrorBubble, TypingBubble, UserBubble } from './components/Messages'
+import { LibraryScreen } from './components/LibraryScreen'
+import { AiBubble, ErrorBubble, SpeakingWave, TypingBubble, UserBubble } from './components/Messages'
 import { SettingsSheet } from './components/SettingsSheet'
 import { StartScreen } from './components/StartScreen'
 import { TransferSheet } from './components/TransferSheet'
@@ -13,7 +15,7 @@ import { QuizSheet } from './components/QuizSheet'
 import { ProgressSheet } from './components/ProgressSheet'
 import { ListenSheet } from './components/ListenSheet'
 import { isBackupDue } from './lib/backup'
-import { loadQuizStats, mergeQuizStats, saveQuizStats } from './lib/quiz'
+import { countDueBy, loadQuizStats, mergeQuizStats, saveQuizStats } from './lib/quiz'
 import { useLatestRef } from './hooks/useLatestRef'
 import { sanitizeSettings, TARGET } from './lib/config'
 import { changeStage, chooseUnit, getStage, getUnit, MIN_TURNS_FOR_UNIT, mergeProgress, minutesOn, unitById } from './lib/curriculum'
@@ -61,7 +63,8 @@ import { applyImportedSettings, mergeImported, type TransferData } from './lib/t
 import { localDate, normWords, overlap, ro, same, turnSegments } from './lib/text'
 import type { Content, Draft, FixTarget, Lang, Message, Pair, Progress, Segment, Settings } from './lib/types'
 
-type SheetName = 'settings' | 'wrap' | 'book' | 'course' | 'transfer' | 'warmup' | 'quiz' | 'progress' | 'listen' | null
+// 복습·퀴즈는 창이 아니라 아래 독의 한 칸(탭)이다
+type SheetName = 'settings' | 'wrap' | 'book' | 'course' | 'transfer' | 'warmup' | 'progress' | 'listen' | null
 
 interface SettingsOpen {
   notice: string
@@ -96,7 +99,9 @@ export default function App() {
   const [daily, setDaily] = useState(() => ({ date: localDate(), checks: loadDailyChecks(localDate()) }))
 
   // ── 화면 ──
+  // screen: 대화가 이어지는 중이면 'chat' (다른 탭을 보고 있어도). tab: 지금 보고 있는 아래 독 칸
   const [screen, setScreen] = useState<'start' | 'chat'>('start')
+  const [tab, setTab] = useState<Tab>('home')
   const [sheet, setSheet] = useState<SheetName>(null)
   const [settingsOpen, setSettingsOpen] = useState<SettingsOpen>(NO_SETTINGS)
   const [bookReview, setBookReview] = useState(false)
@@ -131,6 +136,7 @@ export default function App() {
   const learnedRef = useLatestRef(learned)
   const progressRef = useLatestRef(progress)
   const sheetRef = useLatestRef(sheet)
+  const tabRef = useLatestRef(tab)
   const sessionRef = useLatestRef(session)
   const statsRef = useRef({ ...EMPTY_STATS })
   const historyRef = useRef<Content[]>([])
@@ -187,6 +193,8 @@ export default function App() {
     setBusy(on)
     if (on) setBusySince(nowMs())
   }
+  // 대화 화면을 보고 있지 않으면 (창이 떠 있거나 다른 탭) 대화 안내는 토스트로, 자동 듣기·소리는 하지 않는다
+  const awayFromChat = () => !!sheetRef.current || tabRef.current !== 'chat'
   const unveil = (id: number) =>
     setMessages((prev) => prev.map((m) => (m.id === id && m.kind === 'ai' && m.veiled ? { ...m, veiled: false } : m)))
 
@@ -211,7 +219,7 @@ export default function App() {
       speakingRef.current = false
       setSpeaking(false)
     }
-    if (result === 'error' && activeRef.current && !sheetRef.current)
+    if (result === 'error' && activeRef.current && !awayFromChat())
       setMicNotice('소리가 안 나왔어요. 말풍선의 "다시"를 누르거나, 설정 → 고급에서 목소리를 바꿔 보세요.')
     return result === 'done'
   }
@@ -382,7 +390,7 @@ export default function App() {
   const maybeAutoListen = (lang: Lang) => {
     if (!settingsRef.current.autoListen) return
     setTimeout(() => {
-      if (!activeRef.current || sheetRef.current || listenerRef.current || busyRef.current || speakingRef.current) return
+      if (!activeRef.current || awayFromChat() || listenerRef.current || busyRef.current || speakingRef.current) return
       autoListenRef.current(lang)
     }, AUTO_LISTEN_DELAY_MS)
   }
@@ -396,6 +404,7 @@ export default function App() {
     draftSavedRef.current = false
     setBusyBoth(false)
     setScreen('start')
+    setTab('home')
   }
 
   // 다른 탭(또는 다시 연 창)이 이 대화를 이어받거나 저장했다: 여기서는 기록하지 않고 닫는다
@@ -409,6 +418,7 @@ export default function App() {
     setBusyBoth(false)
     setSheet(null)
     setScreen('start')
+    setTab('home')
     setDrafts(loadDrafts())
     setStartMsg('이 대화는 다른 탭에서 이어받았거나 저장했어요. 같은 대화가 두 번 기록되지 않게 여기서는 닫았어요.')
   }
@@ -504,7 +514,7 @@ export default function App() {
     pickedHintRef.current = ''
     setPickedHint('')
     // 마무리 창이 열려 있으면 늦게 온 답은 소리 내지 않는다
-    if (sheetRef.current) {
+    if (awayFromChat()) {
       if (veiled) unveil(id)
       return
     }
@@ -579,7 +589,7 @@ export default function App() {
     }
     if (!getRecognitionCtor()) {
       const text = '이 브라우저는 음성 인식이 안 돼요. 크롬이나 엣지에서 열거나, 입력칸에 써 주세요.'
-      if (sheetRef.current) showToast(text)
+      if (awayFromChat()) showToast(text)
       else setMicNotice(text)
       return false
     }
@@ -587,7 +597,7 @@ export default function App() {
     setMicNotice('')
     let me: Listening | null = null
     const notify = (text: string) => {
-      if (sheetRef.current) showToast(text)
+      if (awayFromChat()) showToast(text)
       else setMicNotice(text)
     }
     try {
@@ -635,6 +645,23 @@ export default function App() {
   useLayoutEffect(() => {
     autoListenRef.current = (lang) => startMic(lang, (t) => sendUser(t, lang), undefined, true)
   })
+
+  // 아래 독: 대화 칸을 떠나면 듣던 마이크와 읽던 소리를 멈춘다
+  const goTab = (next: Tab) => {
+    if (next === tab) return
+    if (tab === 'chat' || next !== 'chat') {
+      stopListening()
+      stopSpeaking()
+    }
+    hideToast()
+    setTab(next)
+  }
+
+  const onDock = (next: Tab) => {
+    // 대화 칸: 이어지는 대화가 있으면 그리로, 없으면 새로 시작
+    if (next === 'chat' && screen !== 'chat') startSession()
+    else goTab(next)
+  }
 
   const closeSheet = () => {
     // 마무리·문장장 카드에서 켠 마이크가 시트를 닫은 뒤에도 듣고 있지 않게, 읽던 소리도 멈춘다
@@ -691,6 +718,7 @@ export default function App() {
     setStartMsg(null)
     setSheet(null)
     setScreen('chat')
+    setTab('chat')
     pushHistory(historyRef.current, 'user', startMessage(p))
     setAwaitingReply(true)
     void aiTurn()
@@ -737,6 +765,7 @@ export default function App() {
     setTimeUpAck(false)
     setStartMsg(null)
     setScreen('chat')
+    setTab('chat')
     refreshDrafts()
     // 답을 기다리다 끊겼으면 다시 받아 온다
     const waiting = d.history[d.history.length - 1]?.role === 'user'
@@ -766,6 +795,7 @@ export default function App() {
     setBusyBoth(false)
     setSheet(null)
     setScreen('start')
+    setTab('home')
     setStartMsg(message)
   }
 
@@ -820,10 +850,13 @@ export default function App() {
       if (leftTurns <= 0 || window.confirm(`지금 저장하고 끝낼까요? 단원은 대화 한 번에 ${MIN_TURNS_FOR_UNIT}번 주고받아야 마쳐요.`)) finishSession()
     } else if (open === 'settings' && settingsBackRef.current) settingsBackRef.current()
     else if (open) closeSheet()
+    // 다른 탭이면 먼저 대화(대화 중일 때)나 홈으로 돌아간다
+    else if (tab !== 'chat' && tab !== 'home') goTab(screen === 'chat' ? 'chat' : 'home')
+    else if (screen === 'chat' && tab === 'home') goTab('chat')
     else if (screen === 'chat') openWrap()
   }
   const backRef = useLatestRef(handleBack)
-  const needGuard = screen === 'chat' || sheet !== null
+  const needGuard = screen === 'chat' || sheet !== null || tab !== 'home'
   // 뒤로 가기를 처리한 뒤 다시 막아 둘지 살피게 하는 신호
   const [popTick, setPopTick] = useState(0)
   useEffect(() => {
@@ -867,6 +900,8 @@ export default function App() {
   const pickUnit = (unitId: string) => {
     updateProgress(chooseUnit(freshProgress(), unitId))
     closeSheet()
+    // 바뀐 단원 카드와 시작 버튼이 있는 홈으로
+    setTab('home')
     const title = unitById(unitId)?.title ?? ''
     showToast(`「${title}」${ro(title)} 정했어요. 시작하기를 누르세요.`)
   }
@@ -956,147 +991,175 @@ export default function App() {
 
   return (
     <>
-      <div className="app" inert={sheet !== null || screen === 'start'}>
-        <Header
-          friendName={settings.friendName}
-          status={status}
-          turnsText={screen === 'chat' ? (leftTurns > 0 ? `${turns}/${MIN_TURNS_FOR_UNIT}번` : '단원 ✓') : null}
-          timeText={
-            screen === 'chat' ? (elapsed >= limitSec ? '시간 됐어요' : `${Math.ceil((limitSec - elapsed) / 60)}분 남음`) : null
-          }
-          onHome={screen === 'chat' ? () => setScreen('start') : undefined}
-          onSettings={() => openSettings()}
-          onEnd={screen === 'chat' ? openWrap : null}
-        />
-        {showTimeBanner && (
-          <div className="banner" id="timeBanner">
-            <span>{leftTurns > 0 ? `시간이 됐어요. 단원까지 ${leftTurns}번 남았어요.` : '오늘 목표 시간을 채웠어요.'}</span>
-            <button
-              className={leftTurns > 0 ? 'primary' : 'secondary'}
-              id="btnMore"
-              type="button"
-              onClick={() => setLimitSec((l) => Math.max(l, elapsed) + 300)}
-            >
-              5분 더
-            </button>
-            <button className={leftTurns > 0 ? 'secondary' : 'primary'} id="btnWrapNow" type="button" onClick={openWrap}>
-              마무리하기
-            </button>
-          </div>
-        )}
-        <main id="chat" ref={chatRef}>
-          {messages.map((m) => {
-            if (m.kind === 'ai')
+      <div className={`app tab-${tab}`} inert={sheet !== null}>
+        <div className="chat-view" hidden={tab !== 'chat' || screen !== 'chat'}>
+          <Header
+            friendName={settings.friendName}
+            status={status}
+            turnsText={leftTurns > 0 ? `${turns}/${MIN_TURNS_FOR_UNIT} 턴 완료` : '단원 ✓'}
+            timeText={elapsed >= limitSec ? '시간 됐어요' : `${Math.ceil((limitSec - elapsed) / 60)}분 남음`}
+            onHome={() => goTab('home')}
+            onEnd={openWrap}
+          />
+          {showTimeBanner && (
+            <div className="banner" id="timeBanner">
+              <span>{leftTurns > 0 ? `시간이 됐어요. 단원까지 ${leftTurns}번 남았어요.` : '오늘 목표 시간을 채웠어요.'}</span>
+              <button
+                className={`${leftTurns > 0 ? 'primary' : 'secondary'} small`}
+                id="btnMore"
+                type="button"
+                onClick={() => setLimitSec((l) => Math.max(l, elapsed) + 300)}
+              >
+                5분 더
+              </button>
+              <button className={`${leftTurns > 0 ? 'secondary' : 'primary'} small`} id="btnWrapNow" type="button" onClick={openWrap}>
+                마무리하기
+              </button>
+            </div>
+          )}
+          <main id="chat" ref={chatRef}>
+            {messages.map((m) => {
+              if (m.kind === 'ai')
+                return (
+                  <AiBubble
+                    key={m.id}
+                    turn={m.turn}
+                    friendName={settings.friendName}
+                    veiled={m.veiled}
+                    showKo={settings.showKo}
+                    pickedHint={m.id === lastAi?.id ? pickedHint : ''}
+                    onUnveil={() => unveil(m.id)}
+                    onPlay={(segs, slow) =>
+                      void play(segs, slow).then((done) => {
+                        // 마지막 말을 다시 들었으면, 자동 듣기를 켜 둔 사람은 다시 듣기 시작
+                        if (done && m.id === lastAi?.id) maybeAutoListen(m.turn.repeat ? 'en' : lastLangRef.current)
+                      })
+                    }
+                    onPickHint={pickHint}
+                  />
+                )
+              if (m.kind === 'me')
+                return (
+                  <UserBubble
+                    key={m.id}
+                    text={m.text}
+                    lang={m.lang}
+                    isRepeat={m.isRepeat}
+                    fromHint={m.fromHint}
+                    heardWell={m.heardWell}
+                    goal={m.goal}
+                  />
+                )
               return (
-                <AiBubble
-                  key={m.id}
-                  turn={m.turn}
-                  friendName={settings.friendName}
-                  veiled={m.veiled}
-                  showKo={settings.showKo}
-                  pickedHint={m.id === lastAi?.id ? pickedHint : ''}
-                  onUnveil={() => unveil(m.id)}
-                  onPlay={(segs, slow) =>
-                    void play(segs, slow).then((done) => {
-                      // 마지막 말을 다시 들었으면, 자동 듣기를 켜 둔 사람은 다시 듣기 시작
-                      if (done && m.id === lastAi?.id) maybeAutoListen(m.turn.repeat ? 'en' : lastLangRef.current)
-                    })
-                  }
-                  onPickHint={pickHint}
-                />
-              )
-            if (m.kind === 'me')
-              return (
-                <UserBubble
+                <ErrorBubble
                   key={m.id}
                   text={m.text}
-                  lang={m.lang}
-                  isRepeat={m.isRepeat}
-                  fromHint={m.fromHint}
-                  heardWell={m.heardWell}
-                  goal={m.goal}
+                  fix={m.fix}
+                  canRetry={awaitingReply}
+                  onRetry={() => retry(m.id)}
+                  onSettings={(fix) => openSettings({ focus: fix })}
                 />
               )
-            return (
-              <ErrorBubble
-                key={m.id}
-                text={m.text}
-                fix={m.fix}
-                canRetry={awaitingReply}
-                onRetry={() => retry(m.id)}
-                onSettings={(fix) => openSettings({ focus: fix })}
-              />
-            )
-          })}
-          {busy && <TypingBubble slow={slowWait} onCancel={() => abortRef.current?.abort()} />}
-        </main>
-        <div className="sr-only" aria-live="polite">
-          {lastAi && lastAi.kind === 'ai' ? `${lastAi.turn.say} ${lastAi.turn.say_ko}` : ''}
+            })}
+            {busy && <TypingBubble friendName={settings.friendName} slow={slowWait} onCancel={() => abortRef.current?.abort()} />}
+          </main>
+          {/* 말풍선 칸 밖에 두어, 긴 말풍선을 머리부터 보여 주는 스크롤을 건드리지 않는다 */}
+          {speaking && !busy && <SpeakingWave friendName={settings.friendName} />}
+          <div className="sr-only" aria-live="polite">
+            {lastAi && lastAi.kind === 'ai' ? `${lastAi.turn.say} ${lastAi.turn.say_ko}` : ''}
+          </div>
+          {screen === 'chat' && (
+            <Composer
+              friendName={settings.friendName}
+              phase={phase}
+              listening={listening}
+              interim={interim}
+              pendingRepeat={pendingRepeat}
+              pickedHint={pickedHint}
+              notice={micNotice}
+              errorFix={lastMsg?.kind === 'error' ? lastMsg.fix : undefined}
+              firstTime={progress.sessions.length === 0}
+              veiled={!!lastAi && lastAi.kind === 'ai' && lastAi.veiled}
+              onMic={(lang) => startMic(lang, (text) => sendUser(text, lang))}
+              onCancelListen={stopListening}
+              onStopSpeaking={stopSpeaking}
+              onSend={sendUser}
+            />
+          )}
         </div>
-        {screen === 'chat' && (
-          <Composer
+
+        {tab === 'home' && (
+          <StartScreen
+            inert={sheet !== null}
             friendName={settings.friendName}
-            phase={phase}
-            listening={listening}
-            interim={interim}
-            pendingRepeat={pendingRepeat}
-            pickedHint={pickedHint}
-            notice={micNotice}
-            errorFix={lastMsg?.kind === 'error' ? lastMsg.fix : undefined}
-            firstTime={progress.sessions.length === 0}
-            veiled={!!lastAi && lastAi.kind === 'ai' && lastAi.veiled}
-            onMic={(lang) => startMic(lang, (text) => sendUser(text, lang))}
-            onCancelListen={stopListening}
-            onStopSpeaking={stopSpeaking}
-            onSend={sendUser}
+            message={startText}
+            messageIsResult={startMsg !== null}
+            progress={progress}
+            hasKey={!!settings.apiKey}
+            live={screen === 'chat'}
+            today={today}
+            minutesGoal={settings.minutes}
+            quizDue={countDueBy(learned, loadQuizStats(), today)}
+            draft={draft}
+            busyElsewhere={activeElsewhere(drafts, tabId, now)}
+            mic={{
+              state: micState,
+              supported: recognitionSupported,
+              inApp,
+              chromeUrl: inApp || !recognitionSupported ? openInChromeUrl(window.location.href, env.ua) : null,
+              externalUrl: inApp ? openExternalUrl(window.location.href, env.ua) : null,
+              help: micBlockedHelp(env),
+            }}
+            hasData={learned.length > 0 || progress.sessions.length > 0}
+            backupDue={isBackupDue(today, learned.length > 0 || progress.sessions.length > 0)}
+            dailyChecks={dailyChecks}
+            onToggleCheck={toggleCheck}
+            onStart={() => (screen === 'chat' ? goTab('chat') : startSession())}
+            onResumeDraft={() => draft && resumeDraft(draft)}
+            onSaveDraft={() => draft && saveDraftOnly(draft)}
+            onDiscardDraft={() => draft && discardDraft(draft)}
+            onAllowMic={allowMic}
+            onReview={() => {
+              setBookReview(true)
+              openSheet('book')
+            }}
+            onTransfer={() => openSheet('transfer')}
+            onPromote={() => askStageChange(progress.stage + 1)}
+            onWarmup={() => openSheet('warmup')}
+            onQuiz={() => goTab('practice')}
+            onListen={() => openSheet('listen')}
           />
         )}
+        {tab === 'practice' && (
+          <div className="screen-wrap">
+            <QuizSheet
+              page
+              learned={learned}
+              settings={settings}
+              onPlay={(segs, slow) => void play(segs, slow)}
+              onMic={startMic}
+              onStopMic={stopListening}
+              onClose={() => goTab('home')}
+            />
+          </div>
+        )}
+        {tab === 'library' && (
+          <LibraryScreen
+            inert={sheet !== null}
+            learned={learned}
+            progress={progress}
+            today={today}
+            onPlay={(segs) => void play(segs)}
+            onBook={() => openSheet('book')}
+            onCourse={() => openSheet('course')}
+            onProgress={() => openSheet('progress')}
+            onSettings={() => openSettings()}
+            onTransfer={() => openSheet('transfer')}
+          />
+        )}
+        <Dock tab={tab} onTab={onDock} />
       </div>
 
-      {screen === 'start' && (
-        <StartScreen
-          inert={sheet !== null}
-          friendName={settings.friendName}
-          message={startText}
-          messageIsResult={startMsg !== null}
-          progress={progress}
-          hasKey={!!settings.apiKey}
-          today={today}
-          minutesGoal={settings.minutes}
-          draft={draft}
-          busyElsewhere={activeElsewhere(drafts, tabId, now)}
-          mic={{
-            state: micState,
-            supported: recognitionSupported,
-            inApp,
-            chromeUrl: inApp || !recognitionSupported ? openInChromeUrl(window.location.href, env.ua) : null,
-            externalUrl: inApp ? openExternalUrl(window.location.href, env.ua) : null,
-            help: micBlockedHelp(env),
-          }}
-          hasData={learned.length > 0 || progress.sessions.length > 0}
-          backupDue={isBackupDue(today, learned.length > 0 || progress.sessions.length > 0)}
-          dailyChecks={dailyChecks}
-          onToggleCheck={toggleCheck}
-          onStart={() => startSession()}
-          onResumeDraft={() => draft && resumeDraft(draft)}
-          onSaveDraft={() => draft && saveDraftOnly(draft)}
-          onDiscardDraft={() => draft && discardDraft(draft)}
-          onAllowMic={allowMic}
-          onSettings={() => openSettings()}
-          onBook={() => openSheet('book')}
-          onReview={() => {
-            setBookReview(true)
-            openSheet('book')
-          }}
-          onCourse={() => openSheet('course')}
-          onTransfer={() => openSheet('transfer')}
-          onPromote={() => askStageChange(progress.stage + 1)}
-          onWarmup={() => openSheet('warmup')}
-          onQuiz={() => openSheet('quiz')}
-          onListen={() => openSheet('listen')}
-          onProgress={() => openSheet('progress')}
-        />
-      )}
       {sheet === 'warmup' && (
         <WarmupSheet
           stage={getStage(progress.stage)}
@@ -1105,16 +1168,6 @@ export default function App() {
           onMic={startMic}
           onStopMic={stopListening}
           onDone={() => startSession()}
-          onClose={closeSheet}
-        />
-      )}
-      {sheet === 'quiz' && (
-        <QuizSheet
-          learned={learned}
-          settings={settings}
-          onPlay={(segs, slow) => void play(segs, slow)}
-          onMic={startMic}
-          onStopMic={stopListening}
           onClose={closeSheet}
         />
       )}

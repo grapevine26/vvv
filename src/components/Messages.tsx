@@ -1,8 +1,7 @@
-import { Lightbulb, Snail, ThumbsUp, Volume2 } from 'lucide-react'
 import { TARGET } from '../lib/config'
 import { splitByScript, turnSegments } from '../lib/text'
 import type { FixTarget, Lang, Pair, Segment, Turn } from '../lib/types'
-import { ChipRow, Meaning, MiniButton, WordMarks } from './common'
+import { Meaning, WordMarks } from './common'
 
 type Play = (segments: Segment[], slow?: boolean) => void
 
@@ -17,42 +16,41 @@ interface AiProps {
   onPickHint: (hint: Pair) => void
 }
 
+const initialOf = (name: string) => (name || 'E').trim().charAt(0).toUpperCase()
+
+// 말풍선 머리의 작은 알약 버튼 (말풍선 클릭 = 가림 해제와 겹치지 않게 위로 전달하지 않는다)
+function Pill({ label, onClick, ariaLabel }: { label: string; onClick: () => void; ariaLabel?: string }) {
+  return (
+    <button
+      type="button"
+      className="pill-btn"
+      aria-label={ariaLabel}
+      onClick={(e) => {
+        e.stopPropagation()
+        onClick()
+      }}
+    >
+      {label}
+    </button>
+  )
+}
+
 export function AiBubble({ turn, friendName, veiled, showKo, pickedHint, onUnveil, onPlay, onPickHint }: AiProps) {
   const segs = turnSegments(turn)
   return (
     <div className="msg ai">
+      <div className="msg-avatar" aria-hidden="true">
+        {initialOf(friendName)}
+      </div>
       <div className={`bubble${veiled ? ' veiled' : ''}`} onClick={onUnveil}>
         <div className="bubble-head">
-          <span className="bubble-speaker">{friendName}</span>
-          <div className="bubble-quick-tools">
-            <button
-              type="button"
-              className="quick-tool-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                onPlay(segs)
-              }}
-            >
-              <Volume2 className="ico" aria-hidden="true" /> 다시 듣기
-            </button>
-            <button
-              type="button"
-              className="quick-tool-btn"
-              onClick={(e) => {
-                e.stopPropagation()
-                onPlay(segs, true)
-              }}
-            >
-              <Snail className="ico" aria-hidden="true" /> 천천히
-            </button>
+          <span className="bubble-speaker">{friendName}의 질문</span>
+          <div className="bubble-pills">
+            <Pill label="🔊 다시 듣기" ariaLabel="다시 듣기" onClick={() => onPlay(segs)} />
+            <Pill label="🐢 천천히" ariaLabel="천천히" onClick={() => onPlay(segs, true)} />
           </div>
         </div>
-        {veiled && (
-          <div className="veil-note">
-            <Volume2 className="ico" aria-hidden="true" />
-            {friendName}의 말을 먼저 들어 보세요. 다 들으면 글자가 보여요 (누르면 바로 보기)
-          </div>
-        )}
+        {veiled && <div className="veil-note">🔊 {friendName}의 말을 먼저 들어 보세요. 다 들으면 글자가 보여요 (누르면 바로 보기)</div>}
         {turn.say && (
           <div className="say" lang="en">
             {turn.say}
@@ -60,44 +58,88 @@ export function AiBubble({ turn, friendName, veiled, showKo, pickedHint, onUnvei
         )}
         {turn.say && turn.say_ko && <Meaning text={turn.say_ko} conceal={!showKo} />}
         {turn.repeat && (
-          <div className="repeat">
-            <div className="cue">{turn.cue}</div>
-            <div className="repeat-line">
-              <span className="repeat-text" lang="en">
-                {turn.repeat}
+          <div className="hint-box repeat">
+            <span className="hint-box-label cue">{turn.cue || '이렇게 따라 말해 보세요'}</span>
+            <div className="hint-row">
+              <span className="hint-row-text">
+                <span className="repeat-text" lang="en">
+                  {turn.repeat}
+                </span>
+                {turn.repeat_ko && <Meaning text={turn.repeat_ko} conceal={!showKo} />}
               </span>
-              <MiniButton
-                label=""
-                icon={<Volume2 className="ico" aria-hidden="true" />}
-                ariaLabel={`따라 할 문장 듣기: ${turn.repeat}`}
-                onClick={() => onPlay(splitByScript(turn.repeat))}
-              />
-              <MiniButton
-                label=""
-                icon={<Snail className="ico" aria-hidden="true" />}
-                ariaLabel={`따라 할 문장 천천히 듣기: ${turn.repeat}`}
-                onClick={() => onPlay(splitByScript(turn.repeat), true)}
-              />
+              <span className="hint-row-tools">
+                <Pill label="🐢" ariaLabel={`따라 할 문장 천천히 듣기: ${turn.repeat}`} onClick={() => onPlay(splitByScript(turn.repeat), true)} />
+                <button
+                  type="button"
+                  className="follow-btn"
+                  aria-label={`따라 할 문장 듣기: ${turn.repeat}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onPlay(splitByScript(turn.repeat))
+                  }}
+                >
+                  따라하기
+                </button>
+              </span>
             </div>
-            {turn.repeat_ko && <Meaning text={turn.repeat_ko} conceal={!showKo} />}
           </div>
         )}
         {turn.tip && (
           <div className="tip">
-            <Lightbulb className="ico" aria-hidden="true" />
             <span>{turn.tip}</span>
           </div>
         )}
         {turn.hints.length > 0 && (
-          <ChipRow label="이렇게 대답해도 돼요 (누르면 들려요)" items={turn.hints} kind="hint" picked={pickedHint} onPick={onPickHint} />
+          <div className="hint-box">
+            <span className="hint-box-label">💡 이렇게 대답해 보세요 (누르면 들려요)</span>
+            <div className="chips">
+              {turn.hints.map((h) => (
+                <button
+                  key={h.en}
+                  type="button"
+                  className={`chip hint${pickedHint === h.en ? ' picked' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onPickHint(h)
+                  }}
+                >
+                  <span className="chip-text">
+                    <span className="c-en" lang="en">
+                      {h.en}
+                    </span>
+                    <span className="c-ko">{h.ko}</span>
+                  </span>
+                  <span className="follow-btn" aria-hidden="true">
+                    따라하기
+                  </span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
         {turn.words.length > 0 && (
-          <ChipRow label="단어" items={turn.words} kind="word" onPick={(w) => onPlay([{ text: w.en, lang: 'en' }])} />
+          <div className="words">
+            <span className="words-label">단어</span>
+            <div className="chips">
+              {turn.words.map((w) => (
+                <button
+                  key={w.en}
+                  type="button"
+                  className="chip word"
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    onPlay([{ text: w.en, lang: 'en' }])
+                  }}
+                >
+                  <span className="c-en" lang="en">
+                    {w.en}
+                  </span>
+                  <span className="c-ko">{w.ko}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         )}
-        <div className="tools">
-          <MiniButton label="다시" icon={<Volume2 className="ico" aria-hidden="true" />} onClick={() => onPlay(segs)} />
-          <MiniButton label="천천히" icon={<Snail className="ico" aria-hidden="true" />} onClick={() => onPlay(segs, true)} />
-        </div>
       </div>
     </div>
   )
@@ -118,15 +160,41 @@ export function UserBubble({ text, lang, isRepeat, fromHint, heardWell, goal }: 
   return (
     <div className="msg me">
       <div className="bubble">
-        <div className="tag">{tag}</div>
-        <div lang={lang === 'en' ? 'en' : undefined}>{text}</div>
+        <div className="me-label">
+          내 답변 (<span className="tag">{tag}</span>)
+        </div>
+        <div className="me-text" lang={lang === 'en' ? 'en' : undefined}>
+          {text}
+        </div>
+        {heardWell && (
+          <div className="heard">
+            잘 들렸어요
+          </div>
+        )}
       </div>
       {goal && <WordMarks goal={goal} said={text} />}
-      {heardWell && (
-        <div className="heard">
-          <ThumbsUp className="ico" aria-hidden="true" />잘 들렸어요
-        </div>
-      )}
+    </div>
+  )
+}
+
+// 친구가 말하는 동안 대화 칸 아래에 뜨는 네온 오디오 웨이브
+export function SpeakingWave({ friendName }: { friendName: string }) {
+  return (
+    <div className="wave-card" id="speakingWave" aria-hidden="true">
+      <WaveBars />
+      <span className="wave-text">{friendName}가 말하는 중… 끝나면 내 차례예요</span>
+    </div>
+  )
+}
+
+function WaveBars() {
+  return (
+    <div className="wave-bars">
+      <span className="wave-bar bar-1" />
+      <span className="wave-bar bar-2" />
+      <span className="wave-bar bar-3" />
+      <span className="wave-bar bar-4" />
+      <span className="wave-bar bar-5" />
     </div>
   )
 }
@@ -148,27 +216,30 @@ export function ErrorBubble({
 }) {
   return (
     <div className="msg ai error">
+      <div className="msg-avatar" aria-hidden="true">
+        !
+      </div>
       <div className="bubble" role="alert">
         {text}
         <div className="tools">
           {fix ? (
-            <button type="button" className="primary" onClick={() => onSettings(fix)}>
+            <button type="button" className="primary small" onClick={() => onSettings(fix)}>
               {FIX_LABEL[fix]}
             </button>
           ) : (
             canRetry && (
-              <button type="button" className="primary btn-retry" onClick={onRetry}>
+              <button type="button" className="primary small btn-retry" onClick={onRetry}>
                 다시 시도
               </button>
             )
           )}
           {fix && canRetry && (
-            <button type="button" className="secondary btn-retry" onClick={onRetry}>
+            <button type="button" className="secondary small btn-retry" onClick={onRetry}>
               다시 시도
             </button>
           )}
           {!fix && (
-            <button type="button" className="secondary" onClick={() => onSettings(null)}>
+            <button type="button" className="secondary small" onClick={() => onSettings(null)}>
               설정 열기
             </button>
           )}
@@ -179,17 +250,13 @@ export function ErrorBubble({
 }
 
 // 생각 중 표시. 오래 걸리면 기다리기를 그만둘 수 있게 한다
-export function TypingBubble({ slow, onCancel }: { slow: boolean; onCancel: () => void }) {
+export function TypingBubble({ friendName, slow, onCancel }: { friendName: string; slow: boolean; onCancel: () => void }) {
   return (
     <div className="msg ai">
+      <div className="msg-avatar" aria-hidden="true">
+        {initialOf(friendName)}
+      </div>
       <div className="bubble typing">
-        <div className="audio-wave-bars" aria-hidden="true">
-          <span className="wave-bar bar-1" />
-          <span className="wave-bar bar-2" />
-          <span className="wave-bar bar-3" />
-          <span className="wave-bar bar-4" />
-          <span className="wave-bar bar-5" />
-        </div>
         <span className="dots" aria-label="생각 중">
           <i />
           <i />
@@ -198,7 +265,7 @@ export function TypingBubble({ slow, onCancel }: { slow: boolean; onCancel: () =
         {slow && (
           <div className="tools">
             <span className="muted">조금 오래 걸려요…</span>
-            <button type="button" className="secondary" id="btnCancelWait" onClick={onCancel}>
+            <button type="button" className="secondary small" id="btnCancelWait" onClick={onCancel}>
               그만 기다리기
             </button>
           </div>

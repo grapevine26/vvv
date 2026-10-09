@@ -160,7 +160,7 @@ test.describe('1) 단원 마치기', () => {
     context,
   }) => {
     const { queue, requests, errors } = await open(page, context)
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('오늘 단원 1 · 인사와 자기소개')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('인사와 자기소개')
     await startWithGreeting(page, queue, { say: "Hi! I'm Emma. What's your name?", say_ko: '안녕! 난 Emma야. 이름이 뭐야?' })
     expect(systemText(requests[0])).toContain('[오늘 단원] 인사와 자기소개')
     // 문장장이 비어 있으면 [복습]은 없다
@@ -174,7 +174,7 @@ test.describe('1) 단원 마치기', () => {
     ]
     for (const [i, [said, how]] of answers.entries()) {
       await exchange(page, queue, said, { say: 'Cool! Tell me more.', say_ko: '멋지다! 더 말해 줘.' }, how)
-      await expect(page.locator('#turnCount')).toHaveText(`${i + 1}/5번`)
+      await expect(page.locator('#turnCount')).toHaveText(`${i + 1}/5 턴 완료`)
     }
     // 4번째까지는 단원 토스트가 없다
     await expect(page.locator('#toast.show')).toHaveCount(0)
@@ -217,10 +217,10 @@ test.describe('1) 단원 마치기', () => {
     })
 
     // 시작 화면 교육과정 카드: 완료 1/10, 오늘 하나 끝냈으니 '다음 단원 2'
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('1단계 · 첫걸음 · 완료 1/10')
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('다음 단원 2 · 오늘 기분')
-    await expect(page.locator('#courseCard .course-focus')).toHaveText('"I\'m tired." / "I\'m happy." / "I\'m so-so."')
-    await expect(page.locator('#courseCard .ok-text').first()).toHaveText('오늘 단원 하나 완료 ✓ 더 해도 좋아요')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('1단계 · 첫걸음 · 완료 1/10')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('오늘 기분')
+    await expect(page.locator('#courseCard .hero-focus')).toHaveText('"I\'m tired." / "I\'m happy." / "I\'m so-so."')
+    await expect(page.locator('#courseCard .ok-text').first()).toHaveText('오늘 단원 완료 ✓')
     // 승급까지 진행: 단원은 모자라고 비율·길이는 채움
     await expect(page.locator('#promoProgress .muted')).toHaveText('다음 단계까지: 단원 1개/10개 · ✓ 영어 대답 100%/50% · ✓ 평균 길이 4.2단어/3단어')
     await expect(page.locator('#promoProgress .muted .ok-text')).toHaveCount(2)
@@ -231,7 +231,7 @@ test.describe('1) 단원 마치기', () => {
     expect(systemText(last)).toContain('[오늘 단원] 오늘 기분')
     expect(systemText(last)).toContain('- 연습할 표현: "I\'m tired." / "I\'m happy." / "I\'m so-so."')
     expect(lastUserText(last)).toBe('[대화 시작] 먼저 짧게 인사하고, 오늘 단원 「오늘 기분」 주제로 첫 질문 하나만 해.')
-    await expect(page.locator('#turnCount')).toHaveText('0/5번')
+    await expect(page.locator('#turnCount')).toHaveText('0/5 턴 완료')
     expect(errors).toEqual([])
   })
 
@@ -294,6 +294,7 @@ test.describe('1) 단원 마치기', () => {
     await expect(promo).toContainText('영어 대답 0%/50%')
     await expect(promo).toContainText('평균 길이 0.0단어/3단어')
     await expect(promo.locator('.ok-text')).toHaveCount(0)
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     await expect(page.locator('#criteria li').nth(1)).toHaveText('○ 영어로 스스로 대답한 비율 (최근 대화): 0% / 목표 50%')
     await expect(page.locator('#criteria li').nth(2)).toHaveText('○ 영어 대답 평균 길이 (최근 대화): 0.0단어 / 목표 3단어')
@@ -309,9 +310,9 @@ test.describe('1) 단원 마치기', () => {
 test.describe('2) 시작 화면 #courseCard·#promoProgress', () => {
   test('처음이면 1단계 첫 단원과 연습 표현만 보이고, 승급 진행 줄은 없다', async ({ page, context }) => {
     const { errors } = await open(page, context)
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('1단계 · 첫걸음 · 완료 0/10')
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('오늘 단원 1 · 인사와 자기소개')
-    await expect(page.locator('#courseCard .course-focus')).toHaveText('"Hi, I\'m ~." / "Nice to meet you." / "I\'m from Korea."')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('1단계 · 첫걸음 · 완료 0/10')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('인사와 자기소개')
+    await expect(page.locator('#courseCard .hero-focus')).toHaveText('"Hi, I\'m ~." / "Nice to meet you." / "I\'m from Korea."')
     await expect(page.locator('#promoProgress')).toHaveCount(0)
     await expect(page.locator('#btnPromoteStart')).toHaveCount(0)
     expect(errors).toEqual([])
@@ -387,8 +388,8 @@ test.describe('2) 시작 화면 #courseCard·#promoProgress', () => {
         },
       },
     })
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('다음 단원 2 · 오늘 기분')
-    await expect(page.locator('#courseCard')).toContainText('오늘 단원 하나 완료 ✓ 더 해도 좋아요')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('오늘 기분')
+    await expect(page.locator('#courseCard')).toContainText('오늘 단원 완료 ✓')
     await expect(page.locator('#promoProgress .muted')).toHaveText('다음 단계까지: 단원 1개/10개 · 영어 대답 0%/50% · 평균 길이 0.0단어/3단어')
     await expect(page.locator('#promoProgress .tip-line')).not.toHaveText('오늘 단원을 끝까지 해 봐요.')
     expect(errors).toEqual([])
@@ -397,8 +398,8 @@ test.describe('2) 시작 화면 #courseCard·#promoProgress', () => {
   for (const c of cases) {
     test(`${c.name}: 카드 문구와 승급 진행·도움말`, async ({ page, context }) => {
       const { errors } = await open(page, context, { storage: { [K.progress]: c.progress } })
-      await expect(page.locator('#courseCard .course-stage')).toHaveText(c.stage)
-      await expect(page.locator('#courseCard .course-unit')).toHaveText(c.unit)
+      await expect(page.locator('#courseCard .hero-meta')).toContainText(c.stage)
+      await expect(page.locator('#courseCard .hero-title')).toHaveText(c.unit.replace(/^(오늘|다음) 단원 \d+ · /, ''))
       await expect(page.locator('#promoProgress .muted')).toHaveText(c.promo)
       await expect(page.locator('#promoProgress .muted .ok-text')).toHaveCount(c.okCount)
       await expect(page.locator('#promoProgress .tip-line')).toHaveText(c.tip)
@@ -427,6 +428,7 @@ test.describe('3) 교육과정 시트', () => {
         },
       },
     })
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     const sheet = page.locator('#courseSheet')
     await expect(sheet).toBeVisible()
@@ -463,6 +465,7 @@ test.describe('3) 교육과정 시트', () => {
     const { queue, requests, errors } = await open(page, context, {
       storage: { [K.progress]: { stage: 1, unit: 's1-1', doneUnits: S1_ALL, sessions: [log(day(-1))] } },
     })
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     await expect(page.locator('#criteria li.ok')).toHaveCount(3)
     await expect(page.locator('#criteria li')).toHaveText([
@@ -498,8 +501,9 @@ test.describe('3) 교육과정 시트', () => {
     expect(await settingsIn(page)).toMatchObject({ apiKey: 'K', rate: 0.85, showKo: true, repeatAmount: '보통' })
 
     await page.click('#btnCourseClose')
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('2단계 · 기초 대화 · 완료 0/10')
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('오늘 단원 1 · 어제 한 일')
+    await page.click('#tab-home')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('2단계 · 기초 대화 · 완료 0/10')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('어제 한 일')
 
     // 다음 대화: 지시문이 2단계 규칙으로, 첫 단원은 '어제 한 일', 말 속도 0.85
     await startWithGreeting(page, queue, { say: 'Hi! What did you do yesterday?', say_ko: '안녕! 어제 뭐 했어?' })
@@ -523,8 +527,8 @@ test.describe('3) 교육과정 시트', () => {
         [K.progress]: { stage: 1, unit: 's1-10', doneUnits: S1_ALL.slice(0, 9), sessions: [log(day(-1)), log(day(-2))] },
       },
     })
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('1단계 · 첫걸음 · 완료 9/10')
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('오늘 단원 10 · 집과 동네')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('1단계 · 첫걸음 · 완료 9/10')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('집과 동네')
     await expect(page.locator('#btnPromoteStart')).toHaveCount(0)
 
     await startWithGreeting(page, queue, { say: 'Where do you live?', say_ko: '어디 살아?' })
@@ -536,7 +540,7 @@ test.describe('3) 교육과정 시트', () => {
     const msg = page.locator('#startMsg')
     await expect(msg).toContainText('「집과 동네」 단원을 마쳤어요.')
     await expect(msg).toContainText('다음 단계로 올라갈 준비가 됐어요!')
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('1단계 · 첫걸음 · 완료 10/10')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('1단계 · 첫걸음 · 완료 10/10')
     await expect(page.locator('#promoProgress .course-ready')).toContainText('다음 단계로 올라갈 준비가 됐어요!')
     const btn = page.locator('#btnPromoteStart')
     await expect(btn).toHaveText('2단계로')
@@ -551,8 +555,8 @@ test.describe('3) 교육과정 시트', () => {
     await btn.click()
     await dialog
     await expect(page.locator('#toast')).toHaveText('2단계 「기초 대화」 시작! 말 속도와 뜻 보이기를 이 단계에 맞췄어요.')
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('2단계 · 기초 대화 · 완료 0/10')
-    await expect(page.locator('#courseCard .course-unit')).toContainText('1 · 어제 한 일')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('2단계 · 기초 대화 · 완료 0/10')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('어제 한 일')
     await expect(page.locator('#btnPromoteStart')).toHaveCount(0)
     expect(await progressIn(page)).toMatchObject({ stage: 2, unit: 's2-1' })
     expect((await progressIn(page))?.doneUnits.sort()).toEqual([...S1_ALL].sort())
@@ -562,15 +566,18 @@ test.describe('3) 교육과정 시트', () => {
 
   test('단원 목록에서 단원을 고르면 시트가 닫히고 토스트, 카드·저장값이 바뀌고, 다음 대화 지시문이 그 단원', async ({ page, context }) => {
     const { queue, requests, errors } = await open(page, context)
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     await page.locator('#unitList button', { hasText: '나의 하루' }).click()
     await expect(page.locator('#courseSheet')).toHaveCount(0)
     await expect(page.locator('#toast')).toHaveText('「나의 하루」로 정했어요. 시작하기를 누르세요.')
-    await expect(page.locator('#btnStartCourse')).toBeFocused()
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('오늘 단원 5 · 나의 하루')
+    // 고르면 바뀐 카드와 시작 버튼이 있는 홈으로 간다
+    await expect(page.locator('#startSheet')).toBeVisible()
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('나의 하루')
     expect((await progressIn(page))?.unit).toBe('s1-5')
 
     // 다시 열면 그 단원이 현재로 표시
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     await expect(page.locator('#unitList [aria-current="true"]')).toContainText('나의 하루')
     await page.click('#btnCourseClose')
@@ -587,6 +594,7 @@ test.describe('3) 교육과정 시트', () => {
 
   test('받침으로 끝나는 단원(좋아하는 음식)을 고르면 토스트 조사도 맞게 ("…음식」으로", "…음식」로" 아님)', async ({ page, context }) => {
     const { errors } = await open(page, context)
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     await page.locator('#unitList button', { hasText: '좋아하는 음식' }).click()
     const toast = page.locator('#toast')
@@ -605,6 +613,7 @@ test.describe('3) 교육과정 시트', () => {
     const { errors } = await open(page, context, {
       storage: { [K.progress]: { stage: 1, unit: 's1-3', doneUnits: ['s1-1', 's1-2'], sessions: [log(day(-1))] } },
     })
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     const list = page.locator('#stageList')
     await expect(list).toBeHidden()
@@ -646,7 +655,8 @@ test.describe('3) 교육과정 시트', () => {
     expect(await progressIn(page)).toMatchObject({ stage: 1, unit: 's1-3', doneUnits: ['s1-1', 's1-2'] })
     expect(await settingsIn(page)).toMatchObject({ rate: 0.8, showKo: true, repeatAmount: '많이' })
     await page.click('#btnCourseClose')
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('1단계 · 첫걸음 · 완료 2/10')
+    await page.click('#tab-home')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('1단계 · 첫걸음 · 완료 2/10')
     expect(errors).toEqual([])
   })
 })
@@ -664,8 +674,8 @@ test.describe('4) 높은 단계 대화', () => {
       settings: { rate: 1, showKo: false, repeatAmount: '적게' },
       storage: { [K.progress]: { stage: 4, unit: 's4-3', doneUnits: [...S1_ALL], sessions: [log(day(-1), { stage: 4, unit: 's4-1' })] } },
     })
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('4단계 · 자신감 있는 대화 · 완료 0/10')
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('오늘 단원 3 · 회의에서 제안하기 (상황극)')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('4단계 · 자신감 있는 대화 · 완료 0/10')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('회의에서 제안하기 (상황극)')
 
     const tip1 = '회의에서 의견을 낼 때는 "I\'d suggest ~"로 시작하면 부드러워요.'
     await startWithGreeting(page, queue, {
@@ -712,9 +722,10 @@ test.describe('4) 높은 단계 대화', () => {
       settings: { rate: 1.05, showKo: false, repeatAmount: '적게' },
       storage: { [K.progress]: { stage: 6, unit: 's6-2', doneUnits: ['s6-1'], sessions: [log(day(-1), { stage: 6, unit: 's6-1' })] } },
     })
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('6단계 · 원어민 수준 · 완료 1/10')
-    await expect(page.locator('#courseCard .course-unit')).toHaveText('오늘 단원 2 · 농담과 문화 맥락')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('6단계 · 원어민 수준 · 완료 1/10')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('농담과 문화 맥락')
     await expect(page.locator('#promoProgress')).toHaveCount(0)
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     await expect(page.locator('#criteria')).toHaveCount(0)
     await expect(page.locator('#btnPromote')).toHaveCount(0)
@@ -747,6 +758,7 @@ const many = (n: number): Learned[] =>
 test.describe('5) 문장장', () => {
   test('비어 있으면 안내만 (복습·지우기·더 보기 없음), "폰↔PC 옮기기"로 옮기기 시트를 연다', async ({ page, context }) => {
     const { errors } = await open(page, context)
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await expect(page.locator('#bookSheet-title')).toHaveText('내 문장장')
     await expect(page.locator('#bookBody')).toContainText('아직 저장된 문장이 없어요.')
@@ -762,6 +774,7 @@ test.describe('5) 문장장', () => {
   test('25문장: 최근 것부터 20개 → "더 보기 (5문장 남음)" → 25개, 🔊·🐢로 듣기', async ({ page, context }) => {
     const learned = many(25)
     const { errors } = await open(page, context, { storage: { [K.learned]: learned } })
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await expect(page.locator('#btnReview')).toHaveText('오늘 복습 5문장')
     await expect(page.locator('#bookBody')).toContainText('모두 25문장 · 최근 것부터')
@@ -795,6 +808,7 @@ test.describe('5) 문장장', () => {
     const { requests, errors } = await open(page, context, {
       storage: { [K.learned]: learned, [K.progress]: { stage: 1, unit: 's1-2', doneUnits: ['s1-1'], sessions: [log(day(-1))] } },
     })
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await page.click('#btnReview')
     await expect(page.locator('#bookSheet-title')).toHaveText('오늘 복습')
@@ -832,12 +846,14 @@ test.describe('5) 문장장', () => {
     await page.click('#btnBookClose')
     await expect(page.locator('#bookSheet')).toHaveCount(0)
 
-    // 오늘 할 일의 '하러 가기' → 바로 복습 화면
+    // 홈 '오늘 할 일'의 '하러 가기' → 바로 복습 화면
+    await page.click('#tab-home')
     await page.locator('#todayRoutine').getByRole('button', { name: '하러 가기' }).click()
     await expect(page.locator('#bookSheet-title')).toHaveText('오늘 복습')
     await expect(page.locator('#reviewBody')).toBeVisible()
     await page.keyboard.press('Escape')
     // 다시 문장장을 열면 목록부터
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await expect(page.locator('#bookSheet-title')).toHaveText('내 문장장')
     expect(errors).toEqual([])
@@ -845,6 +861,7 @@ test.describe('5) 문장장', () => {
 
   test('복습 카드 수는 버튼에 적힌 수(5문장)와 같다 — 오래 쓴 문장장(간격 복습 대상이 많을 때)', async ({ page, context }) => {
     const { errors } = await open(page, context, { storage: { [K.learned]: SPACED } })
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await expect(page.locator('#btnReview')).toHaveText('오늘 복습 5문장')
     await page.click('#btnReview')
@@ -860,6 +877,7 @@ test.describe('5) 문장장', () => {
   test('"문장장 모두 지우기": 확인 취소면 그대로, 수락하면 비우고 저장소도 []', async ({ page, context }) => {
     const learned = many(3)
     const { errors } = await open(page, context, { storage: { [K.learned]: learned } })
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await expect(page.locator('#bookBody > .card')).toHaveCount(3)
 
@@ -945,6 +963,7 @@ test.describe('6) 옮기기', () => {
       settings: A_SETTINGS,
       storage: { [K.learned]: A_LEARNED, [K.progress]: A_PROGRESS },
     })
+    await page.click('#tab-library')
     await page.click('#btnStartTransfer')
     await expect(page.locator('#transferSheet-title')).toHaveText('폰↔PC 옮기기')
     await expect(page.locator('#exportCode')).toHaveCount(0)
@@ -979,7 +998,8 @@ test.describe('6) 옮기기', () => {
     })
     try {
       const bp = b.page
-      await expect(bp.locator('#courseCard .course-stage')).toHaveText('1단계 · 첫걸음 · 완료 2/10')
+      await expect(bp.locator('#courseCard .hero-meta')).toContainText('1단계 · 첫걸음 · 완료 2/10')
+      await bp.click('#tab-library')
       await bp.click('#btnStartTransfer')
       await expect(bp.locator('#importCode')).toHaveCount(0)
       await bp.click('#btnImportOpen')
@@ -1021,10 +1041,12 @@ test.describe('6) 옮기기', () => {
 
       // 시트를 닫으면 시작 화면도 가져온 진도·이름으로
       await bp.click('#btnTransferClose')
-      await expect(bp.locator('#courseCard .course-stage')).toHaveText('2단계 · 기초 대화 · 완료 1/10')
-      await expect(bp.locator('#courseCard .course-unit')).toHaveText('오늘 단원 2 · 주말 계획')
-      await expect(bp.locator('#startTitle')).toHaveText('Mia와 영어 수다')
-      await expect(bp.locator('#btnStart')).toHaveText('시작하기')
+      await bp.click('#tab-home')
+      await expect(bp.locator('#courseCard .hero-meta')).toContainText('2단계 · 기초 대화 · 완료 1/10')
+      await expect(bp.locator('#courseCard .hero-title')).toHaveText('주말 계획')
+      await expect(bp.locator('#startTitle')).toHaveText('AI Mia')
+      await expect(bp.locator('#btnStart')).toHaveText('지금 Mia와 수다 떨기')
+      await bp.click('#tab-library')
       await bp.click('#btnStartBook')
       await expect(bp.locator('#bookBody')).toContainText('모두 4문장 · 최근 것부터')
       await bp.keyboard.press('Escape')
@@ -1038,6 +1060,7 @@ test.describe('6) 옮기기', () => {
       // 같은 코드를 다시 가져오면 새 문장은 없다
       await bp.click('#btnEnd')
       await bp.click('#btnFinish')
+      await bp.click('#tab-library')
       await bp.click('#btnStartTransfer')
       await bp.click('#btnImportOpen')
       await bp.fill('#importCode', code)
@@ -1061,6 +1084,7 @@ test.describe('6) 옮기기', () => {
     })
     const { keyChecks, errors } = await open(page, context, { settings: null })
     await expect(page.locator('#btnStart')).toHaveText('키 넣고 시작하기')
+    await page.click('#tab-library')
     await page.click('#btnStartTransfer')
     await page.click('#btnImportOpen')
     await page.fill('#importCode', code)
@@ -1084,8 +1108,9 @@ test.describe('6) 옮기기', () => {
 
     await page.click('#btnSettingsCancel')
     await expect(page.locator('#settingsSheet')).toHaveCount(0)
+    await page.click('#tab-home')
     await expect(page.locator('#startMsg')).toHaveText('진도는 옮겨졌어요. 이 기기에 Gemini 키만 넣으면 이어서 해요.')
-    await expect(page.locator('#courseCard .course-stage')).toHaveText('2단계 · 기초 대화 · 완료 1/10')
+    await expect(page.locator('#courseCard .hero-meta')).toContainText('2단계 · 기초 대화 · 완료 1/10')
     await expect(page.locator('#btnStart')).toHaveText('키 넣고 시작하기')
     expect(errors).toEqual([])
   })
@@ -1093,6 +1118,7 @@ test.describe('6) 옮기기', () => {
   test('잘못된 코드는 한국어로 알려 주고 아무것도 바꾸지 않는다 (빈 칸·다른 글·잘린 코드·형식 다름)', async ({ page, context }) => {
     const learned = many(2)
     const { errors } = await open(page, context, { storage: { [K.learned]: learned } })
+    await page.click('#tab-library')
     await page.click('#btnStartTransfer')
     await page.click('#btnImportOpen')
     const result = page.locator('#transferResult')
@@ -1126,6 +1152,7 @@ test.describe('6) 옮기기', () => {
     const { errors } = await open(page, context, {
       storage: { [K.progress]: { stage: 1, unit: 's1-2', doneUnits: ['s1-1'], sessions: [log(day(-1))] } },
     })
+    await page.click('#tab-library')
     await page.click('#btnStartTransfer')
     await page.click('#btnImportOpen')
     await page.fill('#importCode', mangled)
@@ -1145,6 +1172,7 @@ test.describe('6) 옮기기', () => {
       })
     })
     const { errors } = await open(page, context, { storage: { [K.learned]: many(2) } })
+    await page.click('#tab-library')
     await page.click('#btnStartTransfer')
     await page.click('#btnExport')
     await expect(page.locator('#transferResult')).toHaveText('자동 복사가 안 됐어요. 아래 코드를 눌러 전체 선택한 뒤 복사해 주세요.')
@@ -1181,9 +1209,11 @@ test.describe('7) 시트 공통', () => {
       context,
     }) => {
       const { errors } = await open(page, context)
+      // 여는 버튼은 아래 독의 '내 서재' 칸에 있다
+      await page.click('#tab-library')
       const opener = page.locator(s.opener)
       const sheet = page.locator('#' + s.id)
-      const start = page.locator('#startSheet')
+      const start = page.locator('#libraryScreen')
 
       const openIt = async () => {
         await opener.click()
@@ -1203,8 +1233,8 @@ test.describe('7) 시트 공통', () => {
       await expect(sheet).toHaveAttribute('aria-modal', 'true')
       await expect(sheet).toHaveAttribute('aria-labelledby', `${s.id}-title`)
       await expect(page.getByRole('dialog', { name: s.id === 'courseSheet' ? '교육과정' : s.id === 'bookSheet' ? '내 문장장' : '폰↔PC 옮기기' })).toBeVisible()
-      // 배경(시작 화면) 버튼은 누를 수 없다
-      await expect(page.locator('#btnStart')).not.toBeFocused()
+      // 배경(내 서재) 버튼은 누를 수 없다
+      await expect(opener).not.toBeFocused()
 
       // Esc
       await page.keyboard.press('Escape')
@@ -1245,16 +1275,18 @@ test.describe('7) 시트 공통', () => {
     })
   }
 
-  test('옮기기·문장장 시트는 위쪽에 배경이 보여서 배경을 눌러 닫을 수 있다', async ({ page, context }) => {
+  test('옮기기·문장장 시트는 화면을 꽉 채운 페이지로 열리고, 왼쪽 위 "‹ 뒤로"로 닫으면 여는 버튼으로 돌아온다', async ({ page, context }) => {
     const { errors } = await open(page, context)
+    await page.click('#tab-library')
     for (const [opener, id] of [
       ['#btnStartTransfer', '#transferSheet'],
       ['#btnStartBook', '#bookSheet'],
     ]) {
       await page.click(opener)
-      const box = await page.locator(`${id} .sheet-card`).boundingBox()
-      expect(box?.y ?? 0).toBeGreaterThan(24)
-      await page.mouse.click(20, (box?.y ?? 0) / 2)
+      // 올라오는 움직임이 끝나면 맨 위에 붙는다
+      await expect.poll(async () => (await page.locator(`${id} .sheet-card`).boundingBox())?.y).toBe(0)
+      await expect(page.locator(`${id} .sheet-x`)).toHaveText('‹ 뒤로')
+      await page.click(`${id} .sheet-x`)
       await expect(page.locator(id)).toHaveCount(0)
       await expect(page.locator(opener)).toBeFocused()
     }
@@ -1263,19 +1295,21 @@ test.describe('7) 시트 공통', () => {
 
   test('문장장 → "폰↔PC 옮기기"로 이어 연 시트를 닫으면 포커스가 시작 화면(문장장 버튼)으로 돌아온다', async ({ page, context }) => {
     const { errors } = await open(page, context)
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await page.click('#btnBookTransfer')
     await expect(page.locator('#transferSheet')).toBeVisible()
     await expect(page.locator('#transferSheet-title')).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(page.locator('#transferSheet')).toHaveCount(0)
-    await expect(page.locator('#startSheet')).not.toHaveAttribute('inert')
+    await expect(page.locator('#libraryScreen')).not.toHaveAttribute('inert')
     await expect(page.locator('#btnStartBook')).toBeFocused()
     expect(errors).toEqual([])
   })
 
   test('옮기기 → "키 넣기"로 이어 연 키 시트를 닫으면 포커스가 시작 화면(옮기기 버튼)으로 돌아온다', async ({ page, context }) => {
     const { errors } = await open(page, context, { settings: null })
+    await page.click('#tab-library')
     await page.click('#btnStartTransfer')
     await page.click('#btnImportOpen')
     await page.fill('#importCode', plainCode({ v: 1, l: [['Hi.', '안녕', day(-1)]], s: {} }))
@@ -1285,23 +1319,28 @@ test.describe('7) 시트 공통', () => {
     await page.locator('#keyField input').focus()
     await page.keyboard.press('Escape')
     await expect(page.locator('#settingsSheet')).toHaveCount(0)
-    await expect(page.locator('#startSheet')).not.toHaveAttribute('inert')
+    await expect(page.locator('#libraryScreen')).not.toHaveAttribute('inert')
     await expect(page.locator('#btnStartTransfer')).toBeFocused()
     expect(errors).toEqual([])
   })
 
-  test('대화 중 연 시트(설정)는 대화 화면 .app을 inert로 만들고, 닫으면 풀리고 포커스는 ⚙️ 버튼으로', async ({ page, context }) => {
+  test('대화 중 내 서재에서 연 시트(설정)는 .app을 inert로 만들고, 닫으면 풀리고 포커스는 설정 버튼으로, 대화는 그대로 이어진다', async ({ page, context }) => {
     const { queue, errors } = await open(page, context)
     await startWithGreeting(page, queue)
     await expect(page.locator('.app')).not.toHaveAttribute('inert')
-    await page.click('#btnSettings')
+    await page.click('#tab-library')
+    await page.click('#btnStartSettings')
     await expect(page.locator('#settingsSheet')).toBeVisible()
     await expect(page.locator('.app')).toHaveAttribute('inert', '')
     await expect(page.locator('#settingsSheet-title')).toBeFocused()
     await page.keyboard.press('Escape')
     await expect(page.locator('#settingsSheet')).toHaveCount(0)
     await expect(page.locator('.app')).not.toHaveAttribute('inert')
-    await expect(page.locator('#btnSettings')).toBeFocused()
+    await expect(page.locator('#btnStartSettings')).toBeFocused()
+    // 대화 칸으로 돌아가면 하던 대화가 그대로 있다
+    await page.click('#tab-chat')
+    await expect(page.locator('#composer')).toBeVisible()
+    await expect(aiBubbles(page)).toHaveCount(1)
     expect(errors).toEqual([])
   })
 })

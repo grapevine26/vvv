@@ -1,4 +1,4 @@
-import { CircleAlert, ArrowRight, Ear, MessageCircleMore, Mic, Square, Volume2, X, type LucideIcon } from 'lucide-react'
+import { Mic } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { TARGET } from '../lib/config'
 import { HANGUL } from '../lib/text'
@@ -26,7 +26,7 @@ interface Props {
   onSend: (text: string, lang: Lang) => void
 }
 
-const IDLE_LABEL: Record<Lang, string> = { ko: '눌러서 한국어로 말하기', en: `눌러서 ${TARGET.label}로 말하기` }
+const IDLE_LABEL: Record<Lang, string> = { ko: '한국어로 말하기', en: `${TARGET.label}로 대답하기 (추천)` }
 
 export function Composer(props: Props) {
   const { friendName, phase, listening, interim, pendingRepeat, pickedHint, notice, errorFix, firstTime, veiled } = props
@@ -48,27 +48,19 @@ export function Composer(props: Props) {
 
   const target = pickedHint || pendingRepeat
   let guide: string
-  // 안내 줄 앞 아이콘: 지금 누구 차례인지 한눈에
-  let GuideIcon: LucideIcon | null = null
   let guideClass = 'guide'
   if (phase === 'thinking') {
-    GuideIcon = MessageCircleMore
     guide = `${friendName}가 생각 중이에요…`
   } else if (phase === 'speaking') {
-    GuideIcon = veiled ? Ear : Volume2
     guide = veiled ? '먼저 잘 들어 보세요. 다 들으면 글자가 보여요' : `${friendName}가 말하는 중… 끝나면 내 차례예요`
   } else if (phase === 'listening') {
-    GuideIcon = Mic
     guide = '듣는 중… 말을 멈추면 자동으로 보내져요'
   } else if (notice) {
-    GuideIcon = CircleAlert
     guide = notice
     guideClass += ' warn'
   } else if (pickedHint) {
-    GuideIcon = ArrowRight
     guide = `EN을 누르고 "${pickedHint}" 말해 보세요`
   } else if (errorFix !== undefined) {
-    GuideIcon = CircleAlert
     // 키·모델 문제는 다시 해도 같은 실패라서, 말풍선의 고치기 버튼을 가리킨다
     guide =
       errorFix === 'apiKey'
@@ -79,14 +71,13 @@ export function Composer(props: Props) {
     guideClass += ' warn'
   }
   else if (pendingRepeat) {
-    GuideIcon = ArrowRight
     guide = `이제 내 차례! EN을 누르고 "${pendingRepeat}" 따라 말해요`
   }
   else if (firstTime) guide = '버튼을 한 번 톡 누르고 말하세요 (누르고 있지 않아도 돼요). 한국어로 대답해도 돼요.'
-  else guide = `한국어로 대답해도 돼요. ${TARGET.label}로 해 보고 싶으면 EN 버튼!`
+  else guide = '내 차례예요! EN 버튼을 누르고 말씀하세요'
 
-  const micButton = (lang: Lang, badge: string) => {
-    const classes = ['mic']
+  const micButton = (lang: Lang) => {
+    const classes = ['mic', lang]
     if (lang === 'en' && phase === 'yourTurn' && target) classes.push('recommend')
     if (listening === lang) classes.push('listening')
     const label = listening === lang ? '듣는 중… 누르면 보내기' : busy ? `${friendName} 생각 중…` : IDLE_LABEL[lang]
@@ -100,9 +91,7 @@ export function Composer(props: Props) {
         onClick={() => onMic(lang)}
       >
         <span className="mic-top" aria-hidden="true">
-          <span className="mic-flag">{lang === 'ko' ? '🇰🇷' : '🎙️'}</span>
-          <Mic className="ico" />
-          <span className="badge">{badge}</span>
+          {listening === lang ? <Mic className="ico" /> : lang === 'ko' ? '🇰🇷' : '🎙️ EN'}
         </span>
         <span className="mic-label">{label}</span>
       </button>
@@ -113,21 +102,18 @@ export function Composer(props: Props) {
     // 입력칸에 포커스가 있어도 화면 키보드가 실제로 열려 있을 때만 마이크 줄을 숨긴다 (키보드만 내려도 버튼이 돌아오게)
     <footer className={`composer${typing && keyboardOpen ? ' typing' : ''}`} id="composer">
       <div className={guideClass} id="guide" role="status">
-        <span className="guide-ping-dot" aria-hidden="true" />
-        <span className="guide-text">
-          {GuideIcon && <GuideIcon className="ico" aria-hidden="true" />}
-          {guide}
+        <span className="guide-pill">
+          <span className="guide-ping-dot" aria-hidden="true" />
+          <span className="guide-text">{guide}</span>
         </span>
         {phase === 'speaking' && (
-          <button type="button" className="secondary small" id="btnStopSpeak" onClick={onStopSpeaking}>
-            <Square className="ico" aria-hidden="true" />
-            그만
+          <button type="button" className="guide-btn" id="btnStopSpeak" onClick={onStopSpeaking}>
+            ■ 그만
           </button>
         )}
         {phase === 'listening' && (
-          <button type="button" className="secondary small" id="btnMicCancel" onClick={onCancelListen}>
-            <X className="ico" aria-hidden="true" />
-            취소
+          <button type="button" className="guide-btn" id="btnMicCancel" onClick={onCancelListen}>
+            ✕ 취소
           </button>
         )}
       </div>
@@ -137,8 +123,8 @@ export function Composer(props: Props) {
         </div>
       )}
       <div className="mics">
-        {micButton('ko', '한')}
-        {micButton('en', 'EN')}
+        {micButton('ko')}
+        {micButton('en')}
       </div>
       <form
         className="typebar"
@@ -159,14 +145,14 @@ export function Composer(props: Props) {
           onChange={(e) => setText(e.target.value)}
           onFocus={() => setTyping(true)}
           onBlur={() => setTyping(false)}
-          placeholder="키보드로 입력 (한/영 OK)"
+          placeholder="키보드로 직접 입력 (한/영 가능)"
           autoComplete="off"
           enterKeyHint="send"
           readOnly={busy}
           aria-busy={busy}
         />
         <button type="submit" id="typeSend" disabled={busy}>
-          보내기
+          전송
         </button>
       </form>
     </footer>

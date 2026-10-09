@@ -1,8 +1,7 @@
-import { Eye, X } from 'lucide-react'
+import { Eye } from 'lucide-react'
 import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { useLatestRef } from '../hooks/useLatestRef'
 import { diffWords } from '../lib/pronounce'
-import type { Pair } from '../lib/types'
 
 interface MiniButtonProps {
   label: string
@@ -93,46 +92,39 @@ export function Meaning({ text, conceal }: { text: string; conceal: boolean }) {
   )
 }
 
-interface ChipRowProps {
-  label: string
-  items: Pair[]
-  kind: 'hint' | 'word'
-  picked?: string
-  onPick: (item: Pair) => void
-}
-
-export function ChipRow({ label, items, kind, picked, onPick }: ChipRowProps) {
-  return (
-    <div>
-      <div className="label">{label}</div>
-      <div className="chips">
-        {items.map((item) => (
-          <button
-            key={item.en}
-            type="button"
-            className={`chip ${kind}${picked === item.en ? ' picked' : ''}`}
-            onClick={(e) => {
-              e.stopPropagation()
-              onPick(item)
-            }}
-          >
-            <span className="c-en" lang="en">
-              {item.en}
-            </span>
-            <span className="c-ko">{item.ko}</span>
-          </button>
-        ))}
-      </div>
-    </div>
-  )
-}
-
 interface SheetProps {
   id: string
   title: string
   onClose: () => void
   children: ReactNode
   footer?: ReactNode
+  // 제목 줄 오른쪽 (예: '2 / 4 문제')
+  side?: ReactNode
+  // 창으로 띄우지 않고 탭 화면 안에 그린다 (복습·퀴즈 탭)
+  page?: boolean
+}
+
+// 탭 화면 안에 그리는 창: 제목 줄과 아래 버튼만 같은 모양
+function PageSheet({ id, title, onClose, children, footer, side }: SheetProps) {
+  return (
+    <section className="screen page-sheet" id={id} aria-labelledby={`${id}-title`}>
+      <div className="sheet-head">
+        <button type="button" className="sheet-x" aria-label="홈으로 가기" onClick={onClose}>
+          ‹ 홈
+        </button>
+        <h2 id={`${id}-title`} tabIndex={-1}>
+          {title}
+        </h2>
+        <span className="sheet-side">{side}</span>
+      </div>
+      <div className="page-body">{children}</div>
+      {footer && <div className="actions">{footer}</div>}
+    </section>
+  )
+}
+
+export function Sheet(props: SheetProps) {
+  return props.page ? <PageSheet {...props} /> : <DialogSheet {...props} />
 }
 
 // 시트 밖에서 마지막으로 시트를 연 요소. 시트에서 다른 시트로 이어 열어도 처음 연 버튼으로 돌아간다
@@ -145,7 +137,7 @@ function captureOpener(): HTMLElement | null {
 }
 
 // 아래에서 올라오는 창: ✕·바깥 누르기·Esc로 닫고, 열리면 제목으로 포커스, 닫히면 원래 자리로 돌려준다
-export function Sheet({ id, title, onClose, children, footer }: SheetProps) {
+function DialogSheet({ id, title, onClose, children, footer, side }: SheetProps) {
   const sheetRef = useRef<HTMLElement>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const onCloseRef = useLatestRef(onClose)
@@ -188,12 +180,13 @@ export function Sheet({ id, title, onClose, children, footer }: SheetProps) {
     >
       <div className="sheet-card">
         <div className="sheet-head">
+          <button type="button" className="sheet-x" aria-label="닫기" onClick={onClose}>
+            ‹ 뒤로
+          </button>
           <h2 id={`${id}-title`} tabIndex={-1} ref={titleRef}>
             {title}
           </h2>
-          <button type="button" className="icon-btn sheet-x" aria-label="닫기" onClick={onClose}>
-            <X className="ico" aria-hidden="true" />
-          </button>
+          <span className="sheet-side">{side}</span>
         </div>
         {children}
         {footer && <div className="actions">{footer}</div>}

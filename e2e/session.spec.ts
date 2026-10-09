@@ -14,6 +14,7 @@ import {
   systemText,
   turn,
   type MockReply,
+  expectToday,
 } from './helpers'
 
 // 세션 수명 주기: 마무리 → 저장, 시간 배너·제한 시간, 뒤로 가기, 임시 저장·이어서 하기, 두 탭, 나가기 경고,
@@ -178,7 +179,7 @@ test.describe('마무리', () => {
       { say: 'Great!', say_ko: '좋아!', cue: '따라 해 볼까요?', repeat: 'Nice to meet you.', repeat_ko: '만나서 반가워.' },
       'en',
     )
-    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
 
     await page.click('#btnEnd')
     const wrap = page.locator('#wrapSheet')
@@ -286,7 +287,7 @@ test.describe('마무리', () => {
     await expect(page.locator('.app')).not.toHaveAttribute('inert')
     await expect(aiBubbles(page)).toHaveCount(2)
     await expect(page.locator('.msg.me')).toHaveCount(1)
-    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
     // 2턴: 한국어로
     await exchange(
       page,
@@ -299,7 +300,7 @@ test.describe('마무리', () => {
     // 대화가 이어졌으니 앞의 대화도 같이 보낸다
     expect(requests[3].body.contents.map((c) => c.role)).toEqual(['user', 'model', 'user', 'model', 'user'])
     expect(lastUserText(requests[3])).toBe('[한국어] 나는 회사원이야')
-    await expect(page.locator('#turnCount')).toHaveText('2/5번')
+    await expect(page.locator('#turnCount')).toHaveText('2/5 턴 완료')
 
     // 다시 끝내기 → 남은 횟수가 줄고, 카드는 최근 3문장
     await page.click('#btnEnd')
@@ -313,7 +314,7 @@ test.describe('마무리', () => {
     const msg = page.locator('#startMsg')
     await expect(msg).toHaveText('3문장을 문장장에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번). 오늘 1분.')
     await expect(msg).toHaveClass(/good/)
-    await expect(page.locator('#todayLine')).toContainText('오늘 1분 / 목표 15분')
+    await expect(page.locator('#todayLine')).toContainText('1분 / 15분')
     // 문장장·진도 저장
     const learned = (await storageGet(page, K.learned)) as { en: string; ko: string; date: string }[]
     expect(learned).toEqual([
@@ -369,8 +370,8 @@ test.describe('마무리', () => {
     // 시작 화면 진도 카드
     const course = page.locator('#courseCard')
     await expect(course).toContainText('완료 1/10')
-    await expect(course).toContainText('다음 단원 2 · 오늘 기분')
-    await expect(course).toContainText('오늘 단원 하나 완료 ✓ 더 해도 좋아요')
+    await expect(course.locator('.hero-title')).toHaveText('오늘 기분')
+    await expect(course).toContainText('오늘 단원 완료 ✓')
     expect(errors).toEqual([])
   })
 })
@@ -534,11 +535,12 @@ test.describe('뒤로 가기', () => {
   test('시작 화면에서 창(문장장)이 열려 있으면 뒤로는 그 창만 닫고 앱에 남는다', async ({ page, context }) => {
     const { errors } = await open(page, context)
     const url = page.url()
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await expect(page.locator('#bookSheet')).toBeVisible()
     await page.goBack()
     await expect(page.locator('#bookSheet')).toHaveCount(0)
-    await expect(page.locator('#startSheet')).toBeVisible()
+    await expect(page.locator('#libraryScreen')).toBeVisible()
     expect(page.url()).toBe(url)
     expect(errors).toEqual([])
   })
@@ -613,13 +615,18 @@ test.describe('뒤로 가기', () => {
     await expect(page.locator('#startSheet')).toHaveCount(0)
     await page.click('#btnBackToChat')
 
-    // 설정 창이 열려 있으면 뒤로는 그 창만 닫는다
-    await page.click('#btnSettings')
+    // 설정 창이 열려 있으면 뒤로는 그 창만 닫는다 (대화 중 설정은 내 서재에서 연다)
+    await page.click('#tab-library')
+    await page.click('#btnStartSettings')
     await expect(page.locator('#settingsSheet')).toBeVisible()
     await page.goBack()
     await expect(page.locator('#settingsSheet')).toHaveCount(0)
     await expect(page.locator('#wrapSheet')).toHaveCount(0)
+    await expect(page.locator('#libraryScreen')).toBeVisible()
+    // 다른 칸에서 뒤로는 하던 대화로 돌아간다 (끝내지 않음)
+    await page.goBack()
     await expect(page.locator('#composer')).toBeVisible()
+    await expect(page.locator('#wrapSheet')).toHaveCount(0)
     // 그다음 뒤로는 마무리
     await page.goBack()
     await expect(page.locator('#wrapSheet')).toBeVisible()
@@ -704,7 +711,7 @@ test.describe('임시 저장', () => {
     await expect(aiBubbles(page).nth(0)).toContainText('Hi! How are you?')
     await expect(page.locator('.msg.me')).toHaveCount(2)
     await expect(page.locator('.msg.me').nth(1)).toContainText('나는 회사원이야')
-    await expect(page.locator('#turnCount')).toHaveText('2/5번')
+    await expect(page.locator('#turnCount')).toHaveText('2/5 턴 완료')
     // 대화한 시간도 이어진다 (15분 중 3분)
     await expect(page.locator('#timer')).toHaveText('12분 남음')
     // 따라 말할 문장도 그대로
@@ -722,7 +729,7 @@ test.describe('임시 저장', () => {
     expect(contents[4].parts[0].text).toBe('[한국어] 나는 회사원이야')
     expect(JSON.parse(contents[5].parts[0].text)).toMatchObject({ repeat: 'I am an office worker.' })
     expect(lastUserText(requests[3])).toBe('[따라 말하기 — 목표 문장: "I am an office worker."] I am an office worker')
-    await expect(page.locator('#turnCount')).toHaveText('3/5번')
+    await expect(page.locator('#turnCount')).toHaveText('3/5 턴 완료')
     await expect.poll(async () => (await draftOf(page))?.stats.turns).toBe(3)
     expect(errors).toEqual([])
   })
@@ -760,7 +767,7 @@ test.describe('임시 저장', () => {
 
     await page.click('#btnDraftSave')
     await expect(page.locator('#draftCard')).toHaveCount(0)
-    await expect(page.locator('#btnStart')).toHaveText('시작하기')
+    await expect(page.locator('#btnStart')).toHaveText('지금 Emma와 수다 떨기')
     await expect(page.locator('#startMsg')).toHaveText('2문장을 문장장에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번). 오늘 1분.')
     const p = await progressIn(page)
     expect(p?.sessions).toHaveLength(1)
@@ -822,7 +829,7 @@ test.describe('임시 저장', () => {
     queue.push(reply(turn({ say: 'Hello again!', say_ko: '다시 안녕!' })))
     await page.click('#btnStart')
     await expect(aiBubbles(page)).toHaveCount(1)
-    await expect(page.locator('#turnCount')).toHaveText('0/5번')
+    await expect(page.locator('#turnCount')).toHaveText('0/5 턴 완료')
     // 새 대화는 처음부터 (앞 대화를 요청에 섞지 않는다)
     expect(requests[requests.length - 1].body.contents).toHaveLength(1)
     const p = await progressIn(page)
@@ -876,7 +883,7 @@ test.describe('임시 저장', () => {
     expect(await storageGet(page, K.learned)).toEqual([{ en: "I'm tired.", ko: '피곤해.', date: day(-1) }])
     expect(await draftKeys(page)).toEqual([])
     // 시작 화면: 어제 기록이라 오늘은 0분
-    await expect(page.locator('#todayLine > div').first()).toHaveText('1일 연속 · 오늘 0분 / 목표 15분')
+    await expectToday(page, '1일 연속 · 오늘 0분 / 목표 15분')
     const msg = page.locator('#startMsg')
     await expect(msg).toContainText('1문장을 문장장에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번).')
     // 결과 문구가 어제 한 3분을 '오늘 3분'이라고 하면 바로 위 '오늘 0분'과 어긋난다
@@ -922,8 +929,9 @@ test.describe('두 탭', () => {
 
     // B: 새로고침 없이 갱신 (storage 이벤트)
     await expect(b.page.locator('#busyElsewhere')).toHaveCount(0)
-    await expect(b.page.locator('#todayLine')).toContainText('오늘 1분 / 목표 15분')
+    await expect(b.page.locator('#todayLine')).toContainText('1분 / 15분')
     await expect(b.page.locator('#todayRoutine')).toBeVisible()
+    await b.page.click('#tab-library')
     await b.page.click('#btnStartBook')
     await expect(b.page.locator('#bookSheet .repeat-text')).toHaveText(['I like coffee.'])
     expect(errors).toEqual([])
@@ -975,7 +983,7 @@ test.describe('두 탭', () => {
     expect(p?.sessions.map((s) => s.turns).sort()).toEqual([1, 2])
     expect(await draftKeys(b.page)).toEqual([])
     // A 화면도 B 저장을 반영
-    await expect(page.locator('#todayLine')).toContainText('오늘 2분 / 목표 15분')
+    await expect(page.locator('#todayLine')).toContainText('2분 / 15분')
     expect(errors).toEqual([])
     expect(b.errors).toEqual([])
   })
@@ -1008,7 +1016,7 @@ test.describe('두 탭', () => {
     await b.page.click('#btnDraftResume')
     await expect(aiBubbles(b.page)).toHaveCount(2)
     await expect(b.page.locator('.msg.me')).toHaveCount(1)
-    await expect(b.page.locator('#turnCount')).toHaveText('1/5번')
+    await expect(b.page.locator('#turnCount')).toHaveText('1/5 턴 완료')
     const tabB = await tabIdOf(b.page)
     await expect.poll(() => draftKeys(b.page)).toEqual([K.draft + tabB])
     expect(tabB).not.toBe(tabA)
@@ -1173,7 +1181,7 @@ test.describe('오늘 할 일', () => {
       },
     })
     const routine = page.locator('#todayRoutine')
-    await expect(routine.locator('h3')).toHaveText('오늘 할 일')
+    await expect(routine.locator('h3')).toHaveText('오늘의 3대 루틴')
     await expect(items(page).locator('.check span')).toHaveText(ROUTINE_1)
     // 어제 체크한 것은 오늘 남지 않는다
     for (const i of [0, 1, 2]) await expect(box(page, i)).not.toBeChecked()
@@ -1212,13 +1220,12 @@ test.describe('오늘 할 일', () => {
       time: new Date('2026-10-08T23:59:00+09:00'),
       storage: { [K.progress]: progressOf(log(TODAY, 5)), [K.daily]: { date: TODAY, checks: [1] } },
     })
-    const line = page.locator('#todayLine > div').first()
-    await expect(line).toHaveText('1일 연속 · 오늘 5분 / 목표 15분')
+    await expectToday(page, '1일 연속 · 오늘 5분 / 목표 15분')
     await expect(box(page, 1)).toBeChecked()
 
     await page.clock.fastForward('02:00')
     // 한 줄은 새 날(10월 9일)로 바뀐다
-    await expect(line).toHaveText('1일 연속 · 오늘 0분 / 목표 15분')
+    await expectToday(page, '1일 연속 · 오늘 0분 / 목표 15분')
     // 체크도 새 날에 맞춰 비어야 한다
     await expect.soft(box(page, 1)).not.toBeChecked()
     await box(page, 2).click()
@@ -1234,7 +1241,7 @@ test.describe('오늘 할 일', () => {
     await exchange(page, queue, '안녕', { say: 'Hi!', say_ko: '안녕!' })
     await page.click('#btnEnd')
     await page.click('#btnFinish')
-    await expect(page.locator('#todayLine')).toContainText('오늘 15분 / 목표 15분')
+    await expect(page.locator('#todayLine')).toContainText('15분 / 15분')
     await expect(box(page, 0)).toBeChecked()
     // 저절로 된 체크는 눌러서 풀 수 없다
     await expect(box(page, 0)).toBeDisabled()
@@ -1274,6 +1281,7 @@ test.describe('오늘 할 일', () => {
     const { errors } = await open(page, context, {
       storage: { [K.progress]: progressOf(log(day(-1), 10)), [K.learned]: learned },
     })
+    await page.click('#tab-library')
     await page.click('#btnStartBook')
     await expect(page.locator('#btnReview')).toHaveText('오늘 복습 5문장')
     await page.click('#btnReview')
@@ -1327,7 +1335,7 @@ test.describe('연속 일수·오늘 분', () => {
         settings: c.goal ? { minutes: c.goal } : {},
         storage: { [K.progress]: progressOf(...c.sessions) },
       })
-      await expect(page.locator('#todayLine > div').first()).toHaveText(c.line)
+      await expectToday(page, c.line)
       const width = await page.locator('#todayLine .bar span').evaluate((el) => (el as HTMLElement).style.width)
       expect(parseFloat(width)).toBeCloseTo(c.bar * 100, 1)
       expect(errors).toEqual([])
@@ -1344,7 +1352,7 @@ test.describe('연속 일수·오늘 분', () => {
 
   test('어제 하고 오늘 대화를 끝내면 결과에 "N일 연속"이 붙고 한 줄이 바뀐다', async ({ page, context }) => {
     const { queue, errors } = await open(page, context, { storage: { [K.progress]: progressOf(log(day(-1), 10)) } })
-    await expect(page.locator('#todayLine > div').first()).toHaveText('1일 연속 · 오늘 0분 / 목표 15분')
+    await expectToday(page, '1일 연속 · 오늘 0분 / 목표 15분')
     await startWithGreeting(page, queue)
     await exchange(page, queue, '안녕', { say: 'Hi!', say_ko: '안녕!' })
     // 2분 30초 대화 → 3분(반올림)
@@ -1352,7 +1360,7 @@ test.describe('연속 일수·오늘 분', () => {
     await page.click('#btnEnd')
     await page.click('#btnFinish')
     await expect(page.locator('#startMsg')).toHaveText('수고했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 1번). 오늘 3분 · 2일 연속.')
-    await expect(page.locator('#todayLine > div').first()).toHaveText('2일 연속 · 오늘 3분 / 목표 15분')
+    await expectToday(page, '2일 연속 · 오늘 3분 / 목표 15분')
     expect((await progressIn(page))?.sessions.at(-1)).toMatchObject({ date: TODAY, minutes: 3 })
     expect(errors).toEqual([])
   })

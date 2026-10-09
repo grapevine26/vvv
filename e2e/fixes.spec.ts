@@ -130,6 +130,7 @@ test.describe('첫 실행', () => {
 
   test('설정 시트에서 휴대폰 뒤로: 바꾼 게 있으면 ✕처럼 먼저 묻고, 취소하면 그대로, 확인하면 닫힌다', async ({ page, context }) => {
     const { errors } = await open(page, context)
+    await page.click('#tab-library')
     await page.click('#btnStartSettings')
     await page.fill('input[name=likes]', '커피')
     const asked: string[] = []
@@ -148,7 +149,7 @@ test.describe('첫 실행', () => {
     await page.goBack()
     await expect.poll(() => asked.length).toBe(2)
     await expect(page.locator('#settingsSheet')).toHaveCount(0)
-    await expect(page.locator('#startSheet')).toBeVisible()
+    await expect(page.locator('#libraryScreen')).toBeVisible()
     expect((await storageGet(page, K.settings))?.likes ?? '').toBe('')
     expect(errors).toEqual([])
   })
@@ -286,11 +287,11 @@ test.describe('대화에서 한 말 세기', () => {
     await expect(page.locator('.msg.error')).toHaveCount(1)
     await expect(guide(page)).toContainText('연결이 안 됐어요')
     await expect(guide(page)).toHaveClass(/warn/)
-    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
     queue.push(reply(turn({ say: 'Got both!', say_ko: '둘 다 받았어!' })))
     await typeSend(page, 'second')
     await expect(aiBubbles(page)).toHaveCount(2)
-    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
     expect(lastUserText(requests[2])).toBe('[영어] first\n[영어] second')
     expect(errors).toEqual([])
   })
@@ -320,11 +321,11 @@ test.describe('대화에서 한 말 세기', () => {
       await typeSend(page, t)
       await expect(page.locator('#typeSend')).toBeEnabled()
     }
-    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
     queue.push(reply(greetTurn()))
     await typeSend(page, 'hi')
     await expect(aiBubbles(page)).toHaveCount(1)
-    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
     expect(lastUserText(requests[requests.length - 1]).split('\n')).toHaveLength(5)
     expect(errors).toEqual([])
   })
@@ -575,7 +576,7 @@ test.describe('화면 배치', () => {
     expect(errors).toEqual([])
   })
 
-  test('320px 폭에서도 머리줄의 횟수·남은 시간이 ⚙️ 버튼에 가리지 않는다', async ({ page, context }) => {
+  test('320px 폭에서도 머리줄의 횟수·남은 시간이 세션 종료 버튼에 가리지 않는다', async ({ page, context }) => {
     await page.setViewportSize({ width: 320, height: 640 })
     const { queue, errors } = await open(page, context)
     await startWithGreeting(page, queue)
@@ -597,6 +598,7 @@ test.describe('화면 배치', () => {
   test('240px 폭(크게 확대)에서도 설정 시트가 가로로 넘치지 않는다', async ({ page, context }) => {
     await page.setViewportSize({ width: 240, height: 600 })
     const { errors } = await open(page, context)
+    await page.click('#tab-library')
     await page.click('#btnStartSettings')
     const overflow = await page.locator('#settingsSheet .sheet-card').evaluate((el) => el.scrollWidth - el.clientWidth)
     expect(overflow).toBeLessThanOrEqual(0)
@@ -605,6 +607,7 @@ test.describe('화면 배치', () => {
 
   test('접힌 메뉴(details)에 펼칠 수 있다는 화살표가 보인다', async ({ page, context }) => {
     const { errors } = await open(page, context)
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     const summary = page.locator('#stagesDetails > summary')
     expect(await summary.evaluate((el) => getComputedStyle(el, '::before').content)).toContain('▸')
@@ -702,10 +705,12 @@ test.describe('카카오톡·저장소가 막힌 브라우저', () => {
     })
     const { queue, requests, errors } = await open(page, context, { settings: null })
     page.on('dialog', (d) => void d.accept())
+    await page.click('#tab-library')
     await page.click('#btnStartCourse')
     await page.click('#stagesDetails > summary')
     await page.locator('#stageList .stage').nth(2).getByRole('button', { name: '이 단계로 바꾸기' }).click()
     await page.click('#btnCourseClose')
+    await page.click('#tab-home')
     await expect(page.locator('#courseCard')).toContainText('3단계')
     await page.click('#btnStart')
     await page.fill('input[name=apiKey]', 'AIzaMEM')
@@ -721,7 +726,7 @@ test.describe('카카오톡·저장소가 막힌 브라우저', () => {
     await page.click('#btnEnd')
     await page.click('#btnFinish')
     await expect(page.locator('#startMsg')).toContainText('1문장을 문장장에 저장했어요')
-    await expect(page.locator('#todayLine')).toContainText('오늘 1분')
+    await expect(page.locator('#todayLine')).toContainText('1분 /')
     expect(errors).toEqual([])
   })
 })

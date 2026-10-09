@@ -30,6 +30,8 @@ export interface QuizProps {
   // 듣는 중인 마이크를 보내지 않고 끈다
   onStopMic?: () => void
   onClose: () => void
+  // 창 대신 복습·퀴즈 탭 화면 안에 그린다
+  page?: boolean
 }
 
 // 한 문제를 푼 결과
@@ -51,7 +53,7 @@ const dayLabel = (d: string) => {
   return `${m}월 ${day}일`
 }
 
-export function QuizSheet({ learned, onPlay, onMic, onStopMic, onClose }: QuizProps) {
+export function QuizSheet({ learned, onPlay, onMic, onStopMic, onClose, page }: QuizProps) {
   const [today] = useState(() => localDate())
   const [stats, setStats] = useState<QuizStats>(loadQuizStats)
   // 처음 연 순간의 오늘 할 문장 (다시 그려도 섞이지 않게 한 번만 고른다)
@@ -115,7 +117,14 @@ export function QuizSheet({ learned, onPlay, onMic, onStopMic, onClose }: QuizPr
     )
 
   return (
-    <Sheet id="quizSheet" title="5분 복습 퀴즈" onClose={onClose} footer={footer}>
+    <Sheet
+      id="quizSheet"
+      title="5분 에빙하우스 복습 퀴즈"
+      page={page}
+      side={phase === 'question' ? `${idx + 1} / ${questions.length} 문제` : undefined}
+      onClose={onClose}
+      footer={footer}
+    >
       {phase === 'intro' && <Intro learned={learned} picked={picked} stats={stats} onAhead={() => start(pickAhead(learned, stats))} />}
       {phase === 'question' && q && (
         <div className="qz-body">
@@ -192,7 +201,7 @@ function Progress({ now, total, label }: { now: number; total: number; label: st
 }
 
 // 문제 제목: 다음 문제로 넘어가면 여기로 포커스를 옮겨 화면 읽기 프로그램도 새 문제를 읽게 한다
-function Ask({ children, icon }: { children: string; icon: ReactNode }) {
+function Ask({ children, icon, badge, top }: { children: string; icon: ReactNode; badge: string; top?: ReactNode }) {
   const ref = useRef<HTMLHeadingElement>(null)
   useEffect(() => {
     // 처음 문제는 시트 제목에 포커스가 있으니, 버튼(시작·다음)에서 넘어온 경우만 옮긴다
@@ -200,10 +209,14 @@ function Ask({ children, icon }: { children: string; icon: ReactNode }) {
     if (a && a.tagName === 'BUTTON') ref.current?.focus()
   }, [])
   return (
-    <h3 className="qz-ask" tabIndex={-1} ref={ref}>
-      {icon}
-      {children}
-    </h3>
+    <div className="qz-card">
+      <span className="qz-badge">{badge}</span>
+      {top}
+      <h3 className="qz-ask" tabIndex={-1} ref={ref}>
+        {icon}
+        {children}
+      </h3>
+    </div>
   )
 }
 
@@ -234,8 +247,9 @@ function MeaningQuestion({ q, answer, onPlay, onAnswer }: QuestionProps) {
   }, [playRef, en])
   return (
     <div className="qz-q" data-kind="meaning">
-      <Ask icon={<Headphones className="ico" aria-hidden="true" />}>잘 듣고, 무슨 뜻인지 골라요</Ask>
-      <ListenTools en={q.item.en} onPlay={onPlay} idPrefix="qzListen" />
+      <Ask badge="듣고 뜻 고르기" icon={<Headphones className="ico" aria-hidden="true" />} top={<ListenTools en={q.item.en} onPlay={onPlay} idPrefix="qzListen" />}>
+        잘 듣고, 무슨 뜻인지 골라요
+      </Ask>
       <div className="qz-choices">
         {q.choices.map((c) => {
           const state = !answer ? '' : c === right ? ' right' : c === answer.chosen ? ' wrong' : ' dim'
@@ -289,14 +303,21 @@ function SpeakQuestion({ q, answer, onPlay, onMic, onAnswer }: QuestionProps & {
 
   return (
     <div className="qz-q" data-kind="speak">
-      <Ask icon={<MicIcon className="ico" aria-hidden="true" />}>{ko ? '이 뜻을 영어로 말해 봐요' : '잘 듣고 그대로 말해 봐요'}</Ask>
-      {ko ? (
-        <div className="qz-prompt" id="qzPrompt">
-          {ko}
-        </div>
-      ) : (
-        <ListenTools en={q.item.en} onPlay={onPlay} idPrefix="qzSpeak" />
-      )}
+      <Ask
+        badge="뜻 보고 영어로 말하기"
+        icon={<MicIcon className="ico" aria-hidden="true" />}
+        top={
+          ko ? (
+            <div className="qz-prompt" id="qzPrompt">
+              {ko}
+            </div>
+          ) : (
+            <ListenTools en={q.item.en} onPlay={onPlay} idPrefix="qzSpeak" />
+          )
+        }
+      >
+        {ko ? '이 뜻을 영어로 말해 봐요' : '잘 듣고 그대로 말해 봐요'}
+      </Ask>
       {!answer && (
         <>
           <button className={`qz-mic${listening ? ' listening' : ''}`} id="qzMic" type="button" aria-pressed={listening} onClick={mic}>
@@ -359,14 +380,21 @@ function OrderQuestion({ q, answer, onPlay, onAnswer }: QuestionProps) {
 
   return (
     <div className="qz-q" data-kind="order">
-      <Ask icon={<Puzzle className="ico" aria-hidden="true" />}>조각을 순서대로 눌러 문장을 만들어요</Ask>
-      {ko ? (
-        <div className="qz-prompt small" id="qzPrompt">
-          {ko}
-        </div>
-      ) : (
-        <ListenTools en={q.item.en} onPlay={onPlay} idPrefix="qzOrder" />
-      )}
+      <Ask
+        badge="단어 조각 순서 맞추기"
+        icon={<Puzzle className="ico" aria-hidden="true" />}
+        top={
+          ko ? (
+            <div className="qz-prompt" id="qzPrompt">
+              {ko}
+            </div>
+          ) : (
+            <ListenTools en={q.item.en} onPlay={onPlay} idPrefix="qzOrder" />
+          )
+        }
+      >
+        알맞은 영어 단어 조각을 순서대로 터치하세요
+      </Ask>
       <div className={`qz-slot${answer ? (answer.correct ? ' right' : ' wrong') : ''}`} id="qzSlot" aria-label="만든 문장" lang="en">
         {placed.length === 0 && (
           <span className="qz-slot-hint" lang="ko">

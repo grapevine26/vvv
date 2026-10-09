@@ -119,6 +119,7 @@ test('카톡 안 브라우저에서는 "파일로 저장"을 숨기고 코드 �
   const context = await browser.newContext({ userAgent: KAKAO_UA, viewport: { width: 390, height: 844 } })
   const page = await context.newPage()
   const { errors } = await open(page, context)
+  await page.click('#tab-library')
   await page.click('#btnStartTransfer')
   await expect(page.locator('#backupInApp')).toContainText('파일이 저장되지 않아요')
   await expect(page.locator('#btnBackupSave')).toHaveCount(0)
@@ -132,6 +133,7 @@ test('옮기기 코드에 퀴즈 복습 일정이 들어가고, 가져오면 문
   const pa = await a.newPage()
   const quizA = { 'I like tea.': { box: 4, due: '2026-10-20', seen: 5 } }
   await open(pa, a, { storage: { 'englishFriend.quiz': quizA } })
+  await pa.click('#tab-library')
   await pa.click('#btnStartTransfer')
   await pa.click('#btnExport')
   const code = (await pa.locator('#exportCode').inputValue()).trim()
@@ -141,6 +143,7 @@ test('옮기기 코드에 퀴즈 복습 일정이 들어가고, 가져오면 문
   const pb = await b.newPage()
   const quizB = { 'I like tea.': { box: 1, due: '2026-10-09', seen: 1 }, 'I am hungry.': { box: 2, due: '2026-10-10', seen: 2 } }
   const { errors } = await open(pb, b, { storage: { 'englishFriend.quiz': quizB } })
+  await pb.click('#tab-library')
   await pb.click('#btnStartTransfer')
   await pb.click('#btnImportOpen')
   await pb.fill('#importCode', code)

@@ -136,17 +136,17 @@ test.describe('1) 키 없는 첫 화면', () => {
 
     await expect(page).toHaveTitle('영어 친구')
     await expect(page.locator('#startSheet')).toBeVisible()
-    await expect(page.locator('#startTitle')).toHaveText('Emma와 영어 수다')
+    await expect(page.locator('#startTitle')).toHaveText('AI Emma')
     const guide = page.locator('#firstGuide')
     await expect(guide).toBeVisible()
     await expect(guide.locator('li')).toHaveCount(3)
-    await expect(guide).toContainText('「한」 버튼으로 한국어로 대답해도 돼요')
-    await expect(guide).toContainText('「끝내기」 → 「저장하고 끝내기」')
+    await expect(guide).toContainText('「한국어로 말하기」로 대답해도 돼요')
+    await expect(guide).toContainText('「세션 종료」 → 「저장하고 끝내기」')
     await expect(page.locator('#startMsg')).toHaveText('처음이면 "키 넣고 시작하기"를 눌러 Gemini 키부터 넣어요. 2분이면 돼요.')
     await expect(page.locator('#btnStart')).toHaveText('키 넣고 시작하기')
     // 1단계 첫 단원부터
     await expect(page.locator('#courseCard')).toContainText('1단계 · 첫걸음')
-    await expect(page.locator('#courseCard')).toContainText('오늘 단원 1 · 인사와 자기소개')
+    await expect(page.locator('#courseCard .hero-title')).toHaveText('인사와 자기소개')
     // 처음엔 오늘 할 일·연속 일수·승급 진행이 없다
     await expect(page.locator('#todayRoutine')).toHaveCount(0)
     await expect(page.locator('#todayLine')).toHaveCount(0)
@@ -448,13 +448,15 @@ test.describe('4) 키 확인 성공', () => {
     const { requests, keyChecks } = await installMocks(context)
     const errors = collectErrors(page)
     await page.goto('/')
+    await page.click('#tab-library')
     await page.click('#btnStartSettings')
     await expect(page.locator('#settingsSheet-title')).toHaveText('설정')
     await expect(page.locator('#btnSettingsSave')).toHaveText('저장')
     await page.locator('#settingsSheet input[name=apiKey]').fill('AIzaSET')
     await page.click('#btnSettingsSave')
     await expect(page.locator('#settingsSheet')).toHaveCount(0)
-    await expect(page.locator('#btnStart')).toHaveText('시작하기')
+    await page.click('#tab-home')
+    await expect(page.locator('#btnStart')).toHaveText('지금 Emma와 수다 떨기')
     await expect(page.locator('#startMsg')).toHaveCount(0)
     expect(keyChecks).toHaveLength(1)
     expect(keyChecks[0].headers['x-goog-api-key']).toBe('AIzaSET')
@@ -516,7 +518,14 @@ test.describe('5) 나중에', () => {
   const closers: { name: string; act: (page: Page) => Promise<unknown> }[] = [
     { name: '✕ 버튼', act: (page) => page.locator('#settingsSheet .sheet-x').click() },
     { name: 'Esc 키', act: (page) => page.keyboard.press('Escape') },
-    { name: '바깥(어두운 곳) 누르기', act: (page) => page.locator('#settingsSheet').click({ position: { x: 10, y: 10 } }) },
+    // 휴대폰 폭에서는 창이 화면을 꽉 채우므로, 넓은 화면에서 양옆의 어두운 곳을 누른다
+    {
+      name: '바깥(어두운 곳) 누르기',
+      act: async (page) => {
+        await page.setViewportSize({ width: 900, height: 844 })
+        await page.locator('#settingsSheet').click({ position: { x: 10, y: 10 } })
+      },
+    },
     // 안드로이드 뒤로 가기: 앱을 떠나지 않고 시트만 닫는다
     { name: '뒤로 가기', act: (page) => page.goBack() },
   ]
@@ -567,7 +576,7 @@ test.describe('6) 첫 인사에서 키 오류', () => {
       const { requests, keyChecks, queue } = await installMocks(context, { storage: { [SETTINGS]: { apiKey: 'AIzaOLD' } } })
       const errors = collectErrors(page)
       await page.goto('/')
-      await expect(page.locator('#btnStart')).toHaveText('시작하기')
+      await expect(page.locator('#btnStart')).toHaveText('지금 Emma와 수다 떨기')
       queue.push(errorReply(c.status, c.message))
       await page.click('#btnStart')
 
@@ -813,12 +822,16 @@ test.describe('9) 홈 화면에 추가(PWA)', () => {
     await expect(page.locator('html')).toHaveAttribute('lang', 'ko')
     await expect(page.locator('link[rel=manifest]')).toHaveAttribute('href', '/manifest.webmanifest')
     await expect(page.locator('link[rel=apple-touch-icon]')).toHaveAttribute('href', '/icon-192.png')
+    // 시안처럼 다크가 기본: 주소창 색은 하나, 화면 테마를 바꾸면 그 색으로 바뀐다
     const themes = page.locator('meta[name=theme-color]')
-    await expect(themes).toHaveCount(2)
-    const light = await page.locator('meta[name=theme-color][media*="light"]').getAttribute('content')
+    await expect(themes).toHaveCount(1)
+    await expect(themes).toHaveAttribute('content', '#0f172a')
     const m = await page.evaluate(async () => (await fetch(document.querySelector<HTMLLinkElement>('link[rel=manifest]')!.href)).json())
-    expect(light).toBe(m.theme_color)
-    await expect(page.locator('meta[name=theme-color][media*="dark"]')).toHaveAttribute('content', /^#[0-9a-f]{6}$/i)
+    expect(m.theme_color).toBe('#0f172a')
+    await page.click('#tab-library')
+    await page.click('#btnThemeLight')
+    await expect(themes).toHaveAttribute('content', '#f8fafc')
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'light')
     await expect(page.locator('meta[name=viewport]')).toHaveAttribute('content', /width=device-width/)
     expect(errors).toEqual([])
   })
@@ -869,6 +882,7 @@ test.describe('10) 360px 휴대폰 폭', () => {
     await installMocks(context, { storage: { [SETTINGS]: { apiKey: 'AIzaKEY0123456789' } } })
     const errors = collectErrors(page)
     await page.goto('/')
+    await page.click('#tab-library')
     await page.click('#btnStartSettings')
     await expect(page.locator('#keyStatus')).toContainText('연결됨 ✓ (…6789)')
     await page.locator('#advanced > summary').click()

@@ -145,6 +145,7 @@ test.describe('4) 기록 백업', () => {
     baseURL,
   }) => {
     await open(page, context, { storage: { [K.learned]: A_LEARNED, [K.progress]: A_PROGRESS } })
+    await page.click('#tab-library')
     await page.click('#btnStartTransfer')
     const { text } = await saveBackup(page)
     // 내려받은 파일을 실제 파일로 둔다 (경로에 한글이 있으면 Playwright가 파일을 못 넣어서 영어 이름 임시 폴더에)
@@ -164,6 +165,7 @@ test.describe('4) 기록 백업', () => {
     })
     try {
       const bp = b.page
+      await bp.click('#tab-library')
       await bp.click('#btnStartTransfer')
       await expect(bp.locator('#transferSheet')).toBeVisible()
       await expect(bp.locator('#backupFile')).toHaveAttribute('accept', '.txt,text/plain')
@@ -196,6 +198,7 @@ test.describe('4) 기록 백업', () => {
 
   test('잘못된 파일: 백업 파일이 아니거나 망가졌으면 한국어 오류, 기록은 그대로', async ({ page, context }) => {
     const { errors } = await open(page, context, { storage: { [K.learned]: A_LEARNED, [K.progress]: A_PROGRESS } })
+    await page.click('#tab-library')
     await page.click('#btnStartTransfer')
     const result = page.locator('#transferResult')
 
@@ -239,7 +242,7 @@ test.describe('4) 기록 백업', () => {
         [K.progress]: { stage: 1, unit: 's1-1', doneUnits: [], sessions: [log(TODAY)] },
       },
     })
-    await expect(page.locator('#btnStartTransfer')).toBeVisible()
+    await expect(page.locator('#startSheet')).toBeVisible()
     await expect(page.locator('#backupReminder')).toHaveCount(0)
 
     for (const [ago, shown] of [
@@ -250,8 +253,9 @@ test.describe('4) 기록 백업', () => {
         storage: { [K.learned]: A_LEARNED, [K.progress]: A_PROGRESS, [K.lastBackup]: day(-ago) },
       })
       try {
-        await expect(o.page.locator('#btnStartTransfer')).toBeVisible()
+        await expect(o.page.locator('#startSheet')).toBeVisible()
         await expect(o.page.locator('#backupReminder')).toHaveCount(shown ? 1 : 0)
+        await o.page.click('#tab-library')
         await o.page.click('#btnStartTransfer')
         await expect(o.page.locator('#backupLast')).toHaveText(`마지막 백업: ${ago}일 전`)
       } finally {

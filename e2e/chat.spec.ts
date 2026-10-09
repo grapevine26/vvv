@@ -165,8 +165,8 @@ test('단계 안내: 처음 쓰는 사람에게는 따라 할 문장이 없을 �
   await startWithGreeting(page, queue)
   await expect(guide(page)).toHaveText(FIRST_TIME_GUIDE)
   await expect(page.locator('#micEn')).not.toHaveClass(/recommend/)
-  await expect(page.locator('#micKo .mic-label')).toHaveText('눌러서 한국어로 말하기')
-  await expect(page.locator('#micEn .mic-label')).toHaveText('눌러서 영어로 말하기')
+  await expect(page.locator('#micKo .mic-label')).toHaveText('한국어로 말하기')
+  await expect(page.locator('#micEn .mic-label')).toHaveText('영어로 대답하기 (추천)')
   expect(errors).toEqual([])
 })
 
@@ -175,7 +175,7 @@ test('단계 안내: 처음 쓰는 사람에게는 따라 할 문장이 없을 �
 test('한국어로 대답 → 따라 말하기 제안(EN 추천) → 거의 같게 말하면 "잘 들렸어요"와 따라 말하기로 셈', async ({ page, context }) => {
   const { queue, requests, errors } = await open(page, context)
   await startWithGreeting(page, queue, { say: 'How are you today?', say_ko: '오늘 어때?' })
-  await expect(page.locator('#turnCount')).toHaveText('0/5번')
+  await expect(page.locator('#turnCount')).toHaveText('0/5 턴 완료')
 
   queue.push(
     reply(
@@ -188,7 +188,7 @@ test('한국어로 대답 → 따라 말하기 제안(EN 추천) → 거의 같�
   await expect(aiBubbles(page)).toHaveCount(2)
   await expect(lastMe(page).locator('.tag')).toHaveText('한국어')
   expect(lastUserText(requests[1])).toBe('[한국어] 오늘 피곤해')
-  await expect(page.locator('#turnCount')).toHaveText('1/5번')
+  await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
 
   // AI가 따라 할 문장을 주면: 말풍선에 문장, EN 버튼 추천, 안내에 그 문장
   await expect(aiBubbles(page).last().locator('.repeat-text')).toHaveText("I'm tired today.")
@@ -207,7 +207,7 @@ test('한국어로 대답 → 따라 말하기 제안(EN 추천) → 거의 같�
   await expect(lastMe(page).locator('.heard')).toHaveText('잘 들렸어요')
   expect(lastUserText(requests[2])).toBe(`[따라 말하기 — 목표 문장: "I'm tired today."] I am tired today`)
   // 머리줄 횟수는 한국어·따라 말하기·내 영어를 가리지 않고 '내 대답' 하나마다 1씩 오른다 (App.tsx sendUser: stats.turns++)
-  await expect(page.locator('#turnCount')).toHaveText('2/5번')
+  await expect(page.locator('#turnCount')).toHaveText('2/5 턴 완료')
   await expect.poll(() => draftStats(page)).toMatchObject({ turns: 2, koTurns: 1, repeatTurns: 1, enOwnTurns: 0, enOwnWords: 0 })
 
   // 따라 할 문장과 전혀 다르게 말하면 '잘 들렸어요'는 나오지 않고, 질문에 직접 한 '내 대답'으로 센다
@@ -217,7 +217,7 @@ test('한국어로 대답 → 따라 말하기 제안(EN 추천) → 거의 같�
   await say(page, 'banana split')
   await expect(aiBubbles(page)).toHaveCount(4)
   await expect(lastMe(page).locator('.heard')).toHaveCount(0)
-  await expect(page.locator('#turnCount')).toHaveText('3/5번')
+  await expect(page.locator('#turnCount')).toHaveText('3/5 턴 완료')
   await expect.poll(() => draftStats(page)).toMatchObject({ turns: 3, koTurns: 1, repeatTurns: 1, enOwnTurns: 1, enOwnWords: 2 })
   expect(lastUserText(requests[3])).toBe('[영어] banana split')
 
@@ -262,7 +262,7 @@ test('힌트 칩: 누르면 들려주고 고른 칩 표시 → 그 문장을 말
   // AI에게도 '대답 예시를 보고 말함'으로 알려서, 따라 말하기 실패가 아니라 내 대답으로 받게 한다
   expect(lastUserText(requests[1])).toBe('[영어 — 대답 예시를 보고 말함] yes I like coffee')
   // 칩 문장을 읽은 것: 머리줄 '내 대답'은 1 오르지만, 승급에 쓰는 '내 힘으로 한 영어'(enOwnTurns)는 오르지 않는다
-  await expect(page.locator('#turnCount')).toHaveText('1/5번')
+  await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
   await expect.poll(() => draftStats(page)).toMatchObject({ turns: 1, repeatTurns: 1, enOwnTurns: 0, enOwnWords: 0 })
   // 보낸 뒤에는 고른 칩 표시가 지워진다
   await expect(page.locator('.chip.hint.picked')).toHaveCount(0)
@@ -280,7 +280,7 @@ test('힌트 칩: 누르면 들려주고 고른 칩 표시 → 그 문장을 말
   await say(page, 'I have a cat too')
   await expect(aiBubbles(page)).toHaveCount(4)
   await expect.poll(() => draftStats(page)).toMatchObject({ turns: 3, repeatTurns: 2, enOwnTurns: 1, enOwnWords: 5 })
-  await expect(page.locator('#turnCount')).toHaveText('3/5번')
+  await expect(page.locator('#turnCount')).toHaveText('3/5 턴 완료')
   expect(errors).toEqual([])
 })
 
@@ -359,7 +359,7 @@ test('내 대답 다섯 번이면 머리줄이 "단원 ✓"로 바뀌고 단원 
       await say(page, `대답 ${i}`)
     }
     await expect(aiBubbles(page)).toHaveCount(i + 1)
-    if (i < 5) await expect(page.locator('#turnCount')).toHaveText(`${i}/5번`)
+    if (i < 5) await expect(page.locator('#turnCount')).toHaveText(`${i}/5 턴 완료`)
   }
   await expect(page.locator('#turnCount')).toHaveText('단원 ✓')
   await expect(page.locator('#toast')).toHaveText('「인사와 자기소개」 단원 조건을 채웠어요! 더 이야기해도 좋아요.')
@@ -457,7 +457,7 @@ test('소리를 내기 전에 듣기를 멈춘다: 듣는 중 "🔊 다시"를 �
   // 듣는 중에 말풍선의 '🔊 다시'를 누르면: 듣기를 버리고(보내지 않음) 다시 들려준다
   await page.click('#micKo')
   await say(page, '음', false)
-  await page.locator('.msg.ai').first().getByRole('button', { name: '다시', exact: true }).click()
+  await page.locator('.msg.ai').first().getByRole('button', { name: '다시 듣기', exact: true }).click()
   await expect.poll(() => lastRec(page)).toMatchObject({ lang: 'ko-KR', stopped: true })
   await expect(page.locator('#micKo')).not.toHaveClass(/listening/)
   const replay = (await speakLog(page)).filter((e) => e.text === 'What did you eat?')
@@ -468,7 +468,7 @@ test('소리를 내기 전에 듣기를 멈춘다: 듣는 중 "🔊 다시"를 �
 
   // 듣는 중에 말하기를 시작해도(■ 그만이 보이는 동안 마이크를 누르면) 말을 끊고 듣는다
   await setSpeakDelay(page, 2000)
-  await page.locator('.msg.ai').first().getByRole('button', { name: '다시', exact: true }).click()
+  await page.locator('.msg.ai').first().getByRole('button', { name: '다시 듣기', exact: true }).click()
   await expect(guide(page)).toContainText('말하는 중')
   const cancels = await cancelCount(page)
   await page.click('#micEn')
@@ -642,13 +642,14 @@ test('자동 듣기: 힌트 칩을 들려준 뒤에도 영어로 자동 듣기',
   expect(errors).toEqual([])
 })
 
-test('자동 듣기: 말하는 동안 설정 창을 열면 말이 끝나도 마이크를 켜지 않는다', async ({ page, context }) => {
+test('자동 듣기: 말하는 동안 내 서재에서 설정 창을 열면 말이 끝나도 마이크를 켜지 않는다', async ({ page, context }) => {
   const { queue, errors } = await open(page, context, { autoListen: true })
   await setSpeakDelay(page, 1500)
   queue.push(reply(turn({ say: 'Hello! Long time no see.', say_ko: '안녕! 오랜만이야.' })))
   await page.click('#btnStart')
   await expect(guide(page)).toContainText('말하는 중')
-  await page.click('#btnSettings')
+  await page.click('#tab-library')
+  await page.click('#btnStartSettings')
   await expect(page.locator('#settingsSheet')).toBeVisible()
 
   // 말이 끝나고 400ms를 넉넉히 넘길 때까지 기다린다
@@ -816,7 +817,7 @@ for (const c of [
     await expect(errorBubble(page)).toHaveCount(0)
     // 같은 말을 두 번 보낸 것으로 치지 않는다
     await expect(page.locator('.msg.me')).toHaveCount(1)
-    await expect(page.locator('#turnCount')).toHaveText('1/5번')
+    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
     expect(errors).toEqual([])
   })
 }

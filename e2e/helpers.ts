@@ -242,8 +242,19 @@ export async function startWithGreeting(
   greeting: Record<string, unknown> = { say: "Hi! I'm Emma. How are you?", say_ko: '안녕! 나는 Emma야. 잘 지내?' },
 ) {
   queue.push(reply(turn(greeting)))
+  // 시작 버튼은 홈 칸에 있다 (내 서재 등 다른 칸에 있었으면 홈으로)
+  if (!(await page.locator('#btnStart').isVisible())) await page.click('#tab-home')
   await page.click('#btnStart')
   await expect(aiBubbles(page)).toHaveCount(1)
+}
+
+// 홈의 '오늘 말한 시간'과 연속 일수 배지를 '2일 연속 · 오늘 10분 / 목표 15분' 꼴 한 줄로 확인한다
+export async function expectToday(page: Page, line: string) {
+  const m = /^(?:(\d+)일 연속 · )?오늘 (\d+)분 \/ 목표 (\d+)분$/.exec(line)
+  if (!m) throw new Error('expectToday: 알 수 없는 줄 ' + line)
+  await expect(page.locator('#todayLine .hero-time-row b')).toHaveText(`${m[2]}분 / ${m[3]}분`)
+  if (m[1]) await expect(page.locator('#streakBadge')).toHaveText(`${m[1]}일 연속`)
+  else await expect(page.locator('#streakBadge')).toHaveCount(0)
 }
 
 // 휴대폰 폭에서 가로로 넘치는 요소가 없는지
