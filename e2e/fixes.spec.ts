@@ -785,8 +785,9 @@ test.describe('덜 들린 단어 듣기·다시 해 보기', () => {
     const { errors } = await missOnce(page, context)
     for (const el of [first(page).locator('.btn-retry-say'), first(page).locator('.wm.miss').first()]) {
       const b = await el.boundingBox()
-      expect(b?.height ?? 0).toBeGreaterThanOrEqual(44)
-      expect(b?.width ?? 0).toBeGreaterThanOrEqual(44)
+      // 다른 44px 검사(first-run smallTargets)처럼 소수점 반올림 오차 0.5px는 봐준다
+      expect((b?.height ?? 0) + 0.5).toBeGreaterThanOrEqual(44)
+      expect((b?.width ?? 0) + 0.5).toBeGreaterThanOrEqual(44)
     }
     expect(errors).toEqual([])
   })
