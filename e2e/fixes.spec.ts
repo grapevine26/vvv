@@ -1,6 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import {
   aiBubbles,
+  clearSpoken,
   collectErrors,
   errorReply,
   installMocks,
@@ -9,6 +10,7 @@ import {
   reply,
   say,
   silence,
+  spoken,
   startWithGreeting,
   storageGet,
   systemText,
@@ -727,6 +729,105 @@ test.describe('카카오톡·저장소가 막힌 브라우저', () => {
     await page.click('#btnFinish')
     await expect(page.locator('#startMsg')).toContainText('1문장을 내 문장 노트에 저장했어요')
     await expect(page.locator('#todayLine')).toContainText('1분 /')
+    expect(errors).toEqual([])
+  })
+})
+
+// ─────────────────────────────────────────────
+test.describe('덜 들린 단어 듣기·다시 해 보기', () => {
+  const GOAL = 'I went to the park yesterday.'
+  const draftStats = (page: Page) =>
+    page.evaluate(() => {
+      const tab = sessionStorage.getItem('englishFriend.tabId')
+      const raw = tab && localStorage.getItem('englishFriend.draft.' + tab)
+      return raw ? (JSON.parse(raw) as { stats: Record<string, number> }).stats : null
+    })
+  const micReady = (page: Page) => expect.poll(async () => { const r = await lastRec(page); return !!r && r.started && !r.stopped }).toBe(true)
+
+  // 따라 말하기를 덜 들리게 한 상태까지
+  async function missOnce(page: Page, context: BrowserContext) {
+    const o = await open(page, context)
+    await startWithGreeting(page, o.queue, { say: 'Say it!', say_ko: '말해 봐!', repeat: GOAL, repeat_ko: '어제 공원에 갔어.' })
+    o.queue.push(reply(turn({ say: 'Nice! Again?', say_ko: '좋아! 한 번 더?', repeat: 'I like it.', repeat_ko: '좋아.' })))
+    await speak(page, 'en', 'I want to the park')
+    await expect(aiBubbles(page)).toHaveCount(2)
+    return o
+  }
+  const first = (page: Page) => page.locator('.msg.me').first()
+
+  test('덜 들린 단어를 누르면 그 단어만 천천히 읽는다', async ({ page, context }) => {
+    const { errors } = await missOnce(page, context)
+    const normal = (await spoken(page)).find((s) => s.lang === 'en-US')?.rate ?? 0
+    await clearSpoken(page)
+    await first(page).locator('.wm.miss').first().click()
+    await expect.poll(async () => (await spoken(page)).at(-1)?.text).toBe('went')
+    expect((await spoken(page)).at(-1)?.rate ?? 99).toBeLessThan(normal)
+    expect(errors).toEqual([])
+  })
+
+  test('다시 해 보기: 목표 문장을 천천히 들려주고, 잘 말하면 그 말풍선만 "이번엔 잘 들렸어요"로 바뀌고 AI 요청은 없다', async ({ page, context }) => {
+    const { requests, errors } = await missOnce(page, context)
+    const n = requests.length
+    const stats = await draftStats(page)
+    await clearSpoken(page)
+    await first(page).locator('.btn-retry-say').click()
+    await expect.poll(async () => (await spoken(page)).some((s) => s.text === GOAL)).toBe(true)
+    await micReady(page)
+    await say(page, 'I went to the park yesterday')
+    await expect(first(page).locator('.heard')).toHaveText('이번엔 잘 들렸어요')
+    await expect(first(page).locator('.btn-retry-say')).toHaveCount(0)
+    expect(requests).toHaveLength(n)
+    await expect.poll(() => draftStats(page)).toEqual(stats)
+    expect(errors).toEqual([])
+  })
+
+  test('다시 해 보기를 또 틀리면 덜 들린 단어 표시가 새 말로 바뀐다', async ({ page, context }) => {
+    const { requests, errors } = await missOnce(page, context)
+    const n = requests.length
+    await first(page).locator('.btn-retry-say').click()
+    await micReady(page)
+    await say(page, 'I went to park')
+    await expect(first(page).locator('.wm.miss')).toHaveText([/^the/, /^yesterday./])
+    await expect(first(page).locator('.btn-retry-say')).toHaveCount(1)
+    expect(requests).toHaveLength(n)
+    expect(errors).toEqual([])
+  })
+
+  test('새 말풍선이 생긴 뒤 예전 말풍선에서 다시 해 보기를 해도 그 말풍선만 바뀐다', async ({ page, context }) => {
+    const { queue, requests, errors } = await missOnce(page, context)
+    queue.push(reply(turn({ say: 'Great!', say_ko: '좋아!' })))
+    await speak(page, 'en', 'I like')
+    await expect(aiBubbles(page)).toHaveCount(3)
+    const n = requests.length
+    const secondText = await page.locator('.msg.me').nth(1).innerText()
+    await first(page).locator('.btn-retry-say').click()
+    await micReady(page)
+    await say(page, 'I went to the park yesterday')
+    await expect(first(page).locator('.heard')).toHaveText('이번엔 잘 들렸어요')
+    expect(await page.locator('.msg.me').nth(1).innerText()).toBe(secondText)
+    expect(requests).toHaveLength(n)
+    expect(errors).toEqual([])
+  })
+
+  test('다시 해 보기 결과는 새로고침 뒤 이어서 해도 남는다', async ({ page, context }) => {
+    const { errors } = await missOnce(page, context)
+    await first(page).locator('.btn-retry-say').click()
+    await micReady(page)
+    await say(page, 'I went to the park yesterday')
+    await expect(first(page).locator('.heard')).toHaveText('이번엔 잘 들렸어요')
+    // 임시 저장에도 다시 해 보기 결과가 들어간다
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const tab = sessionStorage.getItem('englishFriend.tabId')
+          const d = JSON.parse(localStorage.getItem('englishFriend.draft.' + tab) ?? '{}') as { messages?: { retry?: { heardWell: boolean } }[] }
+          return d.messages?.find((m) => m.retry)?.retry?.heardWell ?? null
+        }),
+      )
+      .toBe(true)
+    await page.reload()
+    await page.click('#btnDraftResume')
+    await expect(first(page).locator('.heard')).toHaveText('이번엔 잘 들렸어요')
     expect(errors).toEqual([])
   })
 })

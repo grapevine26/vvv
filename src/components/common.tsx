@@ -34,8 +34,9 @@ export function MiniButton({ label, icon, onClick, ariaLabel, disabled, classNam
   )
 }
 
-// 발음 피드백: 목표 문장에서 안 들린 단어를 표시한다. 다 들렸으면 아무것도 그리지 않는다
-export function WordMarks({ goal, said }: { goal: string; said: string }) {
+// 발음 피드백: 목표 문장에서 안 들린 단어를 표시한다. 다 들렸으면 아무것도 그리지 않는다.
+// onPlayWord가 있으면 안 들린 단어를 눌러 그 단어만 천천히 들을 수 있다
+export function WordMarks({ goal, said, onPlayWord }: { goal: string; said: string; onPlayWord?: (word: string) => void }) {
   const marks = diffWords(goal, said)
   if (marks.every((m) => m.ok)) return null
   return (
@@ -43,12 +44,31 @@ export function WordMarks({ goal, said }: { goal: string; said: string }) {
       <span className="wm-label" lang="ko">
         덜 들린 단어:
       </span>{' '}
-      {marks.map((m, i) => (
-        <span key={i} className={m.ok ? 'wm ok' : 'wm miss'}>
-          {m.word}
-          {m.ok ? '' : <span className="sr-only"> (안 들림)</span>}
-        </span>
-      ))}
+      {marks.map((m, i) => {
+        const word = m.word.replace(/[.,!?;:]+$/, '')
+        if (!m.ok && onPlayWord)
+          return (
+            <button
+              key={i}
+              type="button"
+              className="wm miss"
+              aria-label={`${word} 천천히 듣기`}
+              onClick={(e) => {
+                e.stopPropagation()
+                onPlayWord(word)
+              }}
+            >
+              {m.word}
+              <span className="sr-only"> (안 들림)</span>
+            </button>
+          )
+        return (
+          <span key={i} className={m.ok ? 'wm ok' : 'wm miss'}>
+            {m.word}
+            {m.ok ? '' : <span className="sr-only"> (안 들림)</span>}
+          </span>
+        )
+      })}
     </div>
   )
 }

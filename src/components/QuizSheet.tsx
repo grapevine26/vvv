@@ -468,7 +468,7 @@ function Feedback({ item, answer, kind, onPlay }: { item: Pair; answer: Answer; 
       {kind === 'speak' && answer.said && (
         <div className="qz-heard">
           이렇게 들렸어요: <span lang="en">"{answer.said}"</span>
-          <WordMarks goal={item.en} said={answer.said} />
+          <WordMarks goal={item.en} said={answer.said} onPlayWord={(w) => onPlay([{ text: w, lang: 'en' }], true)} />
         </div>
       )}
       <div className="qz-answer">

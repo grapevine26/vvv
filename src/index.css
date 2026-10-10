@@ -883,6 +883,18 @@ button.follow-btn::after { content: ''; position: absolute; inset: -10px -4px; }
 .wm-label { font-weight: 600; }
 .wm { display: inline-block; margin: 0 2px; padding: 0 4px; border-radius: 6px; }
 .wm.ok { color: var(--muted); }
+button.wm.miss { border: none; font: inherit; cursor: pointer; }
+.btn-retry-say {
+  margin-top: 6px;
+  min-height: 32px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--border-strong);
+  background: var(--raised);
+  color: var(--sub);
+  font-size: 12px;
+  font-weight: 700;
+}
 .wm.miss { color: var(--hot); background: var(--hot-soft); font-weight: 700; text-decoration: underline wavy; text-underline-offset: 3px; }
 
 .msg.error .msg-avatar { background: var(--hot-soft); color: var(--hot); }

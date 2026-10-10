@@ -60,7 +60,7 @@ import {
   storageWorks,
 } from './lib/storage'
 import { applyImportedSettings, mergeImported, type TransferData } from './lib/transfer'
-import { localDate, normWords, overlap, ro, same, turnSegments } from './lib/text'
+import { localDate, normWords, overlap, ro, same, splitByScript, turnSegments } from './lib/text'
 import type { Content, Draft, FixTarget, HelpKind, Lang, Message, Pair, Progress, Segment, Settings } from './lib/types'
 
 // 복습·퀴즈는 창이 아니라 아래 독의 한 칸(탭)이다
@@ -860,6 +860,21 @@ export default function App() {
     void aiTurn()
   }
 
+  // 다시 해 보기: 목표 문장을 천천히 들려준 뒤 다시 듣고, 그 말풍선의 결과만 바꾼다 (AI·대화 셈에는 넣지 않음)
+  const retryMine = async (id: number) => {
+    const m = messages.find((x) => x.id === id)
+    if (!m || m.kind !== 'me' || !m.goal || busyRef.current) return
+    const goal = m.goal
+    const done = await play(splitByScript(goal), true)
+    if (!done || !activeRef.current) return
+    startMic('en', (said) =>
+      setMessages((prev) =>
+        prev.map((x) => (x.id === id && x.kind === 'me' ? { ...x, retry: { said, heardWell: overlap(goal, said) >= 0.7 } } : x)),
+      ),
+    )
+  }
+  const playWord = (word: string) => void play([{ text: word, lang: 'en' }], true)
+
   const pickHint = (h: Pair) => {
     pickedHintRef.current = h.en
     setPickedHint(h.en)
@@ -1075,6 +1090,9 @@ export default function App() {
                     heardWell={m.heardWell}
                     goal={m.goal}
                     help={m.help}
+                    retry={m.retry}
+                    onPlayWord={playWord}
+                    onRetry={() => void retryMine(m.id)}
                   />
                 )
               return (

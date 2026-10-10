@@ -155,9 +155,13 @@ interface UserBubbleProps {
   goal?: string
   // 구조 버튼으로 보낸 말
   help?: HelpKind
+  // 다시 해 보기로 다시 말한 결과 (AI에는 보내지 않음)
+  retry?: { said: string; heardWell: boolean }
+  onPlayWord?: (word: string) => void
+  onRetry?: () => void
 }
 
-export function UserBubble({ text, lang, isRepeat, fromHint, heardWell, goal, help }: UserBubbleProps) {
+export function UserBubble({ text, lang, isRepeat, fromHint, heardWell, goal, help, retry, onPlayWord, onRetry }: UserBubbleProps) {
   const tag = help ? '도움 요청' : isRepeat ? '따라 말하기' : fromHint ? '대답 예시' : lang === 'ko' ? '한국어' : TARGET.label
   return (
     <div className="msg me">
@@ -174,7 +178,13 @@ export function UserBubble({ text, lang, isRepeat, fromHint, heardWell, goal, he
           </div>
         )}
       </div>
-      {goal && <WordMarks goal={goal} said={text} />}
+      {retry?.heardWell && <div className="heard">이번엔 잘 들렸어요</div>}
+      {goal && <WordMarks goal={goal} said={retry?.said ?? text} onPlayWord={onPlayWord} />}
+      {goal && onRetry && !heardWell && !retry?.heardWell && (
+        <button type="button" className="btn-retry-say" onClick={onRetry}>
+          🔁 다시 해 보기
+        </button>
+      )}
     </div>
   )
 }
