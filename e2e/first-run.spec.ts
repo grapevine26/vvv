@@ -147,7 +147,7 @@ test.describe('1) 키 없는 첫 화면', () => {
     // 1단계 첫 단원부터
     await expect(page.locator('#courseCard')).toContainText('1단계 · 첫걸음')
     // 화면 글자는 쉬운 우리말
-    await expect(page.locator('#courseCard .hero-badge')).toHaveText(/^오늘의 단원 dd$/)
+    await expect(page.locator('#courseCard .hero-badge')).toHaveText(/^오늘의 단원 \d\d$/)
     await expect(page.locator('#btnListen b')).toHaveText('듣고 따라 하기')
     await expect(page.locator('#courseCard .hero-title')).toHaveText('인사와 자기소개')
     // 처음엔 오늘 할 일·연속 일수·승급 진행이 없다
