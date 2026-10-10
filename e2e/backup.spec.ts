@@ -138,7 +138,7 @@ test.describe('4) 기록 백업', () => {
     expect(errors).toEqual([])
   })
 
-  test('저장한 파일을 다른 기기(새 context)에서 되살리면 문장장·진도가 합쳐지고, 키 없는 기기면 키 안내', async ({
+  test('저장한 파일을 다른 기기(새 context)에서 되살리면 내 문장 노트·진도가 합쳐지고, 키 없는 기기면 키 안내', async ({
     page,
     context,
     browser,

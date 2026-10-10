@@ -664,7 +664,7 @@ export default function App() {
   }
 
   const closeSheet = () => {
-    // 마무리·문장장 카드에서 켠 마이크가 시트를 닫은 뒤에도 듣고 있지 않게, 읽던 소리도 멈춘다
+    // 마무리·내 문장 노트 카드에서 켠 마이크가 시트를 닫은 뒤에도 듣고 있지 않게, 읽던 소리도 멈춘다
     stopListening()
     stopSpeaking()
     setSheet(null)
@@ -906,7 +906,7 @@ export default function App() {
     showToast(`「${title}」${ro(title)} 정했어요. 시작하기를 누르세요.`)
   }
 
-  // ── 설정·옮기기·문장장 ──
+  // ── 설정·옮기기·내 문장 노트 ──
   const saveNewSettings = (next: Settings) => {
     // 키 확인을 기다리는 사이 창을 닫았으면 저장하지 않는다 ('저장 안 함'을 고른 것)
     if (sheetRef.current !== 'settings') return
@@ -921,7 +921,7 @@ export default function App() {
     else if (returnTo) openSheet(returnTo)
   }
 
-  // 다른 기기에서 가져온 문장장·진도는 합치고, 설정은 키·목소리만 빼고 맞춘다
+  // 다른 기기에서 가져온 내 문장 노트·진도는 합치고, 설정은 키·목소리만 빼고 맞춘다
   const importData = (data: TransferData) => {
     const { list, added } = mergeImported(freshLearned(), data.learned)
     setLearned(list)
@@ -934,7 +934,7 @@ export default function App() {
     return { added, total: list.length }
   }
 
-  // 듣기 연습에서 고른 문장을 문장장에 더한다 (다른 탭 기록과 합쳐서)
+  // 듣기 연습에서 고른 문장을 내 문장 노트에 더한다 (다른 탭 기록과 합쳐서)
   const saveSentences = (pairs: Pair[]): number => {
     const { list, added } = mergeLearned(freshLearned(), pairs, localDate())
     setLearned(list)
@@ -943,7 +943,7 @@ export default function App() {
   }
 
   const clearBook = () => {
-    if (!window.confirm('문장장을 모두 지울까요? 되돌릴 수 없어요.')) return
+    if (!window.confirm('내 문장 노트를 모두 지울까요? 되돌릴 수 없어요.')) return
     setLearned([])
     saveLearned([])
   }
@@ -1079,6 +1079,7 @@ export default function App() {
               notice={micNotice}
               errorFix={lastMsg?.kind === 'error' ? lastMsg.fix : undefined}
               firstTime={progress.sessions.length === 0}
+              stage={session.stage}
               veiled={!!lastAi && lastAi.kind === 'ai' && lastAi.veiled}
               onMic={(lang) => startMic(lang, (text) => sendUser(text, lang))}
               onCancelListen={stopListening}

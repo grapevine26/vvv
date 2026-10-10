@@ -725,7 +725,7 @@ test.describe('카카오톡·저장소가 막힌 브라우저', () => {
     await expect(page.locator('#composer')).toBeVisible()
     await page.click('#btnEnd')
     await page.click('#btnFinish')
-    await expect(page.locator('#startMsg')).toContainText('1문장을 문장장에 저장했어요')
+    await expect(page.locator('#startMsg')).toContainText('1문장을 내 문장 노트에 저장했어요')
     await expect(page.locator('#todayLine')).toContainText('1분 /')
     expect(errors).toEqual([])
   })

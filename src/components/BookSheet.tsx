@@ -32,7 +32,7 @@ export function BookSheet({ learned, initialReview, onPlay, onMic, onCheck, onTo
   return (
     <Sheet
       id="bookSheet"
-      title={reviewing ? '오늘 복습' : '내 문장장'}
+      title={reviewing ? '오늘 복습' : '내 문장 노트'}
       onClose={onClose}
       footer={
         reviewing ? (
@@ -96,7 +96,7 @@ export function BookSheet({ learned, initialReview, onPlay, onMic, onCheck, onTo
             </button>
             {learned.length > 0 && (
               <button className="link danger" id="btnBookClear" type="button" onClick={onClear}>
-                문장장 모두 지우기
+                내 문장 노트 모두 지우기
               </button>
             )}
           </div>

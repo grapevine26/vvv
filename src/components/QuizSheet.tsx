@@ -21,7 +21,7 @@ import { MiniButton, Sheet, WordMarks } from './common'
 import type { Mic, Play } from './WrapSheet'
 import './quiz.css'
 
-// 2) 5분 복습 퀴즈: 문장장 문장으로 듣고 뜻 고르기·뜻 보고 말하기·단어 순서 맞추기
+// 2) 5분 복습 퀴즈: 내 문장 노트의 문장으로 듣고 뜻 고르기·뜻 보고 말하기·단어 순서 맞추기
 export interface QuizProps {
   learned: LearnedItem[]
   settings: Settings
@@ -145,7 +145,7 @@ function Intro({ learned, picked, stats, onAhead }: { learned: Pair[]; picked: P
     return (
       <div className="qz-empty" id="qzEmpty">
         <BookOpen className="qz-empty-ico" aria-hidden="true" />
-        <p className="qz-lead">아직 문장장이 비어 있어요.</p>
+        <p className="qz-lead">아직 내 문장 노트가 비어 있어요.</p>
         <p className="muted">대화를 마치고 저장하면 여기에 모여요. 따라 말한 문장으로 퀴즈를 내 줄게요.</p>
       </div>
     )

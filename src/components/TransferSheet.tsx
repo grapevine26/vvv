@@ -290,7 +290,7 @@ export function TransferSheet({ learned, settings, progress, onImport, onNeedKey
             받는 기기에서 그 코드를 길게 눌러 복사 → <b>가져오기</b>
           </li>
         </ol>
-        <p className="note">문장장·설정·교육과정 진도가 합쳐져요. Gemini 키와 목소리는 기기마다 따로 정해요.</p>
+        <p className="note">내 문장 노트·설정·교육과정 진도가 합쳐져요. Gemini 키와 목소리는 기기마다 따로 정해요.</p>
         <div className="tools two">
           <button className="secondary" id="btnExport" type="button" onClick={doExport}>
             <Upload className="ico" aria-hidden="true" />

@@ -1,7 +1,7 @@
 import { expect, test, type BrowserContext, type Page } from '@playwright/test'
 import { collectErrors, horizontalOverflow, installMocks, lastRec, say, spoken, storageGet } from './helpers'
 
-// 5분 복습 퀴즈: 문장장 문장을 라이트너 상자로 다시 꺼내 본다. AI는 부르지 않는다.
+// 5분 복습 퀴즈: 내 문장 노트의 문장을 라이트너 상자로 다시 꺼내 본다. AI는 부르지 않는다.
 // 날짜가 걸려 있어서 한국 시간 2026-10-08 오전 10시에서 시작하는 가짜 시계로 돈다
 test.use({ timezoneId: 'Asia/Seoul' })
 const NOW = new Date('2026-10-08T10:00:00+09:00')
@@ -181,7 +181,7 @@ test('퀴즈 끝까지: 세 종류를 맞히고 틀리고, 결과·저장값, �
   expect(errors).toEqual([])
 })
 
-test('문장장이 비었으면 모으는 방법을 알려 준다', async ({ page, context }) => {
+test('내 문장 노트가 비었으면 모으는 방법을 알려 준다', async ({ page, context }) => {
   const { errors } = await open(page, context, [])
   await page.click('#btnQuiz')
   await expect(page.locator('#qzEmpty')).toContainText('대화를 마치고 저장하면 여기에 모여요')

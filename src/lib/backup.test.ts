@@ -68,7 +68,7 @@ describe('backupDueAt', () => {
 })
 
 describe('oldestRecordDate', () => {
-  it('문장장·대화 기록·공부한 날 가운데 가장 이른 날짜', () => {
+  it('내 문장 노트·대화 기록·공부한 날 가운데 가장 이른 날짜', () => {
     const p: Progress = {
       ...progress,
       sessions: [{ id: 'a', date: '2026-10-03', stage: 1, unit: 's1-1', minutes: 5, turns: 1, koTurns: 0, enOwnTurns: 1, enOwnWords: 2, repeatTurns: 0 }],

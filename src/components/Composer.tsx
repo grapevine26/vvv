@@ -20,6 +20,8 @@ interface Props {
   errorFix: FixTarget | undefined
   firstTime: boolean
   veiled: boolean
+  // 교육과정 단계: 4단계부터는 한국어 버튼을 작게 줄여 영어로 대답하는 쪽을 앞세운다
+  stage: number
   onMic: (lang: Lang) => void
   onCancelListen: () => void
   onStopSpeaking: () => void
@@ -27,9 +29,12 @@ interface Props {
 }
 
 const IDLE_LABEL: Record<Lang, string> = { ko: '한국어로 말하기', en: `${TARGET.label}로 대답하기 (추천)` }
+// 이 단계부터 한국어 버튼은 작은 보조 버튼 (1~3단계는 한국어로 대답하고 따라 말하며 배우는 게 기본)
+const KO_SMALL_FROM = 4
 
 export function Composer(props: Props) {
-  const { friendName, phase, listening, interim, pendingRepeat, pickedHint, notice, errorFix, firstTime, veiled } = props
+  const { friendName, phase, listening, interim, pendingRepeat, pickedHint, notice, errorFix, firstTime, veiled, stage } = props
+  const koSmall = stage >= KO_SMALL_FROM
   const { onMic, onCancelListen, onStopSpeaking, onSend } = props
   const [text, setText] = useState('')
   const [typing, setTyping] = useState(false)
@@ -80,7 +85,10 @@ export function Composer(props: Props) {
     const classes = ['mic', lang]
     if (lang === 'en' && phase === 'yourTurn' && target) classes.push('recommend')
     if (listening === lang) classes.push('listening')
-    const label = listening === lang ? '듣는 중… 누르면 보내기' : busy ? `${friendName} 생각 중…` : IDLE_LABEL[lang]
+    const small = lang === 'ko' && koSmall
+    if (small) classes.push('small-ko')
+    const label =
+      listening === lang ? (small ? '듣는 중…' : '듣는 중… 누르면 보내기') : busy ? (small ? '…' : `${friendName} 생각 중…`) : small ? '한국어' : IDLE_LABEL[lang]
     return (
       <button
         id={lang === 'ko' ? 'micKo' : 'micEn'}
@@ -122,7 +130,7 @@ export function Composer(props: Props) {
           {interim}
         </div>
       )}
-      <div className="mics">
+      <div className={`mics${koSmall ? ' en-first' : ''}`}>
         {micButton('ko')}
         {micButton('en')}
       </div>

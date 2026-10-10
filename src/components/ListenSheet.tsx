@@ -17,7 +17,7 @@ export interface ListenProps {
   learned: LearnedItem[]
   onPlay: Play
   onMic: Mic
-  // 문장장에 더하고, 새로 더한 개수를 돌려준다
+  // 내 문장 노트에 더하고, 새로 더한 개수를 돌려준다
   onSaveSentences: (pairs: Pair[]) => number
   // 키·모델 문제면 설정을 연다
   // 키·모델 문제면 그 칸이 열린 설정을 연다
@@ -142,7 +142,7 @@ export function ListenSheet({ settings, progress, learned, onPlay, onMic, onSave
     const pairs = story.sentences.filter((s) => picked.has(s.en) && !inBook(s.en))
     const added = onSaveSentences(pairs)
     setPicked(new Set())
-    setSavedText(added > 0 ? `문장장에 ${added}개 더했어요. 대화할 때 다시 연습해요.` : '새로 더한 문장이 없어요. 이미 문장장에 있어요.')
+    setSavedText(added > 0 ? `내 문장 노트에 ${added}개 더했어요. 대화할 때 다시 연습해요.` : '새로 더한 문장이 없어요. 이미 내 문장 노트에 있어요.')
   }
 
   const togglePick = (en: string) =>
@@ -228,7 +228,7 @@ export function ListenSheet({ settings, progress, learned, onPlay, onMic, onSave
               <b>한 문장씩 따라 말하기</b> 듣고, 마이크를 눌러 똑같이 말하기
             </li>
             <li>
-              <b>마음에 드는 문장 저장</b> 문장장에 넣어 두고 다시 연습하기
+              <b>마음에 드는 문장 저장</b> 내 문장 노트에 넣어 두고 다시 연습하기
             </li>
           </ol>
 
@@ -331,7 +331,7 @@ export function ListenSheet({ settings, progress, learned, onPlay, onMic, onSave
           <DoneSummary total={story.sentences.length} heard={heard} />
 
           <h3 className="lsn-step">③ 마음에 드는 문장 저장</h3>
-          <p className="note">문장장에 넣어 두면 대화할 때 친구가 다시 연습시켜 줘요.</p>
+          <p className="note">내 문장 노트에 넣어 두면 대화할 때 친구가 다시 연습시켜 줘요.</p>
           <ul className="lsn-picks" id="lsnPicks">
             {story.sentences.map((s) => {
               const already = inBook(s.en)
@@ -352,7 +352,7 @@ export function ListenSheet({ settings, progress, learned, onPlay, onMic, onSave
                       {already && (
                         <span className="lsn-tag">
                           <CircleCheck className="ico" aria-hidden="true" />
-                          문장장에 있어요
+                          내 문장 노트에 있어요
                         </span>
                       )}
                     </span>
@@ -364,7 +364,7 @@ export function ListenSheet({ settings, progress, learned, onPlay, onMic, onSave
           {!allInBook && (
             <button className="primary wide" id="lsnSave" type="button" disabled={picked.size === 0} onClick={save}>
               <BookmarkPlus className="ico" aria-hidden="true" />
-              {picked.size > 0 ? `고른 ${picked.size}문장 문장장에 저장` : '저장할 문장을 골라 주세요'}
+              {picked.size > 0 ? `고른 ${picked.size}문장 내 문장 노트에 저장` : '저장할 문장을 골라 주세요'}
             </button>
           )}
           {savedText && (

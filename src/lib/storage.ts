@@ -73,7 +73,7 @@ export const loadProgress = (): Progress => sanitizeProgress(read(KEY_PROGRESS))
 
 export const saveProgress = (p: Progress): boolean => write(KEY_PROGRESS, p)
 
-// 오늘 따라 한 문장 중 처음 보는 것만 문장장에 더한다
+// 오늘 따라 한 문장 중 처음 보는 것만 내 문장 노트에 더한다
 export function mergeLearned(learned: LearnedItem[], repeats: Pair[], today: string): { list: LearnedItem[]; added: number } {
   const list = learned.slice()
   let added = 0

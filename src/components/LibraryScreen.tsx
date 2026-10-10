@@ -28,7 +28,7 @@ function ownRatio(progress: Progress, today: string): { ratio: number | null; ch
   return { ratio: all > 0 ? en / all : null, change }
 }
 
-// 내 서재: 문장장 & 성장 통계, 그리고 교육과정·기록·설정·옮기기로 가는 길
+// 내 서재: 내 문장 노트 & 성장 통계, 그리고 교육과정·기록·설정·옮기기로 가는 길
 export function LibraryScreen({ inert, learned, progress, today, onPlay, onBook, onCourse, onProgress, onSettings, onTransfer }: Props) {
   const { ratio, change } = ownRatio(progress, today)
   const recent = learned.slice(-3).reverse()
@@ -41,7 +41,7 @@ export function LibraryScreen({ inert, learned, progress, today, onPlay, onBook,
   return (
     <section className="screen library" id="libraryScreen" inert={inert}>
       <div className="page-head">
-        <h2>내 문장장 &amp; 성장 통계</h2>
+        <h2>내 문장 노트 &amp; 성장 통계</h2>
         <span className="page-head-side">총 {learned.length}문장</span>
       </div>
 
@@ -81,7 +81,7 @@ export function LibraryScreen({ inert, learned, progress, today, onPlay, onBook,
 
       <div className="lib-menu">
         <button className="lib-btn" id="btnStartBook" type="button" onClick={onBook}>
-          <span aria-hidden="true">📒</span> 문장장 전체 보기 · 복습하기
+          <span aria-hidden="true">📒</span> 내 문장 노트 전체 보기 · 복습하기
         </button>
         <button className="lib-btn" id="btnStartCourse" type="button" onClick={onCourse}>
           <span aria-hidden="true">🗺️</span> 교육과정 · 단원 고르기

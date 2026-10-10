@@ -23,12 +23,12 @@ export interface CommitResult {
   message: string
 }
 
-// 대화 한 번을 문장장과 진도에 반영한다.
+// 대화 한 번을 내 문장 노트와 진도에 반영한다.
 // learned·progress는 저장 직전에 저장소에서 다시 읽은 최신 값을 넘긴다 (다른 탭에서 저장한 것을 덮어쓰지 않게)
 // today는 결과 문구의 '오늘'을 정한다 (어제 남은 대화를 오늘 저장할 수도 있다)
 export function commitSession(data: SessionData, learned: LearnedItem[], progress: Progress, today = localDate()): CommitResult {
   const { list, added } = mergeLearned(learned, data.repeats, data.date)
-  const parts = [added ? `${added}문장을 문장장에 저장했어요.` : '수고했어요.']
+  const parts = [added ? `${added}문장을 내 문장 노트에 저장했어요.` : '수고했어요.']
   if (data.stats.turns === 0) {
     if (!added) parts.push('한 번도 대답하지 않아서 기록할 게 없어요.')
     return { learned: list, progress, added, recorded: false, unitDone: false, message: parts.join(' ') }

@@ -14,7 +14,7 @@ import {
   systemText,
 } from './helpers'
 
-// 듣고 따라 말하기(쉐도잉): 이야기 만들기 → 전체 듣기 → 한 문장씩 따라 말하기 → 문장장 저장 → 다른 이야기,
+// 듣고 따라 말하기(쉐도잉): 이야기 만들기 → 전체 듣기 → 한 문장씩 따라 말하기 → 내 문장 노트 저장 → 다른 이야기,
 // 오류(키 권한·서버 바쁨·이상한 답), 그만두기, 키 없을 때, 지난 이야기 다시 듣기
 
 const STORY = {
@@ -59,7 +59,7 @@ async function open(page: Page, context: BrowserContext, storage: Record<string,
 
 const sheet = (page: Page) => page.locator('#listenSheet')
 
-test('흐름 전체: 이야기 만들기 → 듣기 → 따라 말하기 → 문장장 저장 → 다른 이야기', async ({ page, context }) => {
+test('흐름 전체: 이야기 만들기 → 듣기 → 따라 말하기 → 내 문장 노트 저장 → 다른 이야기', async ({ page, context }) => {
   const { queue, requests, errors } = await open(page, context)
   await expect(page.locator('#lsnUnit')).toContainText('1단계')
   await expect(page.locator('#lsnUnit')).toContainText('좋아하는 음식')
@@ -147,7 +147,7 @@ test('흐름 전체: 이야기 만들기 → 듣기 → 따라 말하기 → 문
   await expect(page.locator('#lsnNext')).toContainText('다 했어요')
   await page.click('#lsnNext')
 
-  // ③ 끝: 요약, 문장장에 이미 있는 문장은 고를 수 없다
+  // ③ 끝: 요약, 내 문장 노트에 이미 있는 문장은 고를 수 없다
   await expect(page.locator('#lsnSummary')).toContainText('4문장 중 2문장을 따라 말했고, 1문장이 잘 들렸어요')
   const picks = page.locator('#lsnPicks input[type=checkbox]')
   await expect(picks).toHaveCount(4)
@@ -157,16 +157,16 @@ test('흐름 전체: 이야기 만들기 → 듣기 → 따라 말하기 → 문
   await picks.nth(3).uncheck()
   await expect(page.locator('#lsnSave')).toContainText('고른 2문장')
   await page.click('#lsnSave')
-  await expect(page.locator('#lsnSaved')).toContainText('문장장에 2개 더했어요')
+  await expect(page.locator('#lsnSaved')).toContainText('내 문장 노트에 2개 더했어요')
   const learned = (await storageGet(page, K.learned)) as { en: string }[]
   expect(learned.map((l) => l.en)).toEqual(['I like pizza.', 'I am very hungry.', 'I like hot soup.'])
-  // 저장한 문장은 이제 '문장장에 있어요'
+  // 저장한 문장은 이제 '내 문장 노트에 있어요'
   await expect(page.locator('#lsnPicks .lsn-tag')).toHaveCount(3)
   // 남은 한 문장은 고르지 않았으니 버튼은 꺼져 있다. 그것까지 저장하면 버튼이 사라진다
   await expect(page.locator('#lsnSave')).toBeDisabled()
   await picks.nth(3).check()
   await page.click('#lsnSave')
-  await expect(page.locator('#lsnSaved')).toContainText('문장장에 1개 더했어요')
+  await expect(page.locator('#lsnSaved')).toContainText('내 문장 노트에 1개 더했어요')
   await expect(page.locator('#lsnSave')).toHaveCount(0)
 
   // 다른 이야기: 방금 들은 제목은 피해 달라고 한다

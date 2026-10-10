@@ -312,10 +312,10 @@ test.describe('마무리', () => {
     await expect(page.locator('#startSheet')).toBeVisible()
     await expect(page.locator('#composer')).toHaveCount(0)
     const msg = page.locator('#startMsg')
-    await expect(msg).toHaveText('3문장을 문장장에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번). 오늘 1분.')
+    await expect(msg).toHaveText('3문장을 내 문장 노트에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번). 오늘 1분.')
     await expect(msg).toHaveClass(/good/)
     await expect(page.locator('#todayLine')).toContainText('1분 / 15분')
-    // 문장장·진도 저장
+    // 내 문장 노트·진도 저장
     const learned = (await storageGet(page, K.learned)) as { en: string; ko: string; date: string }[]
     expect(learned).toEqual([
       { en: "I'm fine.", ko: '난 괜찮아.', date: TODAY },
@@ -532,7 +532,7 @@ test.describe('시간 배너', () => {
 // ─────────────────────────────────────────────
 
 test.describe('뒤로 가기', () => {
-  test('시작 화면에서 창(문장장)이 열려 있으면 뒤로는 그 창만 닫고 앱에 남는다', async ({ page, context }) => {
+  test('시작 화면에서 창(내 문장 노트)이 열려 있으면 뒤로는 그 창만 닫고 앱에 남는다', async ({ page, context }) => {
     const { errors } = await open(page, context)
     const url = page.url()
     await page.click('#tab-library')
@@ -586,7 +586,7 @@ test.describe('뒤로 가기', () => {
     await expect.poll(() => asked.length).toBe(2)
     await expect(page.locator('#startSheet')).toBeVisible()
     await expect(page.locator('#wrapSheet')).toHaveCount(0)
-    await expect(page.locator('#startMsg')).toHaveText('1문장을 문장장에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 1번). 오늘 1분.')
+    await expect(page.locator('#startMsg')).toHaveText('1문장을 내 문장 노트에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 1번). 오늘 1분.')
     expect((await progressIn(page))?.sessions).toHaveLength(1)
     expect(await learnedEn(page)).toEqual(["I'm fine."])
     expect(await draftKeys(page)).toEqual([])
@@ -768,7 +768,7 @@ test.describe('임시 저장', () => {
     await page.click('#btnDraftSave')
     await expect(page.locator('#draftCard')).toHaveCount(0)
     await expect(page.locator('#btnStart')).toHaveText('지금 Emma와 수다 떨기')
-    await expect(page.locator('#startMsg')).toHaveText('2문장을 문장장에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번). 오늘 1분.')
+    await expect(page.locator('#startMsg')).toHaveText('2문장을 내 문장 노트에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번). 오늘 1분.')
     const p = await progressIn(page)
     expect(p?.sessions).toHaveLength(1)
     expect(p?.sessions[0]).toMatchObject({ date: TODAY, unit: 's1-1', turns: 2, koTurns: 1, repeatTurns: 1, minutes: 1 })
@@ -885,7 +885,7 @@ test.describe('임시 저장', () => {
     // 시작 화면: 어제 기록이라 오늘은 0분
     await expectToday(page, '1일 연속 · 오늘 0분 / 목표 15분')
     const msg = page.locator('#startMsg')
-    await expect(msg).toContainText('1문장을 문장장에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번).')
+    await expect(msg).toContainText('1문장을 내 문장 노트에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번).')
     // 결과 문구가 어제 한 3분을 '오늘 3분'이라고 하면 바로 위 '오늘 0분'과 어긋난다
     await expect(msg).not.toContainText('오늘 3분')
     await expect(msg).toContainText('10월 7일 기록으로 남겼어요.')
@@ -898,7 +898,7 @@ test.describe('임시 저장', () => {
 // ─────────────────────────────────────────────
 
 test.describe('두 탭', () => {
-  test('A가 대화 중이면 B 시작 화면에 안내 → A가 저장하고 끝내면 B 화면(오늘 분·문장장)이 바로 바뀌고 안내가 사라진다', async ({
+  test('A가 대화 중이면 B 시작 화면에 안내 → A가 저장하고 끝내면 B 화면(오늘 분·내 문장 노트)이 바로 바뀌고 안내가 사라진다', async ({
     page,
     context,
   }) => {
@@ -925,7 +925,7 @@ test.describe('두 탭', () => {
     // A: 저장하고 끝내기
     await page.click('#btnEnd')
     await page.click('#btnFinish')
-    await expect(page.locator('#startMsg')).toContainText('1문장을 문장장에 저장했어요.')
+    await expect(page.locator('#startMsg')).toContainText('1문장을 내 문장 노트에 저장했어요.')
 
     // B: 새로고침 없이 갱신 (storage 이벤트)
     await expect(b.page.locator('#busyElsewhere')).toHaveCount(0)
@@ -938,7 +938,7 @@ test.describe('두 탭', () => {
     expect(b.errors).toEqual([])
   })
 
-  test('A·B가 동시에 대화하고 차례로 저장: B가 A의 문장·기록을 덮어쓰지 않는다 (문장장 합집합, 기록 2개)', async ({
+  test('A·B가 동시에 대화하고 차례로 저장: B가 A의 문장·기록을 덮어쓰지 않는다 (내 문장 노트 합집합, 기록 2개)', async ({
     page,
     context,
   }) => {
@@ -967,7 +967,7 @@ test.describe('두 탭', () => {
     await page.bringToFront()
     await page.click('#btnEnd')
     await page.click('#btnFinish')
-    await expect(page.locator('#startMsg')).toContainText('1문장을 문장장에 저장했어요.')
+    await expect(page.locator('#startMsg')).toContainText('1문장을 내 문장 노트에 저장했어요.')
     expect(await learnedEn(page)).toEqual(['I like coffee.'])
 
     // B 나중에 저장 → A의 것과 합쳐진다
@@ -975,7 +975,7 @@ test.describe('두 탭', () => {
     await b.page.click('#btnEnd')
     await b.page.click('#btnFinish')
     await expect(b.page.locator('#startMsg')).toHaveText(
-      '1문장을 문장장에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번). 오늘 2분.',
+      '1문장을 내 문장 노트에 저장했어요. 「인사와 자기소개」 단원은 대화 한 번에 5번 주고받으면 마쳐요 (이번엔 2번). 오늘 2분.',
     )
     expect((await learnedEn(b.page)).sort()).toEqual(['I like coffee.', 'I like tea.'])
     const p = await progressIn(b.page)
@@ -1165,7 +1165,7 @@ test.describe('나가기 경고', () => {
 
 const ROUTINE_1 = [
   '앱 대화 15분',
-  '문장장 문장을 듣고 소리 내어 따라 하기 10분',
+  '내 문장 노트의 문장을 듣고 소리 내어 따라 하기 10분',
   '유아용 영어 애니메이션을 영어 자막으로 20분 (다 못 알아들어도 괜찮아요. 소리에 익숙해지는 게 목표)',
 ]
 
@@ -1249,7 +1249,7 @@ test.describe('오늘 할 일', () => {
     expect(errors).toEqual([])
   })
 
-  test('"하러 가기"는 문장장 복습 화면을 바로 연다', async ({ page, context }) => {
+  test('"하러 가기"는 내 문장 노트 복습 화면을 바로 연다', async ({ page, context }) => {
     const learned = [
       { en: 'I like summer.', ko: '나는 여름이 좋아.', date: day(-7) },
       { en: "It's cold.", ko: '추워.', date: day(-3) },
@@ -1258,7 +1258,7 @@ test.describe('오늘 할 일', () => {
     const { errors } = await open(page, context, {
       storage: { [K.progress]: progressOf(log(day(-1), 10)), [K.learned]: learned },
     })
-    // 문장장 항목에만 버튼이 있다
+    // 내 문장 노트 항목에만 버튼이 있다
     await expect(page.locator('#todayRoutine button')).toHaveCount(1)
     const go = items(page).nth(1).getByRole('button', { name: '하러 가기' })
     await go.click()
@@ -1267,9 +1267,9 @@ test.describe('오늘 할 일', () => {
     await expect(page.locator('#bookSheet-title')).toHaveText('오늘 복습')
     await expect(page.locator('#reviewBody .read-card .say')).toHaveText(['I like summer.', "It's cold.", 'I want water.'])
     await expect(page.locator('#reviewBody .write-box')).toBeVisible()
-    // 목록으로 → 문장장 목록
+    // 목록으로 → 내 문장 노트 목록
     await page.click('#btnReviewDone')
-    await expect(page.locator('#bookSheet-title')).toHaveText('내 문장장')
+    await expect(page.locator('#bookSheet-title')).toHaveText('내 문장 노트')
     await expect(page.locator('#btnReview')).toHaveText('오늘 복습 3문장')
     expect(errors).toEqual([])
   })

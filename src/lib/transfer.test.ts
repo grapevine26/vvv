@@ -20,7 +20,7 @@ const progress = {
 }
 
 describe('encode/decodeTransfer', () => {
-  it('문장장과 설정이 그대로 돌아온다 (압축 코드)', async () => {
+  it('내 문장 노트와 설정이 그대로 돌아온다 (압축 코드)', async () => {
     const code = await encodeTransfer(learned, settings, progress)
     expect(code.startsWith('EF1.')).toBe(true)
     const data = await decodeTransfer(code)

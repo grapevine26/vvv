@@ -166,6 +166,8 @@ test('단계 안내: 처음 쓰는 사람에게는 따라 할 문장이 없을 �
   await expect(guide(page)).toHaveText(FIRST_TIME_GUIDE)
   await expect(page.locator('#micEn')).not.toHaveClass(/recommend/)
   await expect(page.locator('#micKo .mic-label')).toHaveText('한국어로 말하기')
+  // 1~3단계는 한국어 버튼도 영어 버튼과 같은 크기 (한국어로 대답하고 따라 말하며 배운다)
+  await expect(page.locator('#micKo')).not.toHaveClass(/small-ko/)
   await expect(page.locator('#micEn .mic-label')).toHaveText('영어로 대답하기 (추천)')
   expect(errors).toEqual([])
 })

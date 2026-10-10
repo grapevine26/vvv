@@ -93,14 +93,14 @@ describe('pickReview (복습 문장 고르기)', () => {
 describe('commitSession', () => {
   const data = { repeats: [{ en: "I'm tired.", ko: '피곤해.' }], stats: { ...EMPTY_STATS, turns: 6, enOwnTurns: 4, enOwnWords: 12 }, minutes: 9.6, date: '2026-10-08', stage: 1, unit: 's1-1' }
 
-  it('최신 문장장에 합치고, 단원을 마치고, 결과 문구를 만든다', () => {
+  it('최신 내 문장 노트에 합치고, 단원을 마치고, 결과 문구를 만든다', () => {
     const latest = [{ en: 'Hello.', ko: '안녕', date: '2026-10-07' }]
     const r = commitSession(data, latest, DEFAULT_PROGRESS, '2026-10-08')
     expect(r.learned.map((x) => x.en)).toEqual(['Hello.', "I'm tired."])
     expect(r.unitDone).toBe(true)
     expect(r.progress.unit).toBe('s1-2')
     expect(r.progress.sessions[0].minutes).toBe(10)
-    expect(r.message).toContain('1문장을 문장장에 저장했어요')
+    expect(r.message).toContain('1문장을 내 문장 노트에 저장했어요')
     expect(r.message).toContain('「인사와 자기소개」 단원을 마쳤어요')
     expect(r.message).toContain('오늘 10분')
     expect(r.progress.days).toEqual({ '2026-10-08': 10 })

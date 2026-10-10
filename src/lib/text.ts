@@ -56,7 +56,7 @@ export function fmt(sec: number): string {
   return `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`
 }
 
-// 문장장 날짜는 기기 시간 기준으로 적는다 (UTC로 적으면 한국에선 아침에 어제 날짜가 된다)
+// 내 문장 노트 날짜는 기기 시간 기준으로 적는다 (UTC로 적으면 한국에선 아침에 어제 날짜가 된다)
 export function localDate(d = new Date()): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }

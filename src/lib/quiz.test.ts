@@ -61,7 +61,7 @@ describe('grade: 라이트너 상자', () => {
 
 describe('pickQuiz', () => {
   const learned = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j'].map((x) => item(x))
-  it('빈 문장장이면 빈 목록', () => {
+  it('빈 내 문장 노트가면 빈 목록', () => {
     expect(pickQuiz([], {}, TODAY)).toEqual([])
   })
   it('처음 보는 것만 있으면 최근 것부터 최대 n개', () => {

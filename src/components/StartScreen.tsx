@@ -32,7 +32,7 @@ interface Props {
   draft: Draft | null
   busyElsewhere: boolean
   mic: MicInfo
-  // 이 브라우저에 쌓인 문장장·기록이 있는지 (앱 안 브라우저에서 떠나기 전에 옮기라고 알린다)
+  // 이 브라우저에 쌓인 내 문장 노트·기록이 있는지 (앱 안 브라우저에서 떠나기 전에 옮기라고 알린다)
   hasData: boolean
   // 오래 백업하지 않았으면 안내
   backupDue: boolean
@@ -106,7 +106,7 @@ export function StartScreen(props: Props) {
             : '이 브라우저는 음성 인식이 안 돼요. 크롬이나 엣지에서 열어 주세요. (입력칸에 써서 연습할 수는 있어요)'}
           {mic.inApp && props.hasData && (
             <div className="note" id="inAppData">
-              여기서 쓰던 문장장·진도는 크롬에 없어요. 크롬으로 열기 전에 <b>폰↔PC 옮기기 → 내보내기</b>로 코드를 복사해
+              여기서 쓰던 내 문장 노트·진도는 크롬에 없어요. 크롬으로 열기 전에 <b>폰↔PC 옮기기 → 내보내기</b>로 코드를 복사해
               두고, 크롬에서 가져오기 하세요.{' '}
               <button className="secondary small" id="btnInAppExport" type="button" onClick={props.onTransfer}>
                 코드 복사하러 가기
@@ -325,7 +325,7 @@ export function StartScreen(props: Props) {
                     {/* 앱 대화 시간은 내가 정한 하루 목표로 보여 준다 (자동 체크 기준과 같게) */}
                     <span className={checked ? 'done-text' : ''}>{i === 0 ? r.replace(/앱 대화 \d+분/, `앱 대화 ${minutesGoal}분`) : r}</span>
                   </label>
-                  {r.includes('문장장') && progress.sessions.length > 0 && (
+                  {r.includes('내 문장 노트') && progress.sessions.length > 0 && (
                     <button className="link-go" type="button" onClick={props.onReview}>
                       하러 가기
                     </button>

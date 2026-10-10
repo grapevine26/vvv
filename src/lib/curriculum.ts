@@ -24,7 +24,7 @@ export const STAGES: Stage[] = [
     defaults: { rate: 0.8, showKo: true, repeatAmount: '많이' },
     routine: [
       '앱 대화 15분',
-      '문장장 문장을 듣고 소리 내어 따라 하기 10분',
+      '내 문장 노트의 문장을 듣고 소리 내어 따라 하기 10분',
       '유아용 영어 애니메이션을 영어 자막으로 20분 (다 못 알아들어도 괜찮아요. 소리에 익숙해지는 게 목표)',
     ],
     promote: { ratio: 0.5, words: 3 },
@@ -59,7 +59,7 @@ export const STAGES: Stage[] = [
     defaults: { rate: 0.85, showKo: true, repeatAmount: '보통' },
     routine: [
       '앱 대화 15분',
-      '쉐도잉 10분: 문장장이나 쉬운 영상에서 한 문장 듣고 바로 똑같이 따라 말하기',
+      '쉐도잉 10분: 내 문장 노트나 쉬운 영상에서 한 문장 듣고 바로 똑같이 따라 말하기',
       '쉬운 영어 책(학습자용 그레이디드 리더)이나 학습자용 영상 30분',
     ],
     promote: { ratio: 0.8, words: 5 },

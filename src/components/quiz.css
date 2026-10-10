@@ -9,7 +9,7 @@
 }
 .qz-kinds .ico { color: #6366f1; }
 
-/* 빈 문장장·오늘 다 함 */
+/* 빈 내 문장 노트·오늘 다 함 */
 .qz-empty { text-align: center; padding: 24px 4px 8px; }
 .qz-empty-ico { width: 3rem; height: 3rem; color: #6366f1; }
 .qz-empty-ico.ok { color: var(--ok); }

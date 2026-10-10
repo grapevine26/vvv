@@ -25,7 +25,7 @@ export function markBackup(today: string): boolean {
   return write(KEY_LAST_BACKUP, today)
 }
 
-// 문장장·대화 기록·공부한 날 가운데 가장 이른 날짜. 날짜가 하나도 없으면 null
+// 내 문장 노트·대화 기록·공부한 날 가운데 가장 이른 날짜. 날짜가 하나도 없으면 null
 export function oldestRecordDate(learned: LearnedItem[], progress: Progress): string | null {
   const dates = [
     ...learned.map((x) => x.date),
@@ -80,7 +80,7 @@ export function codeFromBackupText(text: string): string | null {
   return lines.slice(at).join('').replace(/\s+/g, '')
 }
 
-// 이보다 크면 백업 파일이 아니다 (문장장이 꽉 차도 수백 KB를 넘지 않는다)
+// 이보다 크면 백업 파일이 아니다 (내 문장 노트가 꽉 차도 수백 KB를 넘지 않는다)
 export const MAX_BACKUP_BYTES = 5 * 1024 * 1024
 
 // 백업 파일 글을 기록으로 바꾼다. 잘못된 파일이면 쉬운 한국어로 TransferError

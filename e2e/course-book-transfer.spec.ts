@@ -16,7 +16,7 @@ import {
   type MockReply,
 } from './helpers'
 
-// 교육과정(단원 마치기·승급·단원/단계 고르기·단계별 지시문), 문장장(목록·더 보기·복습·지우기·[복습] 지시문),
+// 교육과정(단원 마치기·승급·단원/단계 고르기·단계별 지시문), 내 문장 노트(목록·더 보기·복습·지우기·[복습] 지시문),
 // 폰↔PC 옮기기(내보내기·가져오기·병합·키 안내·잘못된 코드), 시트 공통(Esc·✕·배경·포커스·inert).
 // 날짜가 걸린 계산(오늘 단원 완료, 복습 고르기)이 있어서 한국 시간 2026-10-08 오전 10시에서 시작하는 가짜 시계로 돈다 (시계는 저절로 흐른다).
 
@@ -144,7 +144,7 @@ const decodeCode = (code: string) => {
 // 압축 없는 코드 만들기 (압축을 못 하는 브라우저가 내보낸 것과 같은 모양)
 const plainCode = (obj: unknown) => 'EF0.' + Buffer.from(JSON.stringify(obj), 'utf8').toString('base64url')
 
-// 복습 고르기를 확인하기 좋은 문장장: 배운 지 60·45·30·20·14·10·7·5·3·2·1·0·0·0일
+// 복습 고르기를 확인하기 좋은 내 문장 노트: 배운 지 60·45·30·20·14·10·7·5·3·2·1·0·0·0일
 // pickReview(n=8) → 최근 3개 + 1·3·7·14·30일쯤 된 것 5개 = 정확히 8개가 정해진다
 const SPACED_AGES = [60, 45, 30, 20, 14, 10, 7, 5, 3, 2, 1, 0, 0, 0]
 const SPACED: Learned[] = SPACED_AGES.map((age, i) => ({ en: `Spaced ${i + 1} (${age}d).`, ko: `간격 ${i + 1}`, date: day(-age) }))
@@ -163,7 +163,7 @@ test.describe('1) 단원 마치기', () => {
     await expect(page.locator('#courseCard .hero-title')).toHaveText('인사와 자기소개')
     await startWithGreeting(page, queue, { say: "Hi! I'm Emma. What's your name?", say_ko: '안녕! 난 Emma야. 이름이 뭐야?' })
     expect(systemText(requests[0])).toContain('[오늘 단원] 인사와 자기소개')
-    // 문장장이 비어 있으면 [복습]은 없다
+    // 내 문장 노트가 비어 있으면 [복습]은 없다
     expect(systemText(requests[0])).not.toContain('[복습]')
 
     const answers: [string, How][] = [
@@ -683,6 +683,13 @@ test.describe('4) 높은 단계 대화', () => {
       say_ko: '자, 시작하죠. 새 프로젝트 아이디어 있어요?',
       tip: tip1,
     })
+    // 4단계부터 한국어 버튼은 작은 보조 버튼 (누르면 그대로 한국어로 들음)
+    await expect(page.locator('#micKo')).toHaveClass(/small-ko/)
+    await expect(page.locator('#micKo .mic-label')).toHaveText('한국어')
+    await expect(page.locator('#micEn .mic-label')).toHaveText('영어로 대답하기 (추천)')
+    const koBox = await page.locator('#micKo').boundingBox()
+    const enBox = await page.locator('#micEn').boundingBox()
+    expect((koBox?.width ?? 0) * 3).toBeLessThan(enBox?.width ?? 0)
     const sys = systemText(requests[0])
     expect(sys).toContain('- 교육과정 4단계 「자신감 있는 대화」(B2): 일상 대화는 대부분 할 수 있고, 이제 의견을 근거와 함께 길게 말하는 연습이 필요해.')
     expect(sys).toContain('- say: 영어만 써. 원어민이 친구에게 말하듯 자연스럽게, 2~4문장. 어려운 단어는 가끔만.')
@@ -749,18 +756,18 @@ test.describe('4) 높은 단계 대화', () => {
 })
 
 // ─────────────────────────────────────────────
-// 5) 문장장
+// 5) 내 문장 노트
 // ─────────────────────────────────────────────
 
 const many = (n: number): Learned[] =>
   Array.from({ length: n }, (_, i) => ({ en: `Phrase ${i + 1}.`, ko: `문장 ${i + 1}`, date: day(-n + i) }))
 
-test.describe('5) 문장장', () => {
+test.describe('5) 내 문장 노트', () => {
   test('비어 있으면 안내만 (복습·지우기·더 보기 없음), "폰↔PC 옮기기"로 옮기기 시트를 연다', async ({ page, context }) => {
     const { errors } = await open(page, context)
     await page.click('#tab-library')
     await page.click('#btnStartBook')
-    await expect(page.locator('#bookSheet-title')).toHaveText('내 문장장')
+    await expect(page.locator('#bookSheet-title')).toHaveText('내 문장 노트')
     await expect(page.locator('#bookBody')).toContainText('아직 저장된 문장이 없어요.')
     await expect(page.locator('#btnReview')).toHaveCount(0)
     await expect(page.locator('#btnBookClear')).toHaveCount(0)
@@ -818,7 +825,7 @@ test.describe('5) 문장장', () => {
     await expect(body).toContainText('듣고 → 소리 내어 읽고 → 뜻 보고 써 보세요. 대화 없이 5분이면 돼요.')
     const says = await body.locator('.read-card .say').allTextContents()
     expect(says.length).toBeGreaterThan(0)
-    // 최근 3문장은 꼭 들어가고, 모두 문장장에 있는 문장
+    // 최근 3문장은 꼭 들어가고, 모두 내 문장 노트에 있는 문장
     for (const en of ['Phrase 23.', 'Phrase 24.', 'Phrase 25.']) expect(says).toContain(en)
     for (const en of says) expect(learned.map((x) => x.en)).toContain(en)
 
@@ -841,7 +848,7 @@ test.describe('5) 문장장', () => {
 
     await expect(page.locator('#btnReviewDone')).toHaveText('목록으로')
     await page.click('#btnReviewDone')
-    await expect(page.locator('#bookSheet-title')).toHaveText('내 문장장')
+    await expect(page.locator('#bookSheet-title')).toHaveText('내 문장 노트')
     await expect(page.locator('#bookBody')).toBeVisible()
     await page.click('#btnBookClose')
     await expect(page.locator('#bookSheet')).toHaveCount(0)
@@ -852,14 +859,14 @@ test.describe('5) 문장장', () => {
     await expect(page.locator('#bookSheet-title')).toHaveText('오늘 복습')
     await expect(page.locator('#reviewBody')).toBeVisible()
     await page.keyboard.press('Escape')
-    // 다시 문장장을 열면 목록부터
+    // 다시 내 문장 노트를 열면 목록부터
     await page.click('#tab-library')
     await page.click('#btnStartBook')
-    await expect(page.locator('#bookSheet-title')).toHaveText('내 문장장')
+    await expect(page.locator('#bookSheet-title')).toHaveText('내 문장 노트')
     expect(errors).toEqual([])
   })
 
-  test('복습 카드 수는 버튼에 적힌 수(5문장)와 같다 — 오래 쓴 문장장(간격 복습 대상이 많을 때)', async ({ page, context }) => {
+  test('복습 카드 수는 버튼에 적힌 수(5문장)와 같다 — 오래 쓴 내 문장 노트(간격 복습 대상이 많을 때)', async ({ page, context }) => {
     const { errors } = await open(page, context, { storage: { [K.learned]: SPACED } })
     await page.click('#tab-library')
     await page.click('#btnStartBook')
@@ -874,7 +881,7 @@ test.describe('5) 문장장', () => {
     expect(errors).toEqual([])
   })
 
-  test('"문장장 모두 지우기": 확인 취소면 그대로, 수락하면 비우고 저장소도 []', async ({ page, context }) => {
+  test('"내 문장 노트 모두 지우기": 확인 취소면 그대로, 수락하면 비우고 저장소도 []', async ({ page, context }) => {
     const learned = many(3)
     const { errors } = await open(page, context, { storage: { [K.learned]: learned } })
     await page.click('#tab-library')
@@ -883,7 +890,7 @@ test.describe('5) 문장장', () => {
 
     let dialog = nextDialog(page, false)
     await page.click('#btnBookClear')
-    expect(await dialog).toBe('문장장을 모두 지울까요? 되돌릴 수 없어요.')
+    expect(await dialog).toBe('내 문장 노트를 모두 지울까요? 되돌릴 수 없어요.')
     await expect(page.locator('#bookBody > .card')).toHaveCount(3)
     expect(await learnedIn(page)).toEqual(learned)
 
@@ -1200,7 +1207,7 @@ test.describe('6) 옮기기', () => {
 test.describe('7) 시트 공통', () => {
   const sheets = [
     { name: '교육과정', opener: '#btnStartCourse', id: 'courseSheet', footerClose: '#btnCourseClose' },
-    { name: '문장장', opener: '#btnStartBook', id: 'bookSheet', footerClose: '#btnBookClose' },
+    { name: '내 문장 노트', opener: '#btnStartBook', id: 'bookSheet', footerClose: '#btnBookClose' },
     { name: '옮기기', opener: '#btnStartTransfer', id: 'transferSheet', footerClose: '#btnTransferClose' },
   ]
   for (const s of sheets) {
@@ -1232,7 +1239,7 @@ test.describe('7) 시트 공통', () => {
       await expect(sheet).toHaveAttribute('role', 'dialog')
       await expect(sheet).toHaveAttribute('aria-modal', 'true')
       await expect(sheet).toHaveAttribute('aria-labelledby', `${s.id}-title`)
-      await expect(page.getByRole('dialog', { name: s.id === 'courseSheet' ? '교육과정' : s.id === 'bookSheet' ? '내 문장장' : '폰↔PC 옮기기' })).toBeVisible()
+      await expect(page.getByRole('dialog', { name: s.id === 'courseSheet' ? '교육과정' : s.id === 'bookSheet' ? '내 문장 노트' : '폰↔PC 옮기기' })).toBeVisible()
       // 배경(내 서재) 버튼은 누를 수 없다
       await expect(opener).not.toBeFocused()
 
@@ -1275,7 +1282,7 @@ test.describe('7) 시트 공통', () => {
     })
   }
 
-  test('옮기기·문장장 시트는 화면을 꽉 채운 페이지로 열리고, 왼쪽 위 "‹ 뒤로"로 닫으면 여는 버튼으로 돌아온다', async ({ page, context }) => {
+  test('옮기기·내 문장 노트 시트는 화면을 꽉 채운 페이지로 열리고, 왼쪽 위 "‹ 뒤로"로 닫으면 여는 버튼으로 돌아온다', async ({ page, context }) => {
     const { errors } = await open(page, context)
     await page.click('#tab-library')
     for (const [opener, id] of [
@@ -1293,7 +1300,7 @@ test.describe('7) 시트 공통', () => {
     expect(errors).toEqual([])
   })
 
-  test('문장장 → "폰↔PC 옮기기"로 이어 연 시트를 닫으면 포커스가 시작 화면(문장장 버튼)으로 돌아온다', async ({ page, context }) => {
+  test('내 문장 노트 → "폰↔PC 옮기기"로 이어 연 시트를 닫으면 포커스가 시작 화면(내 문장 노트 버튼)으로 돌아온다', async ({ page, context }) => {
     const { errors } = await open(page, context)
     await page.click('#tab-library')
     await page.click('#btnStartBook')

@@ -59,7 +59,7 @@ describe('buildStorySystem', () => {
     expect(s).toContain('일상 이야기')
   })
 
-  it('문장장 문장이 있으면 복습으로 넣는다', () => {
+  it('내 문장 노트의 문장이 있으면 복습으로 넣는다', () => {
     const learned = [{ en: 'I like pizza.', ko: '피자 좋아.', date: '2026-10-01' }]
     expect(buildStorySystem({ likes: '' }, progress1, learned, '2026-10-09')).toContain('- I like pizza.')
     expect(buildStorySystem({ likes: '' }, progress1, [], '2026-10-09')).not.toContain('[복습]')

@@ -106,7 +106,7 @@ export function pickAhead<T extends Pair>(learned: T[], stats: QuizStats, n = 8,
   return shuffle(list.slice(0, n), rng)
 }
 
-// 다음 복습 날 (가장 이른 날). 문장장에 있는 문장만 본다
+// 다음 복습 날 (가장 이른 날). 내 문장 노트에 있는 문장만 본다
 export function nextDue(learned: Pair[], stats: QuizStats): string | null {
   const dates = learned.map((x) => stats[x.en]?.due).filter((d): d is string => !!d)
   return dates.length ? dates.sort()[0] : null

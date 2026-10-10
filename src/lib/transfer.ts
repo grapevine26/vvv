@@ -4,7 +4,7 @@ import { sanitizeProgress } from './curriculum'
 import { same } from './text'
 import type { LearnedItem, Progress, Settings } from './types'
 
-// 다른 기기로 옮기기: 문장장·설정·교육과정 진도를 글자 코드 하나로 만든다 (서버 없음)
+// 다른 기기로 옮기기: 내 문장 노트·설정·교육과정 진도를 글자 코드 하나로 만든다 (서버 없음)
 // EF1. = gzip 압축, EF0. = 압축 없음(압축을 못 하는 브라우저용)
 const PREFIX_GZIP = 'EF1.'
 const PREFIX_PLAIN = 'EF0.'
