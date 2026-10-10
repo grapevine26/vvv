@@ -155,3 +155,16 @@ test('닫기(✕)를 누르면 시작 화면으로 돌아간다', async ({ conte
   await expect(page.locator('#btnWarmup')).toBeFocused()
   expect(mocks.requests).toHaveLength(0)
 })
+
+test('키가 없어도 홈에 입 풀기가 보이고, 마치면 키 넣기 화면이 열린다 (대화 요청 없음)', async ({ context, page }) => {
+  const errors = collectErrors(page)
+  const { requests } = await installMocks(context)
+  await page.goto('/')
+  await expect(page.locator('#btnWarmup')).toBeVisible()
+  await page.click('#btnWarmup')
+  await expect(page.locator('#warmupSheet')).toBeVisible()
+  await page.click('#btnWarmupSkip')
+  await expect(page.locator('#settingsSheet-title')).toHaveText('Gemini 키 넣기')
+  expect(requests).toHaveLength(0)
+  expect(errors).toEqual([])
+})

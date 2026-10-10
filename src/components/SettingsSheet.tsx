@@ -42,7 +42,8 @@ export function SettingsSheet(props: Props) {
   const checkAbort = useRef<AbortController | null>(null)
   const set = <K extends keyof Settings>(key: K, value: Settings[K]) => setForm((f) => ({ ...f, [key]: value }))
   const voiceValue = voices.some((v) => v.name === form.voiceName) ? form.voiceName : ''
-  const keyLooksOdd = form.apiKey.trim() !== '' && !/^AIza/.test(form.apiKey.replace(/[\s"'“”‘’`]/g, ''))
+  // Google 키는 AIza… 또는 AQ.…로 시작한다 (진짜 판정은 저장할 때의 키 확인)
+  const keyLooksOdd = form.apiKey.trim() !== '' && !/^(AIza|AQ\.)/.test(form.apiKey.replace(/[\s"'“”‘’`]/g, ''))
 
   const close = () => {
     const changed = JSON.stringify(sanitizeSettings(form)) !== JSON.stringify(sanitizeSettings(settings))
@@ -113,7 +114,7 @@ export function SettingsSheet(props: Props) {
           name="apiKey"
           autoComplete="off"
           spellCheck={false}
-          placeholder="AIza…로 시작하는 긴 글자"
+          placeholder="복사한 긴 글자를 붙여 넣어요"
           value={form.apiKey}
           // 처음엔 키보드가 '키 받는 법'을 가리지 않게 자동으로 띄우지 않는다. 오류에서 '키 다시 넣기'로 왔을 때만
           autoFocus={focus === 'apiKey'}
@@ -126,7 +127,7 @@ export function SettingsSheet(props: Props) {
           {showKey ? '가리기' : '보기'}
         </button>
       </span>
-      {keyLooksOdd && <div className="warn-text">키는 보통 "AIza"로 시작해요. 다른 글자가 섞이지 않았는지 확인해 주세요.</div>}
+      {keyLooksOdd && <div className="warn-text">키가 맞는지 확인해 주세요. 복사한 글자 그대로 붙여 넣었는지 봐 주세요.</div>}
     </div>
   )
 
@@ -177,19 +178,22 @@ export function SettingsSheet(props: Props) {
         {firstRun ? (
           <>
             <div className="key-guide" id="keyGuide">
+              <p className="note" id="keyNoKeyNote">
+                키 없이도 입 풀기와 5분 복습 퀴즈는 해 볼 수 있어요. 키는 대화할 때 필요해요.
+              </p>
               <b>키 받는 법 (2분, 무료)</b>
               <a className="primary link-btn" href={GEMINI_KEY_URL} target="_blank" rel="noopener noreferrer" id="btnOpenStudio">
                 Google AI Studio 열기
                 <ExternalLink className="ico" aria-hidden="true" />
               </a>
               <ol className="list steps">
-                <li>구글 계정으로 로그인해요. 처음이면 약관에 체크하고 파란 버튼을 눌러요.</li>
+                <li>구글 계정으로 로그인해요. 처음이면 약관에 체크하고 파란 버튼을 눌러요. (구글 계정이 없으면 "계정 만들기"부터 해요)</li>
                 <li>
-                  <b lang="en">Create API key</b>(또는 <span lang="en">Get API key</span>)를 눌러요. 프로젝트를 고르라고 하면 맨 위 항목을
-                  골라요.
+                  <b lang="en">Get API key</b> (API 키 받기) → <b lang="en">Create API key</b> (키 만들기)를 눌러요. 프로젝트를 고르라고
+                  하면 맨 위 항목을 골라요.
                 </li>
                 <li>
-                  <b lang="en">AIza</b>로 시작하는 긴 글자 옆 복사 아이콘을 누르고 이 화면으로 돌아와요.
+                  만들어진 긴 글자 옆 <b lang="en">Copy</b> (복사)를 누르고 이 화면으로 돌아와요.
                 </li>
                 <li>아래 칸에 붙여 넣고 "{startAfterSave ? '저장하고 시작하기' : '저장'}"를 눌러요.</li>
               </ol>

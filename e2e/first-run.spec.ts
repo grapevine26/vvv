@@ -268,13 +268,30 @@ test.describe('2) 키 넣기 시트', () => {
     expect(errors).toEqual([])
   })
 
-  test('AIza로 시작하지 않는 글자를 넣으면 경고하고, 빈 칸으로 저장하면 확인 요청 없이 "키를 먼저" 안내', async ({ page, context }) => {
+  test('키 받는 법은 Google 화면의 영어 버튼 이름에 뜻을 붙여 알려 주고, 키 없이 해 볼 수 있는 것도 알려 준다', async ({ page, context }) => {
+    await installMocks(context)
+    const errors = collectErrors(page)
+    await openKeySheet(page)
+    const guide = page.locator('#keyGuide')
+    await expect(page.locator('#keyNoKeyNote')).toHaveText('키 없이도 입 풀기와 5분 복습 퀴즈는 해 볼 수 있어요. 키는 대화할 때 필요해요.')
+    for (const t of ['Get API key (API 키 받기)', 'Create API key (키 만들기)', 'Copy (복사)', '구글 계정이 없으면']) await expect(guide).toContainText(t)
+    await expect(guide).not.toContainText('AIza')
+    await expect(page.locator('#settingsSheet input[name=apiKey]')).toHaveAttribute('placeholder', '복사한 긴 글자를 붙여 넣어요')
+    expect(errors).toEqual([])
+  })
+
+  test('키 모양이 이상하면 경고하고(AIza·AQ. 키는 정상), 빈 칸으로 저장하면 확인 요청 없이 "키를 먼저" 안내', async ({ page, context }) => {
     const { requests, keyChecks } = await installMocks(context)
     const errors = collectErrors(page)
     await openKeySheet(page)
     const key = page.locator('#settingsSheet input[name=apiKey]')
-    await key.fill('복사가 잘못된 글자')
-    await expect(page.locator('#keyField .warn-text')).toHaveText('키는 보통 "AIza"로 시작해요. 다른 글자가 섞이지 않았는지 확인해 주세요.')
+    // 요즘 Google은 AQ.로 시작하는 키도 준다
+    await key.fill('AQ.Ab8TESTKEY')
+    await expect(page.locator('#keyField .warn-text')).toHaveCount(0)
+    await key.fill('AIzaTESTKEY')
+    await expect(page.locator('#keyField .warn-text')).toHaveCount(0)
+    await key.fill('hello world')
+    await expect(page.locator('#keyField .warn-text')).toHaveText('키가 맞는지 확인해 주세요. 복사한 글자 그대로 붙여 넣었는지 봐 주세요.')
     await key.fill('')
     await expect(page.locator('#keyField .warn-text')).toHaveCount(0)
     await page.click('#btnSettingsSave')

@@ -263,8 +263,8 @@ export function StartScreen(props: Props) {
         </div>
       )}
 
-      {/* 대화 전 2분 입 풀기 */}
-      {hasKey && (
+      {/* 대화 전 2분 입 풀기 (AI를 쓰지 않아 키 없이도 할 수 있다) */}
+      {(
         <button className="row-card" id="btnWarmup" type="button" onClick={props.onWarmup}>
           <span className="row-card-ico amber" aria-hidden="true">
             ⚡
