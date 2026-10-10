@@ -182,13 +182,34 @@ test('퀴즈 끝까지: 세 종류를 맞히고 틀리고, 결과·저장값, �
   expect(errors).toEqual([])
 })
 
-test('내 문장 노트가 비었으면 모으는 방법을 알려 준다', async ({ page, context }) => {
-  const { errors } = await open(page, context, [])
+test('노트가 비면 기본 표현으로 퀴즈를 풀고, 결과는 복습 일정에만 저장되고 노트는 비어 있다', async ({ page, context }) => {
+  const { errors, requests } = await open(page, context, [])
   await page.click('#btnQuiz')
-  await expect(page.locator('#qzEmpty')).toContainText('대화를 마치고 저장하면 여기에 모여요')
-  await expect(page.locator('#qzStart')).toHaveCount(0)
-  await page.click('#qzClose')
-  await expect(sheet(page)).toHaveCount(0)
+  await expect(page.locator('#qzStarterNote')).toHaveText('아직 내 문장 노트가 비어 있어요. 먼저 기본 표현으로 풀어 봐요.')
+  await page.click('#qzStart')
+  await expect(page.locator('#qzProgress')).toBeVisible()
+  // 한 문제 풀기: 뜻 고르기면 첫 보기, 아니면 모르겠어요
+  if ((await kindNow(page)) === 'meaning') await sheet(page).locator('.qz-choice').first().click()
+  else await page.click('#qzSkip')
+  await expect(page.locator('#qzFeedback')).toBeVisible()
+  const stats = (await storageGet(page, QUIZ)) as Record<string, { box: number; due: string }>
+  const keys = Object.keys(stats)
+  expect(keys).toHaveLength(1)
+  expect(['Sorry? Can you say that again?', 'Slowly, please.', "I don't know.", 'Thank you.', 'Yes, please.', 'Nice to meet you.', "I'm from Korea.", 'I like coffee.', 'How are you?', 'What does it mean?']).toContain(keys[0])
+  // 기본 표현은 노트에 넣지 않는다
+  expect((await storageGet(page, 'englishFriend.learned')) ?? []).toEqual([])
+  expect(requests).toHaveLength(0)
+
+  // 나중에 같은 문장을 노트에 저장하면: 복습 일정은 이어지고, 문제는 노트 문장만
+  const saved = stats[keys[0]]
+  await page.evaluate((en) => localStorage.setItem('englishFriend.learned', JSON.stringify([{ en, ko: '뜻', date: '2026-10-08' }])), keys[0])
+  await page.reload()
+  await page.click('#btnQuiz')
+  await expect(page.locator('#qzStarterNote')).toHaveCount(0)
+  expect(((await storageGet(page, QUIZ)) as Record<string, unknown>)[keys[0]]).toEqual(saved)
+  if (await page.locator('#qzAhead').count()) await page.click('#qzAhead')
+  else await page.click('#qzStart')
+  await expect(page.locator('#qzProgress')).toHaveText('1번째 문제 / 모두 1문제')
   expect(errors).toEqual([])
 })
 

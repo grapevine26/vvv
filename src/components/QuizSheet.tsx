@@ -1,4 +1,4 @@
-import { BookOpen, CircleCheck, CircleX, Headphones, Mic as MicIcon, Puzzle, RotateCcw, Snail, Trophy, Volume2 } from 'lucide-react'
+import { CircleCheck, CircleX, Headphones, Mic as MicIcon, Puzzle, RotateCcw, Snail, Trophy, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import {
   buildQuestions,
@@ -14,6 +14,7 @@ import {
   type Question,
   type QuizStats,
 } from '../lib/quiz'
+import { quizPool } from '../lib/starter'
 import { addDays, localDate, overlap, splitByScript } from '../lib/text'
 import type { LearnedItem, Pair, Settings } from '../lib/types'
 import { useLatestRef } from '../hooks/useLatestRef'
@@ -57,14 +58,16 @@ export function QuizSheet({ learned, onPlay, onMic, onStopMic, onClose, page }: 
   const [today] = useState(() => localDate())
   const [stats, setStats] = useState<QuizStats>(loadQuizStats)
   // 처음 연 순간의 오늘 할 문장 (다시 그려도 섞이지 않게 한 번만 고른다)
-  const [picked] = useState(() => pickQuiz(learned, stats, today))
+  // 노트가 비면(첫날) 기본 표현으로 낸다
+  const pool = quizPool(learned)
+  const [picked] = useState(() => pickQuiz(pool, stats, today))
   const [phase, setPhase] = useState<Phase>('intro')
   const [questions, setQuestions] = useState<Question[]>([])
   const [idx, setIdx] = useState(0)
   const [answers, setAnswers] = useState<Answer[]>([])
 
   const start = (items: Pair[]) => {
-    setQuestions(buildQuestions(items, learned))
+    setQuestions(buildQuestions(items, pool))
     setIdx(0)
     setAnswers([])
     setPhase('question')
@@ -125,7 +128,9 @@ export function QuizSheet({ learned, onPlay, onMic, onStopMic, onClose, page }: 
       onClose={onClose}
       footer={footer}
     >
-      {phase === 'intro' && <Intro learned={learned} picked={picked} stats={stats} onAhead={() => start(pickAhead(learned, stats))} />}
+      {phase === 'intro' && (
+        <Intro pool={pool} starter={learned.length === 0} picked={picked} stats={stats} onAhead={() => start(pickAhead(pool, stats))} />
+      )}
       {phase === 'question' && q && (
         <div className="qz-body">
           <Progress now={idx + (answer ? 1 : 0)} total={questions.length} label={`${idx + 1}번째 문제 / 모두 ${questions.length}문제`} />
@@ -135,24 +140,35 @@ export function QuizSheet({ learned, onPlay, onMic, onStopMic, onClose, page }: 
           {answer && <Feedback item={q.item} answer={answer} kind={q.kind} onPlay={onPlay} />}
         </div>
       )}
-      {phase === 'done' && <Result questions={questions} answers={answers} stats={stats} today={today} learned={learned} onPlay={onPlay} />}
+      {phase === 'done' && <Result questions={questions} answers={answers} stats={stats} today={today} learned={pool} onPlay={onPlay} />}
     </Sheet>
   )
 }
 
-function Intro({ learned, picked, stats, onAhead }: { learned: Pair[]; picked: Pair[]; stats: QuizStats; onAhead: () => void }) {
-  if (learned.length === 0)
-    return (
-      <div className="qz-empty" id="qzEmpty">
-        <BookOpen className="qz-empty-ico" aria-hidden="true" />
-        <p className="qz-lead">아직 내 문장 노트가 비어 있어요.</p>
-        <p className="muted">대화를 마치고 저장하면 여기에 모여요. 따라 말한 문장으로 퀴즈를 내 줄게요.</p>
-      </div>
-    )
+function Intro({
+  pool,
+  starter,
+  picked,
+  stats,
+  onAhead,
+}: {
+  pool: Pair[]
+  // 노트가 비어서 기본 표현으로 내는 중
+  starter: boolean
+  picked: Pair[]
+  stats: QuizStats
+  onAhead: () => void
+}) {
+  const starterNote = starter && (
+    <p className="note" id="qzStarterNote">
+      아직 내 문장 노트가 비어 있어요. 먼저 기본 표현으로 풀어 봐요.
+    </p>
+  )
   if (picked.length === 0) {
-    const due = nextDue(learned, stats)
+    const due = nextDue(pool, stats)
     return (
       <div className="qz-empty" id="qzAllDone">
+        {starterNote}
         <CircleCheck className="qz-empty-ico ok" aria-hidden="true" />
         <p className="qz-lead">오늘 복습할 문장은 다 봤어요.</p>
         {due && <p className="muted">다음 복습은 {dayLabel(due)}이에요. 잊을 때쯤 다시 꺼내 줄게요.</p>}
@@ -164,6 +180,7 @@ function Intro({ learned, picked, stats, onAhead }: { learned: Pair[]; picked: P
   }
   return (
     <div id="qzIntro">
+      {starterNote}
       <p className="qz-lead">
         오늘 볼 문장 <b>{picked.length}개</b>
       </p>
