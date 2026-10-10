@@ -1,5 +1,8 @@
 export type Lang = 'ko' | 'en'
 
+// 대화 중 구조 버튼: 다시 말해 줘 / 천천히 / 모르겠어요
+export type HelpKind = 'again' | 'slow' | 'dunno'
+
 export interface Pair {
   en: string
   ko: string

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { DEFAULT_SETTINGS, sanitizeSettings } from './config'
 import { changeStage, chooseUnit, DEFAULT_PROGRESS } from './curriculum'
-import { buildSystemPrompt, pushHistory, recentHistory, startMessage, userTag } from './prompt'
+import { buildSystemPrompt, HELP_PHRASE, helpTag, pushHistory, recentHistory, startMessage, userTag } from './prompt'
 import { mergeLearned } from './storage'
 import type { Content } from './types'
 
@@ -50,6 +50,22 @@ describe('buildSystemPrompt', () => {
     expect(p).toContain('[복습]')
     expect(p).toContain('Sentence 9.')
     expect(p.split('\n').filter((l) => l.startsWith('- Sentence'))).toHaveLength(8)
+  })
+})
+
+describe('도움 요청', () => {
+  it('꼬리표와 영어 문장', () => {
+    expect(helpTag('again')).toBe('[도움 요청: 다시]')
+    expect(helpTag('slow')).toBe('[도움 요청: 천천히]')
+    expect(helpTag('dunno')).toBe('[도움 요청: 모르겠음]')
+    expect(HELP_PHRASE).toEqual({ again: 'Sorry? Can you say that again?', slow: 'Slowly, please.', dunno: "I don't know." })
+  })
+  it('지시문에 도움 요청에 답하는 규칙과 표시 설명이 있다 (1·4단계)', () => {
+    for (const n of [1, 4]) {
+      const p = buildSystemPrompt(DEFAULT_SETTINGS, [], changeStage(DEFAULT_PROGRESS, n))
+      expect(p).toContain('14. [도움 요청]이 오면:')
+      expect(p).toContain('- [도움 요청: …]: 내가 못 알아들었거나 막혀서 누른 도움 버튼.')
+    }
   })
 })
 

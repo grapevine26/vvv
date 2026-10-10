@@ -1,7 +1,7 @@
 import { TARGET } from './config'
 import { getStage, getUnit } from './curriculum'
 import { dayDiff, localDate } from './text'
-import type { Content, Lang, LearnedItem, Progress, Settings } from './types'
+import type { Content, HelpKind, Lang, LearnedItem, Progress, Settings } from './types'
 
 export function startMessage(progress: Progress): string {
   const unit = getUnit(progress)
@@ -70,11 +70,13 @@ ${review}`
 11. 내 차례를 항상 넘겨 줘: repeat가 없으면 say는 꼭 질문으로 끝내. 내가 따라 말하기를 마치면 짧게 칭찬하고 바로 새 질문을 해. 단원 표현을 충분히 썼으면 같은 주제에서 다른 상황·단어로 바꿔 계속 물어봐.
 12. repeat는 언제나 내가 내 입장에서 할 말이야. 네 이름이나 네 이야기를 넣지 마. 내 이름·나이·사는 곳·직업처럼 네가 모르는 내 정보는 지어내지 말고, 그런 질문엔 repeat를 비우고 내가 먼저 말하게 해(내가 말하면 그 말을 바르게 바꿔 repeat로 줘). 예: "What's your name?"에 repeat "Hi, I'm ${s.friendName}." ✗, "My name is Minji." ✗ → repeat는 빈칸.
 13. say에 "Say ~", "Repeat after me", "Now say ~" 같은 따라 하라는 지시를 쓰지 마. 따라 말하기는 repeat와 cue가 알려 줘. say는 친구끼리 주고받는 말이어야 해.
+14. [도움 요청]이 오면: '다시'는 방금 한 말을 더 짧고 쉬운 단어로 다시 해. '천천히'는 아주 짧게 끊어서 다시 해. '모르겠음'은 탓하지 말고 hints에 쉬운 대답 2개를 주고, repeat로 하나를 따라 하게 해. 어느 경우든 같은 질문으로 내 차례를 다시 넘겨.
 
 [내 말 앞에 붙는 표시]
 - [한국어]: 한국어로 말함. [영어]: ${L}로 말함.
 - [따라 말하기 — 목표 문장: "..."]: 그 문장을 따라 말해 본 것. 인식된 글자가 조금 달라도 비슷하면 잘한 거야.
-- [영어 — 대답 예시를 보고 말함]: 네가 준 대답 예시(hints)를 골라 말한 것. 내 대답으로 받고 이어서 이야기해.${reviewBlock}`
+- [영어 — 대답 예시를 보고 말함]: 네가 준 대답 예시(hints)를 골라 말한 것. 내 대답으로 받고 이어서 이야기해.
+- [도움 요청: …]: 내가 못 알아들었거나 막혀서 누른 도움 버튼.${reviewBlock}`
 }
 
 export const WRITE_SYSTEM = `너는 ${TARGET.label}를 배우는 한국 성인이 쓴 짧은 문장을 부드럽게 봐 주는 친구야. JSON으로만 답해.
@@ -88,6 +90,15 @@ export function userTag(lang: Lang, repeatTarget: string, fromHint = false): str
   if (repeatTarget) return `[따라 말하기 — 목표 문장: "${repeatTarget}"]`
   return fromHint ? '[영어 — 대답 예시를 보고 말함]' : '[영어]'
 }
+
+// 구조 버튼이 대신 말해 주는 영어 문장과, AI에게 붙이는 표시
+export const HELP_PHRASE: Record<HelpKind, string> = {
+  again: 'Sorry? Can you say that again?',
+  slow: 'Slowly, please.',
+  dunno: "I don't know.",
+}
+const HELP_LABEL: Record<HelpKind, string> = { again: '다시', slow: '천천히', dunno: '모르겠음' }
+export const helpTag = (kind: HelpKind): string => `[도움 요청: ${HELP_LABEL[kind]}]`
 
 export function pushHistory(history: Content[], role: Content['role'], text: string): void {
   const last = history[history.length - 1]
