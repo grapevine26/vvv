@@ -1,6 +1,6 @@
 import { TARGET } from '../lib/config'
 import { splitByScript, turnSegments } from '../lib/text'
-import type { FixTarget, Lang, Pair, Segment, Turn } from '../lib/types'
+import type { FixTarget, HelpKind, Lang, Pair, Segment, Turn } from '../lib/types'
 import { Meaning, WordMarks } from './common'
 
 type Play = (segments: Segment[], slow?: boolean) => void
@@ -153,10 +153,12 @@ interface UserBubbleProps {
   heardWell?: boolean
   // 따라 말하기·대답 예시의 목표 문장 (발음 피드백용)
   goal?: string
+  // 구조 버튼으로 보낸 말
+  help?: HelpKind
 }
 
-export function UserBubble({ text, lang, isRepeat, fromHint, heardWell, goal }: UserBubbleProps) {
-  const tag = isRepeat ? '따라 말하기' : fromHint ? '대답 예시' : lang === 'ko' ? '한국어' : TARGET.label
+export function UserBubble({ text, lang, isRepeat, fromHint, heardWell, goal, help }: UserBubbleProps) {
+  const tag = help ? '도움 요청' : isRepeat ? '따라 말하기' : fromHint ? '대답 예시' : lang === 'ko' ? '한국어' : TARGET.label
   return (
     <div className="msg me">
       <div className="bubble">

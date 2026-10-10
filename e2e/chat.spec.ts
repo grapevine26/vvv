@@ -1037,3 +1037,109 @@ test.describe('터치 폰', () => {
   })
 })
 
+
+// ── 구조 버튼: 다시 말해 줘 · 천천히 · 모르겠어요 ──
+
+test.describe('구조 버튼', () => {
+  const HELP = [
+    { id: '#helpAgain', tag: '[도움 요청: 다시]', en: 'Sorry? Can you say that again?' },
+    { id: '#helpSlow', tag: '[도움 요청: 천천히]', en: 'Slowly, please.' },
+    { id: '#helpDunno', tag: '[도움 요청: 모르겠음]', en: "I don't know." },
+  ]
+
+  test('세 버튼 모두: 영어 문장을 읽어 주고 [도움 요청] 꼬리표로 보내며, 대화 셈은 늘지 않는다', async ({ page, context }) => {
+    const { queue, requests, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    queue.push(reply(turn({ say: 'Nice!', say_ko: '좋아!' })))
+    await typeSend(page, '안녕')
+    await expect(aiBubbles(page)).toHaveCount(2)
+    const before = await draftStats(page)
+    for (const h of HELP) {
+      await clearSpoken(page)
+      queue.push(reply(turn({ say: 'Okay. Are you happy?', say_ko: '알았어. 기분 좋아?' })))
+      const n = requests.length
+      await page.click(h.id)
+      await expect.poll(() => requests.length).toBe(n + 1)
+      expect((await spoken(page))[0]?.text).toBe(h.en)
+      expect(lastUserText(requests[n])).toBe(`${h.tag} ${h.en}`)
+      await expect(lastMe(page).locator('.tag')).toHaveText('도움 요청')
+      await expect(page.locator('#turnCount')).toHaveText('1/5번 주고받음')
+    }
+    await expect.poll(() => draftStats(page)).toEqual(before)
+    expect(errors).toEqual([])
+  })
+
+  test('천천히 뒤의 AI 답은 느린 속도로 읽는다', async ({ page, context }) => {
+    const { queue, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    const normal = (await spoken(page)).find((s) => s.lang === 'en-US')?.rate ?? 0
+    queue.push(reply(turn({ say: 'Are. You. Happy?', say_ko: '기분. 좋아?' })))
+    await clearSpoken(page)
+    await page.click('#helpSlow')
+    await expect.poll(async () => (await spoken(page)).some((s) => s.text === 'Are. You. Happy?')).toBe(true)
+    const slowRate = (await spoken(page)).find((s) => s.text === 'Are. You. Happy?')?.rate ?? 99
+    expect(slowRate).toBeLessThan(normal)
+    expect(errors).toEqual([])
+  })
+
+  test('생각 중에는 누를 수 없고, 듣는 중에 누르면 마이크를 끄고 보낸다', async ({ page, context }) => {
+    const { queue, requests, errors } = await open(page, context)
+    queue.push(slow(reply(turn({ say: 'Hi! How are you?', say_ko: '안녕! 잘 지내?' })), 1500))
+    await page.click('#btnStart')
+    await expect(page.locator('.bubble.typing')).toBeVisible()
+    await expect(page.locator('#helpAgain')).toBeDisabled()
+    await expect(aiBubbles(page)).toHaveCount(1)
+    await page.click('#micEn')
+    await expect.poll(async () => (await lastRec(page))?.started).toBe(true)
+    queue.push(reply(turn({ say: 'Try: I am fine.', say_ko: '이렇게: 잘 지내.' })))
+    await page.click('#helpDunno')
+    await expect.poll(async () => (await lastRec(page))?.stopped).toBe(true)
+    await expect.poll(() => requests.length).toBe(2)
+    expect(lastUserText(requests[1])).toBe("[도움 요청: 모르겠음] I don't know.")
+    expect(errors).toEqual([])
+  })
+
+  test('오류로 답을 못 받은 말 뒤에 누르면 같은 차례로 합쳐지고 셈이 늘지 않는다', async ({ page, context }) => {
+    const { queue, requests, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    queue.push(errorReply(503, 'temporary problem'))
+    await typeSend(page, '배고파')
+    await expect(errorBubble(page)).toBeVisible()
+    queue.push(reply(turn({ say: 'Oh, you are hungry?', say_ko: '배고파?' })))
+    await page.click('#helpAgain')
+    await expect.poll(() => requests.length).toBe(3)
+    expect(lastUserText(requests[2])).toBe('[한국어] 배고파\n[도움 요청: 다시] Sorry? Can you say that again?')
+    await expect(page.locator('#turnCount')).toHaveText('1/5번 주고받음')
+    await expect.poll(() => draftStats(page)).toMatchObject({ turns: 1, koTurns: 1 })
+    expect(errors).toEqual([])
+  })
+
+  test('4단계에서는 구조 버튼이 없다', async ({ page, context }) => {
+    const { queue, errors } = await installMocks(context, {
+      storage: {
+        'englishFriend.settings': { apiKey: 'K' },
+        'englishFriend.progress': { stage: 4, unit: 's4-1', doneUnits: [], sessions: [] },
+      },
+    }).then(async (m) => ({ ...m, errors: collectErrors(page) }))
+    await page.goto('/')
+    await startWithGreeting(page, queue)
+    await expect(page.locator('#helpRow')).toHaveCount(0)
+    expect(errors).toEqual([])
+  })
+
+  test('구조 버튼 말풍선은 새로고침 뒤 이어서 해도 꼬리표가 남는다', async ({ page, context }) => {
+    const { queue, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    // 임시 저장은 한 번이라도 주고받아야 생긴다 (도움 요청은 세지 않으니)
+    queue.push(reply(turn({ say: 'Nice!', say_ko: '좋아!' })))
+    await typeSend(page, '안녕')
+    await expect(aiBubbles(page)).toHaveCount(2)
+    queue.push(reply(turn({ say: 'Okay. Are you happy?', say_ko: '알았어. 기분 좋아?' })))
+    await page.click('#helpAgain')
+    await expect(aiBubbles(page)).toHaveCount(3)
+    await page.reload()
+    await page.click('#btnDraftResume')
+    await expect(page.locator('.msg.me').last().locator('.tag')).toHaveText('도움 요청')
+    expect(errors).toEqual([])
+  })
+})

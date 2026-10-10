@@ -2,7 +2,7 @@ import { Mic } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { TARGET } from '../lib/config'
 import { HANGUL } from '../lib/text'
-import type { FixTarget, Lang } from '../lib/types'
+import type { FixTarget, HelpKind, Lang } from '../lib/types'
 
 // 지금 누구 차례인지: 친구가 생각 중 / 말하는 중 / 내가 말하는 중 / 내 차례
 export type Phase = 'thinking' | 'speaking' | 'listening' | 'yourTurn'
@@ -26,16 +26,24 @@ interface Props {
   onCancelListen: () => void
   onStopSpeaking: () => void
   onSend: (text: string, lang: Lang) => void
+  // 구조 버튼 (1~3단계)
+  onHelp: (kind: HelpKind) => void
 }
 
 const IDLE_LABEL: Record<Lang, string> = { ko: '한국어로 말하기', en: `${TARGET.label}로 대답하기 (추천)` }
 // 이 단계부터 한국어 버튼은 작은 보조 버튼 (1~3단계는 한국어로 대답하고 따라 말하며 배우는 게 기본)
 const KO_SMALL_FROM = 4
+// 막혔을 때 누르는 구조 버튼 (한국어 버튼이 큰 단계에서만 보인다)
+const HELP_CHIPS: { kind: HelpKind; id: string; label: string }[] = [
+  { kind: 'again', id: 'helpAgain', label: '🔁 다시 말해 줘' },
+  { kind: 'slow', id: 'helpSlow', label: '🐢 천천히' },
+  { kind: 'dunno', id: 'helpDunno', label: '🤷 모르겠어요' },
+]
 
 export function Composer(props: Props) {
   const { friendName, phase, listening, interim, pendingRepeat, pickedHint, notice, errorFix, firstTime, veiled, stage } = props
   const koSmall = stage >= KO_SMALL_FROM
-  const { onMic, onCancelListen, onStopSpeaking, onSend } = props
+  const { onMic, onCancelListen, onStopSpeaking, onSend, onHelp } = props
   const [text, setText] = useState('')
   const [typing, setTyping] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -128,6 +136,15 @@ export function Composer(props: Props) {
       {interim && (
         <div className="interim" id="interim" lang={listening === 'en' ? 'en' : undefined}>
           {interim}
+        </div>
+      )}
+      {!koSmall && (
+        <div className="help-row" id="helpRow" role="group" aria-label="막혔을 때 누르는 버튼">
+          {HELP_CHIPS.map((h) => (
+            <button key={h.kind} id={h.id} type="button" className="help-chip" disabled={busy} onClick={() => onHelp(h.kind)}>
+              {h.label}
+            </button>
+          ))}
         </div>
       )}
       <div className={`mics${koSmall ? ' en-first' : ''}`}>

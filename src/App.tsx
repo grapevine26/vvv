@@ -20,7 +20,7 @@ import { useLatestRef } from './hooks/useLatestRef'
 import { sanitizeSettings, TARGET } from './lib/config'
 import { changeStage, chooseUnit, getStage, getUnit, MIN_TURNS_FOR_UNIT, mergeProgress, minutesOn, unitById } from './lib/curriculum'
 import { AppError, callGemini, checkKey, checkWriting, dropInventedIntro, errorText, parseTurn, TURN_SCHEMA } from './lib/gemini'
-import { buildSystemPrompt, pushHistory, recentHistory, startMessage, userTag } from './lib/prompt'
+import { buildSystemPrompt, HELP_PHRASE, helpTag, pushHistory, recentHistory, startMessage, userTag } from './lib/prompt'
 import { commitSession, EMPTY_STATS, type SessionData } from './lib/session'
 import {
   currentEnv,
@@ -61,7 +61,7 @@ import {
 } from './lib/storage'
 import { applyImportedSettings, mergeImported, type TransferData } from './lib/transfer'
 import { localDate, normWords, overlap, ro, same, turnSegments } from './lib/text'
-import type { Content, Draft, FixTarget, Lang, Message, Pair, Progress, Segment, Settings } from './lib/types'
+import type { Content, Draft, FixTarget, HelpKind, Lang, Message, Pair, Progress, Segment, Settings } from './lib/types'
 
 // 복습·퀴즈는 창이 아니라 아래 독의 한 칸(탭)이다
 type SheetName = 'settings' | 'wrap' | 'book' | 'course' | 'transfer' | 'warmup' | 'progress' | 'listen' | null
@@ -145,6 +145,8 @@ export default function App() {
   const speakingRef = useRef(false)
   const pendingRepeatRef = useRef('')
   const pickedHintRef = useRef('')
+  // '천천히' 도움 요청 뒤의 AI 답 하나는 느린 속도로 읽는다
+  const slowNextRef = useRef(false)
   // 이 대화의 임시 저장을 한 번이라도 썼는지 (다른 탭이 가져가 지웠는지 알아채는 데 쓴다)
   const draftSavedRef = useRef(false)
   const hiddenAtRef = useRef(0)
@@ -523,7 +525,9 @@ export default function App() {
       if (veiled) unveil(id)
       return
     }
-    const done = await play(turnSegments(turn))
+    const slowNow = slowNextRef.current
+    slowNextRef.current = false
+    const done = await play(turnSegments(turn), slowNow)
     if (veiled) unveil(id)
     if (done) maybeAutoListen(turn.repeat ? 'en' : lastLangRef.current)
   }
@@ -839,6 +843,23 @@ export default function App() {
     if (historyRef.current[historyRef.current.length - 1]?.role === 'user') void aiTurn()
   }
 
+  // 구조 버튼: 그 영어 문장을 먼저 들려주고, [도움 요청] 표시로 친구에게 보낸다. 대화 셈에는 넣지 않는다
+  const sendHelp = async (kind: HelpKind) => {
+    if (!activeRef.current || busyRef.current) return
+    stopListening()
+    const phrase = HELP_PHRASE[kind]
+    await play([{ text: phrase, lang: 'en' }])
+    if (!activeRef.current || busyRef.current) return
+    setMessages((prev) => [...prev.filter((m) => m.kind !== 'error'), { kind: 'me', id: nextId(), text: phrase, lang: 'en', isRepeat: false, help: kind }])
+    pickedHintRef.current = ''
+    setPickedHint('')
+    setMicNotice('')
+    pushHistory(historyRef.current, 'user', `${helpTag(kind)} ${phrase}`)
+    if (kind === 'slow') slowNextRef.current = true
+    setAwaitingReply(true)
+    void aiTurn()
+  }
+
   const pickHint = (h: Pair) => {
     pickedHintRef.current = h.en
     setPickedHint(h.en)
@@ -1053,6 +1074,7 @@ export default function App() {
                     fromHint={m.fromHint}
                     heardWell={m.heardWell}
                     goal={m.goal}
+                    help={m.help}
                   />
                 )
               return (
@@ -1090,6 +1112,7 @@ export default function App() {
               onCancelListen={stopListening}
               onStopSpeaking={stopSpeaking}
               onSend={sendUser}
+              onHelp={(kind) => void sendHelp(kind)}
             />
           )}
         </div>
