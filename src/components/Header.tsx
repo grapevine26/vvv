@@ -40,7 +40,7 @@ export function Header({ friendName, status, turnsText, timeText, onHome, onEnd 
         </div>
       </div>
       <button className="end-pill" id="btnEnd" type="button" onClick={onEnd}>
-        세션 종료
+        대화 끝내기
       </button>
     </header>
   )

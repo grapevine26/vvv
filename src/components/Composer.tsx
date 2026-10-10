@@ -64,7 +64,7 @@ export function Composer(props: Props) {
     guide = notice
     guideClass += ' warn'
   } else if (pickedHint) {
-    guide = `EN을 누르고 "${pickedHint}" 말해 보세요`
+    guide = `영어 버튼을 누르고 "${pickedHint}" 말해 보세요`
   } else if (errorFix !== undefined) {
     // 키·모델 문제는 다시 해도 같은 실패라서, 말풍선의 고치기 버튼을 가리킨다
     guide =
@@ -76,10 +76,10 @@ export function Composer(props: Props) {
     guideClass += ' warn'
   }
   else if (pendingRepeat) {
-    guide = `이제 내 차례! EN을 누르고 "${pendingRepeat}" 따라 말해요`
+    guide = `이제 내 차례! 영어 버튼을 누르고 "${pendingRepeat}" 따라 말해요`
   }
   else if (firstTime) guide = '버튼을 한 번 톡 누르고 말하세요 (누르고 있지 않아도 돼요). 한국어로 대답해도 돼요.'
-  else guide = '내 차례예요! EN 버튼을 누르고 말씀하세요'
+  else guide = '내 차례예요! 영어 버튼을 누르고 말씀하세요'
 
   const micButton = (lang: Lang) => {
     const classes = ['mic', lang]
@@ -99,7 +99,7 @@ export function Composer(props: Props) {
         onClick={() => onMic(lang)}
       >
         <span className="mic-top" aria-hidden="true">
-          {listening === lang ? <Mic className="ico" /> : lang === 'ko' ? '🇰🇷' : '🎙️ EN'}
+          {listening === lang ? <Mic className="ico" /> : lang === 'ko' ? '🇰🇷' : '🎙️ 영어'}
         </span>
         <span className="mic-label">{label}</span>
       </button>

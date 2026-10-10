@@ -179,7 +179,7 @@ test.describe('마무리', () => {
       { say: 'Great!', say_ko: '좋아!', cue: '따라 해 볼까요?', repeat: 'Nice to meet you.', repeat_ko: '만나서 반가워.' },
       'en',
     )
-    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
+    await expect(page.locator('#turnCount')).toHaveText('1/5번 주고받음')
 
     await page.click('#btnEnd')
     const wrap = page.locator('#wrapSheet')
@@ -287,7 +287,7 @@ test.describe('마무리', () => {
     await expect(page.locator('.app')).not.toHaveAttribute('inert')
     await expect(aiBubbles(page)).toHaveCount(2)
     await expect(page.locator('.msg.me')).toHaveCount(1)
-    await expect(page.locator('#turnCount')).toHaveText('1/5 턴 완료')
+    await expect(page.locator('#turnCount')).toHaveText('1/5번 주고받음')
     // 2턴: 한국어로
     await exchange(
       page,
@@ -300,7 +300,7 @@ test.describe('마무리', () => {
     // 대화가 이어졌으니 앞의 대화도 같이 보낸다
     expect(requests[3].body.contents.map((c) => c.role)).toEqual(['user', 'model', 'user', 'model', 'user'])
     expect(lastUserText(requests[3])).toBe('[한국어] 나는 회사원이야')
-    await expect(page.locator('#turnCount')).toHaveText('2/5 턴 완료')
+    await expect(page.locator('#turnCount')).toHaveText('2/5번 주고받음')
 
     // 다시 끝내기 → 남은 횟수가 줄고, 카드는 최근 3문장
     await page.click('#btnEnd')
@@ -711,11 +711,11 @@ test.describe('임시 저장', () => {
     await expect(aiBubbles(page).nth(0)).toContainText('Hi! How are you?')
     await expect(page.locator('.msg.me')).toHaveCount(2)
     await expect(page.locator('.msg.me').nth(1)).toContainText('나는 회사원이야')
-    await expect(page.locator('#turnCount')).toHaveText('2/5 턴 완료')
+    await expect(page.locator('#turnCount')).toHaveText('2/5번 주고받음')
     // 대화한 시간도 이어진다 (15분 중 3분)
     await expect(page.locator('#timer')).toHaveText('12분 남음')
     // 따라 말할 문장도 그대로
-    await expect(page.locator('#guide')).toHaveText('이제 내 차례! EN을 누르고 "I am an office worker." 따라 말해요')
+    await expect(page.locator('#guide')).toHaveText('이제 내 차례! 영어 버튼을 누르고 "I am an office worker." 따라 말해요')
     // 답을 이미 받은 상태였으니 새 요청은 없다
     expect(requests).toHaveLength(3)
 
@@ -729,7 +729,7 @@ test.describe('임시 저장', () => {
     expect(contents[4].parts[0].text).toBe('[한국어] 나는 회사원이야')
     expect(JSON.parse(contents[5].parts[0].text)).toMatchObject({ repeat: 'I am an office worker.' })
     expect(lastUserText(requests[3])).toBe('[따라 말하기 — 목표 문장: "I am an office worker."] I am an office worker')
-    await expect(page.locator('#turnCount')).toHaveText('3/5 턴 완료')
+    await expect(page.locator('#turnCount')).toHaveText('3/5번 주고받음')
     await expect.poll(async () => (await draftOf(page))?.stats.turns).toBe(3)
     expect(errors).toEqual([])
   })
@@ -829,7 +829,7 @@ test.describe('임시 저장', () => {
     queue.push(reply(turn({ say: 'Hello again!', say_ko: '다시 안녕!' })))
     await page.click('#btnStart')
     await expect(aiBubbles(page)).toHaveCount(1)
-    await expect(page.locator('#turnCount')).toHaveText('0/5 턴 완료')
+    await expect(page.locator('#turnCount')).toHaveText('0/5번 주고받음')
     // 새 대화는 처음부터 (앞 대화를 요청에 섞지 않는다)
     expect(requests[requests.length - 1].body.contents).toHaveLength(1)
     const p = await progressIn(page)
@@ -1016,7 +1016,7 @@ test.describe('두 탭', () => {
     await b.page.click('#btnDraftResume')
     await expect(aiBubbles(b.page)).toHaveCount(2)
     await expect(b.page.locator('.msg.me')).toHaveCount(1)
-    await expect(b.page.locator('#turnCount')).toHaveText('1/5 턴 완료')
+    await expect(b.page.locator('#turnCount')).toHaveText('1/5번 주고받음')
     const tabB = await tabIdOf(b.page)
     await expect.poll(() => draftKeys(b.page)).toEqual([K.draft + tabB])
     expect(tabB).not.toBe(tabA)

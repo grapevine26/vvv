@@ -174,7 +174,7 @@ test.describe('1) 단원 마치기', () => {
     ]
     for (const [i, [said, how]] of answers.entries()) {
       await exchange(page, queue, said, { say: 'Cool! Tell me more.', say_ko: '멋지다! 더 말해 줘.' }, how)
-      await expect(page.locator('#turnCount')).toHaveText(`${i + 1}/5 턴 완료`)
+      await expect(page.locator('#turnCount')).toHaveText(`${i + 1}/5번 주고받음`)
     }
     // 4번째까지는 단원 토스트가 없다
     await expect(page.locator('#toast.show')).toHaveCount(0)
@@ -231,7 +231,7 @@ test.describe('1) 단원 마치기', () => {
     expect(systemText(last)).toContain('[오늘 단원] 오늘 기분')
     expect(systemText(last)).toContain('- 연습할 표현: "I\'m tired." / "I\'m happy." / "I\'m so-so."')
     expect(lastUserText(last)).toBe('[대화 시작] 먼저 짧게 인사하고, 오늘 단원 「오늘 기분」 주제로 첫 질문 하나만 해.')
-    await expect(page.locator('#turnCount')).toHaveText('0/5 턴 완료')
+    await expect(page.locator('#turnCount')).toHaveText('0/5번 주고받음')
     expect(errors).toEqual([])
   })
 
@@ -352,7 +352,7 @@ test.describe('2) 시작 화면 #courseCard·#promoProgress', () => {
       unit: '오늘 단원 1 · 인사와 자기소개',
       promo: '다음 단계까지: ✓ 단원 10개/10개 · 영어 대답 40%/50% · ✓ 평균 길이 4.0단어/3단어',
       okCount: 2,
-      tip: '한국어 대신 EN 버튼으로 스스로 대답해 보세요. 짧아도 괜찮아요.',
+      tip: '한국어 대신 영어 버튼으로 스스로 대답해 보세요. 짧아도 괜찮아요.',
     },
     {
       name: '대답 길이만 모자라면',

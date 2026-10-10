@@ -1001,7 +1001,7 @@ export default function App() {
           <Header
             friendName={settings.friendName}
             status={status}
-            turnsText={leftTurns > 0 ? `${turns}/${MIN_TURNS_FOR_UNIT} 턴 완료` : '단원 ✓'}
+            turnsText={leftTurns > 0 ? `${turns}/${MIN_TURNS_FOR_UNIT}번 주고받음` : '단원 ✓'}
             timeText={elapsed >= limitSec ? '시간 됐어요' : `${Math.ceil((limitSec - elapsed) / 60)}분 남음`}
             onHome={() => goTab('home')}
             onEnd={openWrap}

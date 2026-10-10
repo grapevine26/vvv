@@ -119,7 +119,7 @@ export function QuizSheet({ learned, onPlay, onMic, onStopMic, onClose, page }: 
   return (
     <Sheet
       id="quizSheet"
-      title="5분 에빙하우스 복습 퀴즈"
+      title="5분 복습 퀴즈"
       page={page}
       side={phase === 'question' ? `${idx + 1} / ${questions.length} 문제` : undefined}
       onClose={onClose}

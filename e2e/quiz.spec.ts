@@ -98,6 +98,7 @@ test('퀴즈 끝까지: 세 종류를 맞히고 틀리고, 결과·저장값, �
   const { errors, requests } = await open(page, context, learnedOf(SENTENCES))
   await page.click('#btnQuiz')
   await expect(sheet(page)).toBeVisible()
+  await expect(page.locator('#quizSheet-title')).toHaveText('5분 복습 퀴즈')
   await expect(page.locator('#qzIntro')).toContainText('오늘 볼 문장 6개')
   // 들려준 소리로 문장을 알아내니, 다음 문제로 넘기기 전마다 비운다
   await clearSpoken(page)

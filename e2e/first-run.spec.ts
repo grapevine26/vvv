@@ -141,11 +141,14 @@ test.describe('1) 키 없는 첫 화면', () => {
     await expect(guide).toBeVisible()
     await expect(guide.locator('li')).toHaveCount(3)
     await expect(guide).toContainText('「한국어로 말하기」로 대답해도 돼요')
-    await expect(guide).toContainText('「세션 종료」 → 「저장하고 끝내기」')
+    await expect(guide).toContainText('「대화 끝내기」 → 「저장하고 끝내기」')
     await expect(page.locator('#startMsg')).toHaveText('처음이면 "키 넣고 시작하기"를 눌러 Gemini 키부터 넣어요. 2분이면 돼요.')
     await expect(page.locator('#btnStart')).toHaveText('키 넣고 시작하기')
     // 1단계 첫 단원부터
     await expect(page.locator('#courseCard')).toContainText('1단계 · 첫걸음')
+    // 화면 글자는 쉬운 우리말
+    await expect(page.locator('#courseCard .hero-badge')).toHaveText(/^오늘의 단원 dd$/)
+    await expect(page.locator('#btnListen b')).toHaveText('듣고 따라 하기')
     await expect(page.locator('#courseCard .hero-title')).toHaveText('인사와 자기소개')
     // 처음엔 오늘 할 일·연속 일수·승급 진행이 없다
     await expect(page.locator('#todayRoutine')).toHaveCount(0)

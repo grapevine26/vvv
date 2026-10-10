@@ -56,7 +56,7 @@ function promoTip(labels: { label: string; ok: boolean }[], finishedToday: boole
   const missing = labels.find((c) => !c.ok && !(finishedToday && c.label.startsWith('단원')))
   if (!missing) return finishedToday && labels.some((c) => !c.ok) ? '오늘 단원은 마쳤어요. 내일 다음 단원을 이어 가요.' : ''
   if (missing.label.startsWith('단원')) return '오늘 단원을 끝까지 해 봐요.'
-  if (missing.label.includes('비율')) return '한국어 대신 EN 버튼으로 스스로 대답해 보세요. 짧아도 괜찮아요.'
+  if (missing.label.includes('비율')) return '한국어 대신 영어 버튼으로 스스로 대답해 보세요. 짧아도 괜찮아요.'
   return '대답을 한두 단어만 더 길게 해 보세요.'
 }
 
@@ -162,7 +162,7 @@ export function StartScreen(props: Props) {
       <div className="hero" id="courseCard">
         <div className="hero-top">
           <div className="hero-text">
-            <span className="hero-badge">Today's Unit {String(unitNo).padStart(2, '0')}</span>
+            <span className="hero-badge">오늘의 단원 {String(unitNo).padStart(2, '0')}</span>
             <h2 className="hero-title">
               {unit.title}
               {unit.roleplay ? ' (상황극)' : ''}
@@ -236,8 +236,8 @@ export function StartScreen(props: Props) {
       {firstTime && !draft && (
         <ol className="card-box steps first-guide" id="firstGuide">
           <li>{friendName}가 영어로 묻고, 한국어 뜻도 같이 보여 줘요.</li>
-          <li>「한국어로 말하기」로 대답해도 돼요. 노란 칸이 나오면 「EN」을 누르고 따라 말해요.</li>
-          <li>끝낼 땐 오른쪽 위 「세션 종료」 → 「저장하고 끝내기」를 눌러요.</li>
+          <li>「한국어로 말하기」로 대답해도 돼요. 노란 칸이 나오면 「영어」 버튼을 누르고 따라 말해요.</li>
+          <li>끝낼 땐 오른쪽 위 「대화 끝내기」 → 「저장하고 끝내기」를 눌러요.</li>
         </ol>
       )}
 
@@ -299,7 +299,7 @@ export function StartScreen(props: Props) {
           <span className="quick-emoji" aria-hidden="true">
             🎧
           </span>
-          <b>30초 쉐도잉</b>
+          <b>듣고 따라 하기</b>
           <small>원어민 발음 따라하기</small>
         </button>
       </div>
