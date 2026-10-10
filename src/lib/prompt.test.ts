@@ -26,6 +26,17 @@ describe('buildSystemPrompt', () => {
     expect(p).not.toContain('따라 말하기 횟수')
   })
 
+  it('모든 단계: 먼저 대화를 끝내지 말고, 따라 말하기 뒤에도 새 질문으로 내 차례를 넘긴다', () => {
+    for (const n of [1, 4, 6]) {
+      const p = buildSystemPrompt(DEFAULT_SETTINGS, [], changeStage(DEFAULT_PROGRESS, n))
+      expect(p).toContain('대화는 내가 끝내기를 누를 때까지 계속돼. 네가 먼저 작별 인사나 마무리 말')
+      expect(p).toContain('내가 따라 말하기를 마치면 짧게 칭찬하고 바로 새 질문을 해.')
+      // 따라 할 문장은 내 말: 친구의 이름·모르는 내 정보를 지어내지 않고, "Say ~" 같은 지시 없이
+      expect(p).toContain('네 이름이나 네 이야기를 넣지 마.')
+      expect(p).toContain('따라 하라는 지시를 쓰지 마.')
+    }
+  })
+
   it('상황극 단원이면 역할을 맡으라고 한다', () => {
     const roleplay = chooseUnit(changeStage(DEFAULT_PROGRESS, 2), 's2-3')
     expect(buildSystemPrompt(DEFAULT_SETTINGS, [], roleplay)).toContain('상황극이야')

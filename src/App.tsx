@@ -19,7 +19,7 @@ import { countDueBy, loadQuizStats, mergeQuizStats, saveQuizStats } from './lib/
 import { useLatestRef } from './hooks/useLatestRef'
 import { sanitizeSettings, TARGET } from './lib/config'
 import { changeStage, chooseUnit, getStage, getUnit, MIN_TURNS_FOR_UNIT, mergeProgress, minutesOn, unitById } from './lib/curriculum'
-import { AppError, callGemini, checkKey, checkWriting, errorText, parseTurn, TURN_SCHEMA } from './lib/gemini'
+import { AppError, callGemini, checkKey, checkWriting, dropInventedIntro, errorText, parseTurn, TURN_SCHEMA } from './lib/gemini'
 import { buildSystemPrompt, pushHistory, recentHistory, startMessage, userTag } from './lib/prompt'
 import { commitSession, EMPTY_STATS, type SessionData } from './lib/session'
 import {
@@ -482,7 +482,12 @@ export default function App() {
       const sess = sessionRef.current
       const prog = { ...progressRef.current, stage: sess.stage, unit: sess.unit }
       const raw = await callGemini(s, buildSystemPrompt(s, learnedRef.current, prog), recentHistory(historyRef.current), TURN_SCHEMA, controller.signal)
-      turn = parseTurn(raw)
+      // 내가 말한 적 없는 이름으로 자기소개를 따라 하게 하지 않는다 (친구 이름·지어낸 이름)
+      const myWords = historyRef.current
+        .filter((c) => c.role === 'user')
+        .map((c) => c.parts[0].text)
+        .join('\n')
+      turn = dropInventedIntro(parseTurn(raw), s.friendName, myWords)
     } catch (err) {
       if (abortRef.current === controller) abortRef.current = null
       setBusyBoth(false)

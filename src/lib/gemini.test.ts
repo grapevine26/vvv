@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { AppError, callGemini, checkKey, checkWriting, explainApiError, parseJsonLoose, parseTurn, REQUEST_TIMEOUT_MS, TURN_SCHEMA } from './gemini'
+import { AppError, callGemini, checkKey, checkWriting, dropInventedIntro, explainApiError, parseJsonLoose, parseTurn, REQUEST_TIMEOUT_MS, TURN_SCHEMA } from './gemini'
 
 const settings = { apiKey: 'TEST-KEY', model: 'gemini-3.5-flash-lite' }
 const contents = [{ role: 'user' as const, parts: [{ text: 'hi' }] }]
@@ -173,5 +173,23 @@ describe('checkKey', () => {
   it('틀린 키면 키 칸으로 안내', async () => {
     mockFetch(400, { error: { message: 'API key not valid.' } })
     await expect(checkKey(settings)).rejects.toMatchObject({ fix: 'apiKey' })
+  })
+})
+
+describe('dropInventedIntro', () => {
+  const t = (repeat: string) => ({ ...parseTurn(JSON.stringify({ say: "What's your name?", repeat, repeat_ko: '뜻' })) })
+  it('친구 이름이나 내가 말한 적 없는 이름으로 자기소개하면 따라 하기를 뺀다', () => {
+    for (const r of ["Hi, I'm Emma.", "Hi, I'm Minsu.", 'My name is Jisu.', "Hi, I'm", "Hi, I'm ~.", 'My name is ___.']) {
+      const out = dropInventedIntro(t(r), 'Emma', '[대화 시작] 먼저 짧게 인사하고')
+      expect(out).toMatchObject({ repeat: '', cue: '', repeat_ko: '', say: "What's your name?" })
+    }
+  })
+  it('내가 말한 이름이면 그대로 둔다 (내 말을 바르게 바꿔 준 것)', () => {
+    expect(dropInventedIntro(t("Hi, I'm Jisu."), 'Emma', '[한국어] 저는 지수예요, Jisu').repeat).toBe("Hi, I'm Jisu.")
+  })
+  it('이름이 아닌 자기소개(국적·기분)와 다른 문장은 건드리지 않는다', () => {
+    for (const r of ["I'm Korean.", "I'm from Korea.", "I'm happy.", 'I like coffee.']) {
+      expect(dropInventedIntro(t(r), 'Emma', '').repeat).toBe(r)
+    }
   })
 })

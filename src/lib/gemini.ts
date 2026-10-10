@@ -218,6 +218,23 @@ export function parseTurn(text: string): Turn {
   return t
 }
 
+// "I'm Korean"처럼 이름이 아닌 대문자 말 (국적·언어)
+const NOT_A_NAME = /^(korean|american|canadian|japanese|chinese|british|english|australian|french|german|spanish|indian|vietnamese|thai|filipino|okay|ok|fine|good|ready|here|sorry|not|from)$/i
+
+// 따라 할 문장이 내가 말한 적 없는 이름으로 자기소개를 하면(친구 이름이거나 지어낸 이름) 따라 하기를 뺀다.
+// 이름은 내가 먼저 말하게 하고, 그 뒤에 AI가 내 말을 바르게 바꿔 준다. myWords: 지금까지 내가 한 말
+export function dropInventedIntro(turn: Turn, friendName: string, myWords: string): Turn {
+  const drop = { ...turn, cue: '', repeat: '', repeat_ko: '' }
+  // 이름 자리를 비워 둔 미완성 문장 ("Hi, I'm", "My name is ~.")
+  if (/\b(?:I'm|I am|my name is|call me)\s*[~_…]*\s*[.!]?$/i.test(turn.repeat.trim())) return drop
+  const m = /\b(?:I'm|I am|my name is|call me)\s+([A-Z][a-z]+)\b/i.exec(turn.repeat)
+  if (!m) return turn
+  const name = m[1]
+  if (!/^[A-Z]/.test(name) || NOT_A_NAME.test(name)) return turn
+  const mine = name.toLowerCase() !== friendName.trim().toLowerCase() && myWords.toLowerCase().includes(name.toLowerCase())
+  return mine ? turn : drop
+}
+
 export async function checkWriting(
   settings: Pick<Settings, 'apiKey' | 'model'>,
   target: Pair,
