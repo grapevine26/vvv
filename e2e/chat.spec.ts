@@ -1114,6 +1114,41 @@ test.describe('구조 버튼', () => {
     expect(errors).toEqual([])
   })
 
+  test('도움 문장을 읽는 중에 영어 버튼을 누르면 도움 요청은 보내지 않고, 내 말이 그대로 보내진다', async ({ page, context }) => {
+    const { queue, requests, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    await setSpeakDelay(page, 3000)
+    await page.click('#helpAgain')
+    await expect.poll(async () => (await spoken(page)).some((s) => s.text === 'Sorry? Can you say that again?')).toBe(true)
+    await page.click('#micEn')
+    await expect.poll(async () => { const r = await lastRec(page); return !!r && r.started && !r.stopped }).toBe(true)
+    await setSpeakDelay(page, 5)
+    queue.push(reply(turn({ say: 'Cool!', say_ko: '좋아!' })))
+    await say(page, 'I am fine')
+    await expect.poll(() => requests.length).toBe(2)
+    expect(lastUserText(requests[1])).toBe('[영어] I am fine')
+    // 끊긴 도움 문장이 뒤늦게 끝나도 도움 요청을 보내지 않는다
+    await page.waitForTimeout(3500)
+    expect(requests).toHaveLength(2)
+    await expect(page.locator('.msg.me .tag', { hasText: '도움 요청' })).toHaveCount(0)
+    expect(errors).toEqual([])
+  })
+
+  test('도움 문장을 읽는 중에 다른 도움 버튼을 누르면 나중에 누른 것만 보낸다', async ({ page, context }) => {
+    const { queue, requests, errors } = await open(page, context)
+    await startWithGreeting(page, queue)
+    await setSpeakDelay(page, 1500)
+    queue.push(reply(turn({ say: 'Are. You. Okay?', say_ko: '괜찮아?' })))
+    await page.click('#helpAgain')
+    await expect.poll(async () => (await spoken(page)).some((s) => s.text === 'Sorry? Can you say that again?')).toBe(true)
+    await page.click('#helpSlow')
+    await expect.poll(() => requests.length).toBe(2)
+    await page.waitForTimeout(2000)
+    expect(requests).toHaveLength(2)
+    expect(lastUserText(requests[1])).toBe('[도움 요청: 천천히] Slowly, please.')
+    expect(errors).toEqual([])
+  })
+
   test('4단계에서는 구조 버튼이 없다', async ({ page, context }) => {
     const { queue, errors } = await installMocks(context, {
       storage: {

@@ -781,6 +781,16 @@ test.describe('덜 들린 단어 듣기·다시 해 보기', () => {
     expect(errors).toEqual([])
   })
 
+  test('다시 해 보기 버튼과 덜 들린 단어 버튼은 손가락으로 누르기 쉬운 크기(44x44 이상)다', async ({ page, context }) => {
+    const { errors } = await missOnce(page, context)
+    for (const el of [first(page).locator('.btn-retry-say'), first(page).locator('.wm.miss').first()]) {
+      const b = await el.boundingBox()
+      expect(b?.height ?? 0).toBeGreaterThanOrEqual(44)
+      expect(b?.width ?? 0).toBeGreaterThanOrEqual(44)
+    }
+    expect(errors).toEqual([])
+  })
+
   test('다시 해 보기를 또 틀리면 덜 들린 단어 표시가 새 말로 바뀐다', async ({ page, context }) => {
     const { requests, errors } = await missOnce(page, context)
     const n = requests.length

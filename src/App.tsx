@@ -848,8 +848,10 @@ export default function App() {
     if (!activeRef.current || busyRef.current) return
     stopListening()
     const phrase = HELP_PHRASE[kind]
+    // play가 매기는 번호. 읽는 사이 다른 버튼(마이크·다른 도움·그만·탭 이동)이 소리를 끊었으면 보내지 않는다
+    const myPlay = playIdRef.current + 1
     await play([{ text: phrase, lang: 'en' }])
-    if (!activeRef.current || busyRef.current) return
+    if (playIdRef.current !== myPlay || !activeRef.current || busyRef.current) return
     setMessages((prev) => [...prev.filter((m) => m.kind !== 'error'), { kind: 'me', id: nextId(), text: phrase, lang: 'en', isRepeat: false, help: kind }])
     pickedHintRef.current = ''
     setPickedHint('')

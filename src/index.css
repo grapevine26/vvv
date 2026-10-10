@@ -883,10 +883,21 @@ button.follow-btn::after { content: ''; position: absolute; inset: -10px -4px; }
 .wm-label { font-weight: 600; }
 .wm { display: inline-block; margin: 0 2px; padding: 0 4px; border-radius: 6px; }
 .wm.ok { color: var(--muted); }
-button.wm.miss { border: none; font: inherit; cursor: pointer; }
+/* 덜 들린 단어: 눌러서 그 단어만 듣는다. 손가락으로 누르기 쉽게 44px */
+button.wm.miss {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: 0 1px;
+  border: none;
+  font: inherit;
+  cursor: pointer;
+}
 .btn-retry-say {
   margin-top: 6px;
-  min-height: 32px;
+  min-height: 44px;
   padding: 4px 12px;
   border-radius: 999px;
   border: 1px solid var(--border-strong);
